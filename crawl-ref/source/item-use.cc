@@ -2178,8 +2178,8 @@ static void _rebrand_armour(item_def& arm)
             new_ego = random_choose_weighted(1, SPARM_ARCHMAGI,
                                              1, SPARM_FLYING,
                                              2, SPARM_RESISTANCE,
-                                             4, SPARM_COLD_RESISTANCE,
-                                             4, SPARM_FIRE_RESISTANCE,
+                                             2, SPARM_COLD_RESISTANCE,
+                                             2, SPARM_FIRE_RESISTANCE,
                                              4, SPARM_POSITIVE_ENERGY,
                                              8, SPARM_MAGIC_RESISTANCE);
         }
@@ -2190,10 +2190,10 @@ static void _rebrand_armour(item_def& arm)
         {
             new_ego = random_choose_weighted(1, SPARM_FLYING,
                                              2, SPARM_RESISTANCE,
-                                             3, SPARM_COLD_RESISTANCE,
-                                             3, SPARM_FIRE_RESISTANCE,
-                                             3, SPARM_POSITIVE_ENERGY,
-                                             5, SPARM_MAGIC_RESISTANCE);
+                                             4, SPARM_POSITIVE_ENERGY,
+                                             4, SPARM_MAGIC_RESISTANCE,
+                                             5, SPARM_COLD_RESISTANCE,
+                                             5, SPARM_FIRE_RESISTANCE);
         }
         else if (armtype == ARM_PLATE_ARMOUR)
         {
@@ -2201,8 +2201,9 @@ static void _rebrand_armour(item_def& arm)
                                              26, SPARM_COLD_RESISTANCE,
                                              19, SPARM_POISON_RESISTANCE,
                                              15, SPARM_MAGIC_RESISTANCE,
-                                              7, SPARM_POSITIVE_ENERGY,
-                                              7, SPARM_PONDEROUSNESS);
+                                              9, SPARM_POSITIVE_ENERGY,
+                                              6, SPARM_PONDEROUSNESS,
+                                              2, SPARM_FLYING);
         }
         else if (armtype == ARM_CRYSTAL_PLATE_ARMOUR)
         {
@@ -2210,9 +2211,9 @@ static void _rebrand_armour(item_def& arm)
                                              26, SPARM_COLD_RESISTANCE,
                                              19, SPARM_POISON_RESISTANCE,
                                              15, SPARM_MAGIC_RESISTANCE,
-                                              7, SPARM_POSITIVE_ENERGY,
-                                              7, SPARM_PONDEROUSNESS,
-                                              5, SPARM_FLYING);
+                                              9, SPARM_POSITIVE_ENERGY,
+                                              6, SPARM_PONDEROUSNESS,
+                                              1, SPARM_FLYING);
         }
         else if (armtype == ARM_CLOAK)
         {
@@ -2231,38 +2232,38 @@ static void _rebrand_armour(item_def& arm)
         }
         else if (armtype == ARM_HAT)
         {
-            new_ego = random_choose_weighted(7, SPARM_MAGIC_RESISTANCE,
-                                             5, SPARM_INTELLIGENCE,
-                                             5, SPARM_SEE_INVISIBLE);
+            new_ego = random_choose_weighted(11, SPARM_MAGIC_RESISTANCE,
+                                              7, SPARM_INTELLIGENCE,
+                                              5, SPARM_SEE_INVISIBLE);
         }
         else if (armtype == ARM_HELMET)
         {
-            new_ego = random_choose(SPARM_SEE_INVISIBLE,
-                                    SPARM_INTELLIGENCE);
+            new_ego = random_choose_weighted(7, SPARM_INTELLIGENCE,
+                                             5, SPARM_SEE_INVISIBLE,
+                                             2, SPARM_MAGIC_RESISTANCE);
         }
         else if (armtype == ARM_GLOVES)
         {
-            new_ego = random_choose(SPARM_DEXTERITY,
-                                    SPARM_STRENGTH,
-                                    SPARM_ARCHERY);
+            new_ego = random_choose_weighted(5, SPARM_ARCHERY,
+                                             3, SPARM_DEXTERITY,
+                                             2, SPARM_STRENGTH);
         }
         else if (armtype == ARM_BOOTS)
         {
-            new_ego = random_choose(SPARM_RUNNING,
-                                    SPARM_FLYING,
-                                    SPARM_STEALTH);
+            new_ego = random_choose_weighted(9, SPARM_RUNNING,
+                                             5, SPARM_STEALTH,
+                                             1, SPARM_FLYING);
         }
         else if (armtype == ARM_BUCKLER
                  || armtype == ARM_SHIELD
                  || armtype == ARM_LARGE_SHIELD)
         {
-            new_ego = random_choose_weighted(12, SPARM_PROTECTION,
-                                             10, SPARM_REFLECTION,
-                                              3, SPARM_POSITIVE_ENERGY,
-                                              3, SPARM_POISON_RESISTANCE,
-                                              3, SPARM_COLD_RESISTANCE,
-                                              3, SPARM_FIRE_RESISTANCE,
-                                              2, SPARM_RESISTANCE);
+            new_ego = random_choose_weighted(17, SPARM_PROTECTION,
+                                              9, SPARM_REFLECTION,
+                                              5, SPARM_POISON_RESISTANCE,
+                                              5, SPARM_COLD_RESISTANCE,
+                                              5, SPARM_FIRE_RESISTANCE,
+                                              4, SPARM_RESISTANCE);
         }
         else if (armtype == ARM_ANIMAL_SKIN
                  || armtype == ARM_TROLL_LEATHER_ARMOUR
@@ -2277,18 +2278,18 @@ static void _rebrand_armour(item_def& arm)
                  || armtype == ARM_SHADOW_DRAGON_ARMOUR
                  || armtype == ARM_QUICKSILVER_DRAGON_ARMOUR)
         {
-            new_ego = random_choose(SPARM_STRENGTH,
-                                    SPARM_DEXTERITY,
-                                    SPARM_RESISTANCE,
-                                    SPARM_POSITIVE_ENERGY);
+            new_ego = random_choose_weighted(13, SPARM_STRENGTH,
+                                             10, SPARM_DEXTERITY,
+                                              7, SPARM_RESISTANCE,
+                                              7, SPARM_POSITIVE_ENERGY);
         }
         else if (armtype == ARM_CENTAUR_BARDING
                  || armtype == ARM_NAGA_BARDING)
         {
-            new_ego = random_choose(SPARM_FLYING,
-                                    SPARM_STEALTH,
-                                    SPARM_COLD_RESISTANCE,
-                                    SPARM_FIRE_RESISTANCE);
+            new_ego = random_choose_weighted(13, SPARM_STEALTH,
+                                              9, SPARM_COLD_RESISTANCE,
+                                              9, SPARM_FIRE_RESISTANCE,
+                                              2, SPARM_FLYING);
         }
     }
 
@@ -2351,19 +2352,19 @@ static void _brand_armour(item_def &arm)
     switch (get_armour_ego_type(arm))
     {
     case SPARM_ARCHERY:
-        flash_colour = BROWN;
-        mprf("%s begins glowing with a dim light!",itname.c_str());
+        flash_colour = LIGHTCYAN;
+        mprf("%s feels very precise!",itname.c_str());
         break;
     case SPARM_ARCHMAGI:
         flash_colour = MAGENTA;
         mprf("%s emits a brilliant flash of light!",itname.c_str());
         break;
     case SPARM_CLOUD_IMMUNE:
-        flash_colour = LIGHTGREEN;
+        flash_colour = LIGHTBLUE;
         mprf("%s emits a cloud barrier!",itname.c_str());
         break;
     case SPARM_COLD_RESISTANCE:
-        flash_colour = CYAN;
+        flash_colour = BLUE;
         mprf("%s feels warm to the touch!",itname.c_str());
         break;
     case SPARM_DEXTERITY:
@@ -2371,11 +2372,11 @@ static void _brand_armour(item_def &arm)
         mprf("%s exudes dexterity!",itname.c_str());
         break;
     case SPARM_FIRE_RESISTANCE:
-        flash_colour = RED;
+        flash_colour = LIGHTRED;
         mprf("%s feels cool to the touch!",itname.c_str());
         break;
     case SPARM_FLYING:
-        flash_colour = BROWN;
+        flash_colour = LIGHTBLUE;
         mprf("%s spurts out wings from the sides!",itname.c_str());
         break;
     case SPARM_INTELLIGENCE:
@@ -2383,7 +2384,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s exudes intelligence!",itname.c_str());
         break;
     case SPARM_INVISIBILITY:
-        flash_colour = BLACK;
+        flash_colour = WHITE;
         mprf("%s shimmers in and out of sight!",itname.c_str());
         break;
     case SPARM_MAGIC_RESISTANCE:
@@ -2391,7 +2392,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s projects a faint barrier against magic!",itname.c_str());
         break;
     case SPARM_POISON_RESISTANCE:
-        flash_colour = GREEN;
+        flash_colour = LIGHTGREEN;
         mprf("%s shrouds itself in antivenom!",itname.c_str());
         break;
     case SPARM_PONDEROUSNESS:
@@ -2399,7 +2400,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s dimly glows.",itname.c_str());
         break;
     case SPARM_POSITIVE_ENERGY:
-        flash_colour = WHITE;
+        flash_colour = MAGENTA;
         mprf("%s emits smiles!",itname.c_str());
         break;
     case SPARM_PROTECTION:
@@ -2407,15 +2408,15 @@ static void _brand_armour(item_def &arm)
         mprf("%s hardens!",itname.c_str());
         break;
     case SPARM_REFLECTION:
-        flash_colour = YELLOW;
+        flash_colour = CYAN;
         mprf("%s produces a reflective barrier!",itname.c_str());
         break;
     case SPARM_REPULSION:
-        flash_colour = CYAN;
+        flash_colour = LIGHTBLUE;
         mprf("%s feels repulsive!",itname.c_str());
         break;
     case SPARM_RESISTANCE:
-        flash_colour = MAGENTA;
+        flash_colour = LIGHTCYAN;
         mprf("%s resists temperature!",itname.c_str());
         break;
     case SPARM_RUNNING:
@@ -2427,11 +2428,11 @@ static void _brand_armour(item_def &arm)
         mprf("%s expands your vision!",itname.c_str());
         break;
     case SPARM_SPIRIT_SHIELD:
-        flash_colour = CYAN;
+        flash_colour = MAGENTA;
         mprf("%s synchronizes with magic!",itname.c_str());
         break;
     case SPARM_STEALTH:
-        flash_colour = BLACK;
+        flash_colour = DARKGREY;
         mprf("%s absorbs sound!",itname.c_str());
         break;
     case SPARM_STRENGTH:

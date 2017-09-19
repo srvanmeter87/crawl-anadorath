@@ -565,9 +565,11 @@ unsigned int item_value(item_def item, bool ident)
             case SCR_ACQUIREMENT:
                 valued += 520;
                 break;
-
-            case SCR_BRAND_WEAPON:
+            
             case SCR_BRAND_ARMOUR:
+                valued += 370;
+                break;
+            case SCR_BRAND_WEAPON:
                 valued += 200;
                 break;
 

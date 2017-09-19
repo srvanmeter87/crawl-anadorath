@@ -1453,7 +1453,7 @@ static void _generate_scroll_item(item_def& item, int force_type,
                  15, (depth_mod < 4 ? NUM_SCROLLS : SCR_BRAND_WEAPON),
                  15, (depth_mod < 4 ? NUM_SCROLLS : SCR_TORMENT),
                  15, (depth_mod < 4 ? NUM_SCROLLS : SCR_HOLY_WORD),
-                 10, (depth_mod < 4 ? NUM_SCROLLS : SCR_BRAND_ARMOUR));
+                 11, (depth_mod < 4 ? NUM_SCROLLS : SCR_BRAND_ARMOUR));
         }
         while (item.sub_type == NUM_SCROLLS
                || agent == GOD_XOM

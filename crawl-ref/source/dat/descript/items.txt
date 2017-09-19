@@ -942,9 +942,9 @@ contaminated with magical energy.
 %%%%
 scroll of brand armour
 
-A scroll that imbues a piece of armour with a random ego, such as resistance,
-strength, or, in rare cases, flying. Any existing ego will be replaced.
-Artefacts cannot be branded in this way.
+A rare scroll that imbues a piece of armour with a random ego, such as
+fire, cold or poison resistance, among others. Any existing ego will be
+replaced. Artefacts cannot be branded in this way.
 %%%%
 scroll of brand weapon
 
