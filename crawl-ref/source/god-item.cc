@@ -249,6 +249,18 @@ bool is_chaotic_item(const item_def& item)
     return retval;
 }
 
+bool is_antichaotic_item(const item_def& item)
+{
+    const int item_brand = get_ammo_brand(item);
+    
+    if (item_brand == SPMSL_SILVER)
+    {
+        return true;
+    }
+
+    return false;
+}
+
 static bool _is_potentially_hasty_item(const item_def& item)
 {
     switch (item.base_type)
@@ -339,6 +351,140 @@ static bool _is_potentially_fiery_item(const item_def& item)
     return false;
 }
 
+bool is_earthy_item(const item_def& item)
+{
+    switch (item.base_type)
+    {
+    case OBJ_WEAPONS:
+        {
+        const int item_brand = get_weapon_brand(item);
+        if (item_brand == SPWPN_PROTECTION
+            || item_brand == SPWPN_PENETRATION
+            || item_brand == SPWPN_REAPING)
+            return true;
+        }
+        break;
+    case OBJ_WANDS:
+        if (item.sub_type == WAND_PARALYSIS
+            || item.sub_type == WAND_DIGGING
+            || item.sub_type == WAND_DISINTEGRATION
+            || item.sub_type == WAND_SCATTERSHOT)
+            return true;
+        break;
+    case OBJ_SCROLLS:
+        if (item.sub_type == SCR_MAGIC_MAPPING
+            || item.sub_type == SCR_TORMENT
+            || item.sub_type == SCR_SUMMONING)
+            return true;
+        break;
+    case OBJ_BOOKS:
+        return _is_book_type(item, is_earthy_spell);
+        break;
+    case OBJ_STAVES:
+        if (item.sub_type == STAFF_EARTH)
+            return true;
+        break;
+    case OBJ_MISCELLANY:
+        if (item.sub_type == MISC_BOX_OF_BEASTS
+            || item.sub_type == MISC_SACK_OF_SPIDERS)
+            return true;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+
+}
+
+bool is_airy_item(const item_def& item)
+{
+    switch (item.base_type)
+    {
+    case OBJ_WEAPONS:
+        {
+        const int item_brand = get_weapon_brand(item);
+        if (item_brand == SPWPN_SPEED
+            || item_brand == SPWPN_VORPAL
+            || item_brand == SPWPN_ELECTROCUTION)
+            return true;
+        }
+        break;
+    case OBJ_WANDS:
+        if (item.sub_type == WAND_CONFUSION
+            || item.sub_type == WAND_LIGHTNING
+            || item.sub_type == WAND_CLOUDS)
+            return true;
+        break;
+    case OBJ_SCROLLS:
+        if (item.sub_type == SCR_NOISE
+            || item.sub_type == SCR_FOG
+            || item.sub_type == SCR_SILENCE
+            || item.sub_type == SCR_AMNESIA)
+            return true;
+        break;
+    case OBJ_BOOKS:
+        return _is_book_type(item, is_airy_spell);
+        break;
+    case OBJ_STAVES:
+        if (item.sub_type == STAFF_AIR)
+            return true;
+        break;
+    case OBJ_MISCELLANY:
+        if (item.sub_type == MISC_FAN_OF_GALES)
+            return true;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
+bool is_icy_item(const item_def& item)
+{
+    switch (item.base_type)
+    {
+    case OBJ_WEAPONS:
+        {
+        const int item_brand = get_weapon_brand(item);
+        if (item_brand == SPWPN_FREEZING)
+            return true;
+        }
+        break;
+#if TAG_MAJOR_VERSION == 34
+    case OBJ_MISSILES:
+        {
+        const int item_brand = get_ammo_brand(item);
+        if (item_brand == SPMSL_FROST)
+            return true;
+        }
+        break;
+#endif
+    case OBJ_WANDS:
+        if (item.sub_type == WAND_ICEBLAST)
+            return true;
+        break;
+    case OBJ_SCROLLS:
+        break;
+    case OBJ_BOOKS:
+        return _is_book_type(item, is_icy_spell);
+        break;
+    case OBJ_STAVES:
+        if (item.sub_type == STAFF_COLD)
+            return true;
+        break;
+    case OBJ_MISCELLANY:
+        if (item.sub_type == MISC_PHIAL_OF_FLOODS)
+            return true;
+        break;
+    default:
+        break;
+    }
+
+    return false;
+}
+
 bool is_fiery_item(const item_def& item)
 {
     switch (item.base_type)
@@ -346,7 +492,7 @@ bool is_fiery_item(const item_def& item)
     case OBJ_WEAPONS:
         {
         const int item_brand = get_weapon_brand(item);
-        if (item_brand == SPWPN_FLAMING)
+        if (item_brand == SPWPN_FREEZING)
             return true;
         }
         break;
@@ -447,6 +593,27 @@ bool is_fiery_spell(spell_type spell)
     return bool(disciplines & SPTYP_FIRE);
 }
 
+bool is_airy_spell(spell_type spell)
+{
+    const spschools_type disciplines = get_spell_disciplines(spell);
+
+    return bool(disciplines & SPTYP_AIR);
+}
+
+bool is_earthy_spell(spell_type spell)
+{
+    const spschools_type disciplines = get_spell_disciplines(spell);
+
+    return bool(disciplines & SPTYP_EARTH);
+}
+
+bool is_icy_spell(spell_type spell)
+{
+    const spschools_type disciplines = get_spell_disciplines(spell);
+
+    return bool(disciplines & SPTYP_ICE);
+}
+
 static bool _your_god_hates_spell(spell_type spell)
 {
     return god_hates_spell(spell, you.religion);
@@ -491,11 +658,12 @@ conduct_type god_hates_item_handling(const item_def &item)
     switch (you.religion)
     {
     case GOD_ZIN:
-        // Handled here rather than is_forbidden_food() because you can
-        // butcher or otherwise desecrate the corpses all you want, just as
-        // long as you don't eat the chunks. This check must come before the
-        // item_type_known() check because the latter returns false for food
-        // (and other item types without identification).
+        /** Handled here rather than is_forbidden_food() because you can
+         *  butcher or otherwise desecrate the corpses all you want, just as
+         *  long as you don't eat the chunks. This check must come before the
+         *  item_type_known() check because the latter returns false for food
+         *  (and other item types without identification).
+         */
         if (item.is_type(OBJ_FOOD, FOOD_CHUNK) && is_mutagenic(item))
             return DID_DELIBERATE_MUTATING;
 
@@ -549,7 +717,33 @@ conduct_type god_hates_item_handling(const item_def &item)
 
     case GOD_PAKELLAS:
         if (item_type_known(item) && is_channeling_item(item))
+        {
             return DID_CHANNEL;
+        }
+        break;
+    
+    case GOD_ANADORATH:
+        if (!item_type_known(item))
+            return DID_NOTHING;
+
+        if (item_type_known(item) && is_holy_item(item))
+            return DID_HOLY;
+
+        if (item_type_known(item)
+            && (is_antichaotic_item(item)
+                || is_holy_item(item)
+                || item.is_type(OBJ_JEWELLERY, AMU_GUARDIAN_SPIRIT)
+                || item.is_type(OBJ_JEWELLERY, AMU_RAGE)
+                || item.is_type(OBJ_POTIONS, POT_BERSERK_RAGE)
+                || item.is_type(OBJ_POTIONS, POT_CANCELLATION)
+                || item.is_type(OBJ_POTIONS, POT_CURE_MUTATION) // DID_ANTIMUTATION?
+                || item.is_type(OBJ_POTIONS, POT_RESISTANCE)
+                || item.is_type(OBJ_SCROLLS, SCR_AMNESIA)
+                || item.is_type(OBJ_SCROLLS, SCR_SILENCE)
+                || item.is_type(OBJ_SCROLLS, SCR_VULNERABILITY)))
+        {
+            return DID_ANTIMAGIC;
+        }
         break;
 
     default:
@@ -590,6 +784,15 @@ bool god_likes_item_type(const item_def &item, god_type which_god)
     // XXX: also check god_hates_item()?
     switch (which_god)
     {
+        case GOD_ANADORATH:
+            if (item.is_type(OBJ_JEWELLERY, AMU_GUARDIAN_SPIRIT)
+                || item.is_type(OBJ_JEWELLERY, AMU_RAGE)
+                || item.is_type(OBJ_JEWELLERY, RING_PROTECTION_FROM_MAGIC))
+            {
+                return false;
+            }
+            break;
+
         case GOD_ELYVILON:
             // Peaceful healer god: no weapons, no berserking.
             if (item.base_type == OBJ_WEAPONS)

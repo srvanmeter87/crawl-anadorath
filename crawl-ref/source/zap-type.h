@@ -84,5 +84,6 @@ enum zap_type
     ZAP_DRAIN_MAGIC,
     ZAP_BECKONING,
     ZAP_FIRE_STORM,
+    ZAP_ELEMENTAL_BLAST,
     NUM_ZAPS
 };

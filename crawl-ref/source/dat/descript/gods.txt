@@ -2,6 +2,14 @@
 # Why should they worship this god? What are the advantages & limitations?
 # What's 'cool' about this god?
 %%%%
+Anadorath
+
+Master of the primal elements, Anadorath keeps watch over the use of them.
+Though never appearing itself, he evokes his will through the elementals of
+the world. Devoted followers will find that those infused with primal energies
+will be less hostile and possibly even friendly toward them. Angered, the god
+will personally blast the usurper with primal energy.
+%%%%
 Ashenzari
 
 While it seems inconceivable that the divine could be shackled, Ashenzari is
@@ -216,6 +224,12 @@ intelligent beings. They must also tithe a fraction of all gold gained,
 preferably followed by donations of more. In exchange, worshippers may invoke
 Zin's wrath upon sinners, and eventually gain various divine protections. Zin's
 followers can convert to Elyvilon or the Shining One while keeping some piety.
+%%%%
+Anadorath powers
+
+Anadorath gifts followers with the ability to form a shield from the primal
+elements. As they reach higher favour, elementals of the world will cease
+hostilities, even begin to view them with favour.
 %%%%
 Ashenzari powers
 
@@ -478,6 +492,10 @@ Later, followers gain the ability to imprison their foes temporarily. Followers
 can eventually find temporary safety in a divine refuge. As piety grows,
 followers will be protected from mutation, and Zin may even occasionally
 directly intervene to save a follower's life.
+%%%%
+Anadorath wrath
+
+When angered, Anadorath will occasionally blast offenders with primal energies.
 %%%%
 Ashenzari wrath
 

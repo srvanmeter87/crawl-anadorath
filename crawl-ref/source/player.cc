@@ -1335,7 +1335,16 @@ int player_res_fire(bool calc_unid, bool temp, bool items)
     rf -= you.get_mutation_level(MUT_HEAT_VULNERABILITY, temp);
     rf -= you.get_mutation_level(MUT_TEMPERATURE_SENSITIVITY, temp);
     rf += you.get_mutation_level(MUT_MOLTEN_SCALES, temp) == 3 ? 1 : 0;
+    // god passives:
+    if (have_passive(passive_t::elemental_resist))
+    {
+        if (have_passive(passive_t::elemental_resist_plus))
+        {
+            rf++;
+        }
 
+        rf++;
+    }
     // spells:
     if (temp)
     {
@@ -1375,7 +1384,17 @@ int player_res_steam(bool calc_unid, bool temp, bool items)
         if (body_armour)
             res += armour_type_prop(body_armour->sub_type, ARMF_RES_STEAM) * 2;
     }
+    
+    if (have_passive(passive_t::elemental_resist))
+    {
+        if (have_passive(passive_t::elemental_resist_plus))
+        {
+            res++;
+        }
 
+        res++;
+    }
+        
     res += rf * 2;
 
     if (res > 2)
@@ -1383,7 +1402,76 @@ int player_res_steam(bool calc_unid, bool temp, bool items)
 
     return res;
 }
+/**
+int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
+{
+    int rec = 0;
 
+    if (you.species == SP_PYROLITH || you.species == SP_GARGOYLE)
+        return 5000;
+
+    if (temp)
+    {
+        if (you.duration[DUR_RESISTANCE])
+            rec += 2;
+
+        if (you.duration[DUR_FIRE_VULN])
+            rec -= 2;
+
+        if (you.duration[DUR_ICY_ARMOUR])
+            rec--;
+
+        if (you.duration[DUR_LOWERED_MR])
+            rec -= 3;
+
+        if (you.duration[DUR_MAGIC_ARMOUR])
+            rec++;
+
+        if (you.duration[DUR_MAGIC_SHIELD])
+            rec++;
+    }
+
+    if (items)
+    {
+        // cloud immunity
+        if (you.wearing_ego(EQ_ALL_ARMOUR, SPARM_CLOUD_IMMUNE) > 0)
+            return 5000;
+
+        // rings of magic resistance
+        rec += you.wearing(EQ_RINGS, RING_PROTECTION_FROM_MAGIC, calc_unid);
+        
+        // rings of magic boosting
+        rec += you.wearing(EQ_RINGS, RING_MAGICAL_POWER, calc_unid);
+        rec += you.wearing(EQ_RINGS, RING_WIZARDRY, calc_unid);
+
+        // staves
+        rec += you.wearing(EQ_STAFF, STAFF_ENERGY, calc_unid);
+        rec += you.wearing(EQ_STAFF, STAFF_POWER, calc_unid);
+        rec += you.wearing(EQ_STAFF, STAFF_WIZARDRY, calc_unid);
+
+        // body armour
+        const item_def *body_armour = you.slot_item(EQ_BODY_ARMOUR);
+        if (body_armour)
+            rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
+        
+        // ego armours
+        rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
+        rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_CLOUD_IMMUNE) * 10;
+        rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_MAGIC_RESISTANCE) / 2;
+        rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_RESISTANCE) / 2;
+        rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_SPIRIT_SHIELD);
+
+        // randarts
+        rec += you.scan_artefacts(ARTP_MAGIC_RESISTANCE, calc_unid);
+        rec += you.scan_artefacts(ARTP_MAGICAL_POWER, calc_unid);
+
+        // dragonskin cloak
+        if (calc_unid && player_equip_unrand(UNRAND_DRAGONSKIN) && coinflip())
+            rc++;
+
+    }
+}
+**/
 int player_res_cold(bool calc_unid, bool temp, bool items)
 {
     int rc = 0;
@@ -1408,6 +1496,16 @@ int player_res_cold(bool calc_unid, bool temp, bool items)
             else if (you.hunger_state < HS_SATIATED)
                 rc++;
         }
+    }
+
+    if (have_passive(passive_t::elemental_resist))
+    {
+        if (have_passive(passive_t::elemental_resist_plus))
+        {
+            rc++;
+        }
+
+        rc++;
     }
 
     if (items)
@@ -1507,7 +1605,11 @@ int player_res_electricity(bool calc_unid, bool temp, bool items)
         if (calc_unid && player_equip_unrand(UNRAND_DRAGONSKIN) && coinflip())
             re++;
     }
-
+    // god passives:
+    if (have_passive(passive_t::elemental_resist))
+    {
+        re++;
+    }    
     // mutations:
     re += you.get_mutation_level(MUT_THIN_METALLIC_SCALES, temp) == 3 ? 1 : 0;
     re += you.get_mutation_level(MUT_SHOCK_RESISTANCE, temp);
@@ -2291,6 +2393,21 @@ int player_shield_class()
     shield += you.wearing(EQ_AMULET_PLUS, AMU_REFLECTION) * 200;
     shield += you.scan_artefacts(ARTP_SHIELDING) * 200;
 
+    // god passives
+    // +4, +7, +10 (displayed values)
+    if (have_passive(passive_t::elemental_buckler))
+    {
+        shield += 800;
+    }
+    if (have_passive(passive_t::elemental_shield))
+    {
+        shield += 600;
+    }
+    if (have_passive(passive_t::elemental_protection))
+    {
+        shield += 600;
+    }
+    
     return (shield + 50) / 100;
 }
 
@@ -5572,6 +5689,9 @@ int player::shield_block_penalty() const
 bool player::shielded() const
 {
     return shield()
+           || have_passive(passive_t::elemental_protection)
+           || have_passive(passive_t::elemental_shield)
+           || have_passive(passive_t::elemental_buckler)
            || duration[DUR_DIVINE_SHIELD]
            || get_mutation_level(MUT_LARGE_BONE_PLATES) > 0
            || qazlal_sh_boost() > 0
@@ -5614,7 +5734,9 @@ int player::missile_deflection() const
     if (get_mutation_level(MUT_DISTORTION_FIELD) == 3
         || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
         || scan_artefacts(ARTP_RMSL, true)
-        || have_passive(passive_t::upgraded_storm_shield))
+        || have_passive(passive_t::upgraded_storm_shield)
+        || have_passive(passive_t::elemental_shield)
+        || have_passive(passive_t::elemental_protection))
     {
         return 1;
     }
@@ -5863,7 +5985,7 @@ int player::racial_ac(bool temp) const
     {
         if (species == SP_NAGA)
             return 100 * experience_level / 3;              // max 9
-        else if (species == SP_GARGOYLE)
+        else if (species == SP_GARGOYLE || species == SP_PYROLITH)
         {
             return 200 + 100 * experience_level * 2 / 5     // max 20
                        + 100 * (max(0, experience_level - 7) * 2 / 5);
@@ -5971,6 +6093,13 @@ int player::armour_class(bool /*calc_unid*/) const
 
     if (duration[DUR_CORROSION])
         AC -= 400 * you.props["corrosion_amount"].get_int();
+    
+    // Anadorath's elemental resistances
+    if (have_passive(passive_t::elemental_resist))
+        AC += 300;
+
+    if (have_passive(passive_t::elemental_resist_plus))
+        AC += 600;
 
     AC += _bone_armour_bonus();
     AC += sanguine_armour_bonus();
@@ -6005,7 +6134,7 @@ int player::gdr_perc() const
 
     const item_def *body_armour = slot_item(EQ_BODY_ARMOUR, false);
 
-    int body_base_AC = (species == SP_GARGOYLE ? 5 : 0);
+    int body_base_AC = ((species == SP_GARGOYLE || species == SP_PYROLITH) ? 5 : 0);
     if (body_armour)
         body_base_AC += property(*body_armour, PARM_AC);
 
@@ -6058,7 +6187,7 @@ mon_holy_type player::holiness(bool temp) const
 {
     mon_holy_type holi = undead_state(temp) ? MH_UNDEAD : MH_NATURAL;
 
-    if (species == SP_GARGOYLE ||
+    if ((species == SP_GARGOYLE || species == SP_PYROLITH) ||
         temp && (form == transformation::statue
                  || form == transformation::wisp || petrified()))
     {
@@ -6211,7 +6340,12 @@ int player::res_negative_energy(bool intrinsic_only) const
 {
     return player_prot_life(!intrinsic_only, true, !intrinsic_only);
 }
-
+/**
+    int player::res_elemental_chaos() const
+    {
+        return player_res_elemental_chaos;
+    }
+ */
 bool player::res_torment() const
 {
     return player_res_torment();

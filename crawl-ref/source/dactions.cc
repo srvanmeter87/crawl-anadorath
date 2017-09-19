@@ -38,7 +38,10 @@ static const char *daction_names[] =
     "beogh orcs and their summons go hostile",
     "fellow slimes go hostile",
     "plants go hostile (allowing reconversion)",
-    0, 0, 0, 0, 0, 0, 0, 0,
+    "elementals revert to neutral (allowing re-reversion)",
+    "elementals go hostile (allowing reconversion)",
+    "elementals allow another conversion attempt",
+    0, 0, 0, 0, 0,
 
     // Actions not needing a counter.
     "old enslaved souls go poof",
@@ -99,6 +102,15 @@ bool mons_matches_daction(const monster* mon, daction_type act)
         // No check for friendliness since we pretend all plants became friendly
         // the moment you converted to Fedhas.
         return mons_is_plant(*mon);
+    case DACT_ALLY_ELEMENTAL:
+        // Anadorath's elementals.
+        return mon->wont_attack() && mons_is_god_gift(*mon, GOD_ANADORATH);
+    case DACT_NEUTRAL_ELEMENTAL:
+    case DACT_ELEMENTAL_NEW_ATTEMPT:
+        return mons_is_airy(*mon)
+               || mons_is_earthy(*mon)
+               || mons_is_fiery(*mon)
+               || mons_is_icy(*mon);
     case DACT_ALLY_HEPLIAKLQANA:
     case DACT_UPGRADE_ANCESTOR:
         return mon->wont_attack() && mons_is_god_gift(*mon, GOD_HEPLIAKLQANA);
@@ -207,6 +219,28 @@ void apply_daction_to_mons(monster* mon, daction_type act, bool local,
                 mon->flags &= ~MF_ATT_CHANGE_ATTEMPT;
             break;
 
+        case DACT_ALLY_ELEMENTAL:
+            simple_monster_message(*mon, " senses your lack of devotion to Anadorath.");
+            mon->attitude = ATT_GOOD_NEUTRAL;
+            if (local)
+                behaviour_event(mon, ME_ALERT, &you);
+            mons_att_changed(mon);
+            mon->flags &= ~MF_ATT_CHANGE_ATTEMPT;
+            break;
+        case DACT_NEUTRAL_ELEMENTAL:
+            simple_monster_message(*mon, " views you as unworthy of an alliance!");
+            mon->attitude = ATT_HOSTILE;
+            mon->del_ench(ENCH_CHARM, true);
+            if (local)
+                behaviour_event(mon, ME_ALERT, &you);
+            mons_att_changed(mon);
+            mon->flags &= ~MF_ATT_CHANGE_ATTEMPT;
+            break;
+
+        case DACT_ELEMENTAL_NEW_ATTEMPT:
+            mon->flags &= ~MF_ATT_CHANGE_ATTEMPT;
+            break;
+
         case DACT_ALLY_HEPLIAKLQANA:
             simple_monster_message(*mon, " returns to the mists of memory.");
             monster_die(*mon, KILL_DISMISSED, NON_MONSTER);
@@ -280,6 +314,9 @@ static void _apply_daction(daction_type act)
     case DACT_ALLY_HEPLIAKLQANA:
     case DACT_ALLY_SLIME:
     case DACT_ALLY_PLANT:
+    case DACT_ALLY_ELEMENTAL:
+    case DACT_NEUTRAL_ELEMENTAL:
+    case DACT_ELEMENTAL_NEW_ATTEMPT:
     case DACT_OLD_ENSLAVED_SOULS_POOF:
     case DACT_SLIME_NEW_ATTEMPT:
     case DACT_PIKEL_SLAVES:

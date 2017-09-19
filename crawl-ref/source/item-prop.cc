@@ -233,7 +233,7 @@ struct weapon_def
      redundant with having base damage and delay to modify - it is similar to
      being able to adjust the rarity of different base types of weapons.
 
- 2)  The secondary purpose of varying weapon brand distribution is to give
+  2) The secondary purpose of varying weapon brand distribution is to give
      different weapon skills more individual feel. For instance, if you play a
      lot of maces chars in a row, then you will get used to using a lot of
      protection weapons and you'll never see vamp except on rare randarts, and

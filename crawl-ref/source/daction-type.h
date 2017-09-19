@@ -12,6 +12,9 @@ enum daction_type
     DACT_ALLY_BEOGH, // both orcs and demons summoned by high priests
     DACT_ALLY_SLIME,
     DACT_ALLY_PLANT,
+    DACT_ALLY_ELEMENTAL,
+    DACT_NEUTRAL_ELEMENTAL,
+    DACT_ELEMENTAL_NEW_ATTEMPT,
 
     NUM_DACTION_COUNTERS,
 

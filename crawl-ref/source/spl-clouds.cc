@@ -209,6 +209,11 @@ spret_type cast_big_c(int pow, spell_type spl, const actor *caster, bolt &beam,
             beam.name = "freezing blast";
             cty = CLOUD_COLD;
             break;
+        case SPELL_ELEMENTAL_BLAST:
+            beam.flavour = BEAM_ELEMENTAL_BLAST;
+            beam.name = "elemental blast";
+            cty = CLOUD_ELEMENTAL_CHAOS;
+            break;
         default:
             mpr("That kind of cloud doesn't exist!");
             return SPRET_ABORT;

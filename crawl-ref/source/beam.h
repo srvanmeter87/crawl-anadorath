@@ -128,7 +128,7 @@ struct bolt
     bool passed_target = false;   // Beam progressed beyond target.
     bool in_explosion_phase = false; // explosion phase (as opposed to beam phase)
     mon_attitude_type attitude = ATT_HOSTILE; // attitude of whoever fired tracer
-    int foe_ratio = 0;   // 100* foe ratio (see mons_should_fire())
+    int foe_ratio = 0;           // 100* foe ratio (see mons_should_fire())
     map<mid_t, int> hit_count;   // how many times targets were affected
 
     tracer_info foe_info;

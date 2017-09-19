@@ -1164,6 +1164,8 @@ static unique_ptr<targeter> _spell_targeter(spell_type spell, int pow,
     case SPELL_MEPHITIC_CLOUD:
         return make_unique<targeter_beam>(&you, range, ZAP_MEPHITIC, pow,
                                           pow >= 100 ? 1 : 0, 1);
+    case SPELL_ELEMENTAL_BLAST:
+        return make_unique<targeter_beam>(&you, range, ZAP_ELEMENTAL_BLAST, pow, 1, 2);
     case SPELL_ISKENDERUNS_MYSTIC_BLAST:
         return make_unique<targeter_imb>(&you, pow, range);
     case SPELL_FIRE_STORM:
@@ -1585,8 +1587,8 @@ spret_type your_spells(spell_type spell, int powc, bool allow_fail,
     return SPRET_SUCCESS;
 }
 
-// Returns SPRET_SUCCESS, SPRET_ABORT, SPRET_FAIL
-// or SPRET_NONE (not a player spell).
+/*  Returns SPRET_SUCCESS, SPRET_ABORT, SPRET_FAIL
+    or SPRET_NONE (not a player spell). */
 static spret_type _do_cast(spell_type spell, int powc, const dist& spd,
                            bolt& beam, god_type god, bool fail)
 {
@@ -1616,6 +1618,9 @@ static spret_type _do_cast(spell_type spell, int powc, const dist& spd,
     case SPELL_HOLY_BREATH:
     case SPELL_FREEZING_CLOUD:
         return cast_big_c(powc, spell, &you, beam, fail);
+    case SPELL_ELEMENTAL_BLAST:
+        //cast_big_c(powc, spell, &you, beam, fail);
+        return cast_elemental_blast(spell, powc, spd, beam, fail);
 
     case SPELL_FIRE_STORM:
         return cast_fire_storm(powc, beam, fail);
@@ -1691,9 +1696,9 @@ static spret_type _do_cast(spell_type spell, int powc, const dist& spd,
     case SPELL_IGNITION:
         return cast_ignition(&you, powc, fail);
 
-    // Summoning spells, and other spells that create new monsters.
-    // If a god is making you cast one of these spells, any monsters
-    // produced will count as god gifts.
+    /*  Summoning spells, and other spells that create new monsters.
+        If a god is making you cast one of these spells, any monsters
+        produced will count as god gifts. */
     case SPELL_SUMMON_BUTTERFLIES:
         return cast_summon_butterflies(powc, god, fail);
 
@@ -1859,7 +1864,7 @@ static spret_type _do_cast(spell_type spell, int powc, const dist& spd,
     case SPELL_PORTAL_PROJECTILE:
         return cast_portal_projectile(powc, fail);
 
-    // other
+    // Other
     case SPELL_BORGNJORS_REVIVIFICATION:
         return cast_revivification(powc, fail);
 
@@ -1947,52 +1952,52 @@ static spret_type _do_cast(spell_type spell, int powc, const dist& spd,
     return SPRET_NONE;
 }
 
-// _tetrahedral_number: returns the nth tetrahedral number.
-// This is the number of triples of nonnegative integers with sum < n.
-// Called only by get_true_fail_rate.
+/*  _tetrahedral_number: returns the nth tetrahedral number.
+    This is the number of triples of nonnegative integers with sum < n.
+    Called only by get_true_fail_rate. */
 static int _tetrahedral_number(int n)
 {
     return n * (n+1) * (n+2) / 6;
 }
 
-// get_true_fail_rate: Takes the raw failure to-beat number
-// and converts it to the actual chance of failure:
-// the probability that random2avg(100,3) < raw_fail.
-// Should probably use more constants, though I doubt the spell
-// success algorithms will really change *that* much.
-// Called only by failure_rate_to_int and get_miscast_chance.
+/*  get_true_fail_rate: Takes the raw failure to-beat number
+    and converts it to the actual chance of failure:
+    the probability that random2avg(100,3) < raw_fail.
+    Should probably use more constants, though I doubt the spell
+    success algorithms will really change *that* much.
+    Called only by failure_rate_to_int and get_miscast_chance. */
 static double _get_true_fail_rate(int raw_fail)
 {
-    // Need 3*random2avg(100,3) = random2(101) + random2(101) + random2(100)
-    // to be (strictly) less than 3*raw_fail. Fun with tetrahedral numbers!
+    /*  Need 3*random2avg(100,3) = random2(101) + random2(101) + random2(100)
+        to be (strictly) less than 3*raw_fail. Fun with tetrahedral numbers!
 
-    // How many possible outcomes, considering all three dice?
+        How many possible outcomes, considering all three dice? */
     const int outcomes = 101 * 101 * 100;
     const int target = raw_fail * 3;
 
     if (target <= 100)
     {
-        // The failures are exactly the triples of nonnegative integers
-        // that sum to < target.
+        /*  The failures are exactly the triples of nonnegative integers
+            that sum to < target. */
         return double(_tetrahedral_number(target)) / outcomes;
     }
     if (target <= 200)
     {
-        // Some of the triples that sum to < target would have numbers
-        // greater than 100, or a last number greater than 99, so aren't
-        // possible outcomes. Apply the principle of inclusion-exclusion
-        // by subtracting out these cases. The set of triples with first
-        // number > 100 is isomorphic to the set of triples that sum to
-        // 101 less; likewise for the second and third numbers (100 less
-        // in the last case). Two or more out-of-range numbers would have
-        // resulted in a sum of at least 201, so there is no overlap
-        // among the three cases we are subtracting.
+        /*  Some of the triples that sum to < target would have numbers
+            greater than 100, or a last number greater than 99, so aren't
+            possible outcomes. Apply the principle of inclusion-exclusion
+            by subtracting out these cases. The set of triples with first
+            number > 100 is isomorphic to the set of triples that sum to
+            101 less; likewise for the second and third numbers (100 less
+            in the last case). Two or more out-of-range numbers would have
+            resulted in a sum of at least 201, so there is no overlap
+            among the three cases we are subtracting. */
         return double(_tetrahedral_number(target)
                       - 2 * _tetrahedral_number(target - 101)
                       - _tetrahedral_number(target - 100)) / outcomes;
     }
-    // The random2avg distribution is symmetric, so the last interval is
-    // essentially the same as the first interval.
+    /*  The random2avg distribution is symmetric, so the last interval is
+        essentially the same as the first interval. */
     return double(outcomes - _tetrahedral_number(300 - target)) / outcomes;
 }
 
@@ -2053,10 +2058,10 @@ int fail_severity(spell_type spell)
 int failure_rate_colour(spell_type spell)
 {
     const int severity = fail_severity(spell);
-    return severity == 0 ? LIGHTGREY :
+    return severity == 0 ? CYAN :
            severity == 1 ? YELLOW :
-           severity == 2 ? LIGHTRED
-                         : RED;
+           severity == 2 ? RED
+                         : MAGENTA;
 }
 
 //Converts the raw failure rate into a number to be displayed.

@@ -7140,3 +7140,90 @@ void hepliaklqana_choose_identity()
     _hepliaklqana_choose_name();
     _hepliaklqana_choose_gender();
 }
+
+/** Anadorath's Blistering Cold
+    spret_type anadorath_blistering_cold(const coord_def &pos, bool fail)
+    {
+        ASSERT(!crawl_state.game_is_arena());
+
+        if (crawl_state.is_repeating_cmd())
+        {
+            crawl_state.cant_cmd_repeat("You can't repeat Blistering Cold.");
+            crawl_state.cancel_cmd_again();
+            crawl_state.cancel_cmd_repeat();
+            return SPRET_ABORT;
+        }
+
+        if (you.is_nervous())
+        {
+            mpr("You are too terrified to blister any cold!");
+            return SPRET_ABORT;
+        }
+
+        if (env.level_state & LSTATE_STILL_WINDS)
+        {
+            mpr("The air is too still to form clouds.");
+            return SPRET_ABORT;
+        }
+
+        const int pow = you.skill(SK_INVOCATIONS, 6);
+        const int range = spell_range(SPELL_CLOUD_CONE, pow);
+        targeter_shotgun hitfunc(&you, CLOUD_CONE_BEAM_COUNT, range);
+        hitfunc.set_aim(pos);
+
+        if (stop_attack_prompt(hitfunc, "cloud"))
+        {
+            return SPRET_ABORT;
+        }
+
+        fail_check();
+
+        cloud_type cloud = CLOUD_STEAM;
+
+        for (const auto &entry : hitfunc.zapped)
+        {
+            if (entry.second <= 0)
+            {
+                continue;
+            }
+
+            place_cloud(cloud, entry.first,
+                        5 + random2avg(12 + div_rand_round(pow * 3, 4), 3),
+                        &you);
+        }
+                    
+        mprf("You create a blast of frostfire!");
+        did_god_conduct(DID_FIRE, min(5 + pow/2, 23));
+        did_god_conduct(DID_ICE, min(5 + pow/2, 23));
+
+        return SPRET_SUCCESS;
+    }
+ */
+/** Anadorath's elemental shielding.
+    void anadorath_elemental_shielding()
+    {
+        mpr("You ask the elements near you for assistance.");
+
+        // Escape nets and webs
+        int net = get_trapping_net(you.pos());
+        if (net == NON_ITEM)
+        {
+            trap_def *trap = trap_at(you.pos());
+            if (trap && trap->type == TRAP_WEB)
+            {
+                destroy_trap(you.pos());
+                mpr("The elements disintegrate the webs!");
+            }
+        }
+        else
+        {
+            destroy_item(net);
+            mpr("The elements disintegrate the net!");
+        }
+        stop_being_held();
+
+        // Escape constriction
+        you.stop_being_constricted(false);
+
+    }
+ */

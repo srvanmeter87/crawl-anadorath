@@ -1829,6 +1829,12 @@ static void _fire_kill_conducts(monster &mons, killer_type killer,
     //  messages appears.)
     if (mons_is_fiery(mons))
         did_kill_conduct(DID_KILL_FIERY, mons);
+    if (mons_is_icy(mons))
+        did_kill_conduct(DID_KILL_ICY, mons);
+    if (mons_is_earthy(mons))
+        did_kill_conduct(DID_KILL_EARTHY, mons);
+    if (mons_is_airy(mons))
+        did_kill_conduct(DID_KILL_AIRY, mons);
 }
 
 item_def* monster_die(monster& mons, const actor *killer, bool silent,

@@ -3,7 +3,7 @@
  * @brief Zap definitions. See zap_info struct in beam.cc.
 **/
 
-/*
+/* For reference -- Copied from beam.cc
 struct zap_info
 {
     zap_type ztype;
@@ -21,10 +21,9 @@ struct zap_info
     bool can_beam;
     bool is_explosion;
     int hit_loudness;
-}
-*/
+} */
 
-/// Boilerplate monster hex.
+// Boilerplate monster hex.
 static zap_info _mon_hex_zap(zap_type ztype, beam_type beam,
                              int player_pow_cap = 100,
                              colour_t colour = BLACK)
@@ -203,8 +202,8 @@ _mon_hex_zap(ZAP_PARALYSE, BEAM_PARALYSIS),
     200,
     new calcdice_calculator<4, 14, 3, 5>,
     new tohit_calculator<10, 1, 25>,
-    // Water attack is weaker than the pure elemental damage attacks, but also
-    // less resistible.
+    /*  Water attack is weaker than the pure elemental damage attacks, but also
+        less resistible. */
     new dicedef_calculator<3, 6, 1, 12>,
     // Huge wave of water is hard to dodge.
     new tohit_calculator<14, 1, 35>,
@@ -1266,6 +1265,24 @@ _mon_hex_zap(ZAP_DRAIN_MAGIC, BEAM_DRAIN_MAGIC),
     false,
     true,
     0 // handled by explosion
+},
+
+{
+    ZAP_ELEMENTAL_BLAST,                    // zap_type ztype
+    "elemental blast",                      // const char* name
+    200,                                    // int player_power_cap
+    new calcdice_calculator<20, 5, 1, 1>,   // dam_deducer* player_damage
+    new tohit_calculator<AUTOMATIC_HIT>,    // tohit_deducer* player_tohit
+    new dicedef_calculator<20, 5, 1, 9>,    // dam_deducer* monster_damage
+    new tohit_calculator<AUTOMATIC_HIT>,    // tohit_deducer* monster_tohit
+    MAGENTA,                                // colour_t colour
+    false,                                  // bool is_enchantment
+    BEAM_ELEMENTAL_BLAST,                   // beam_type flavour
+    DCHAR_FIRED_ZAP,                        // dungeon_char_type glyph
+    true,                                   // bool always_obvious
+    true,                                   // bool can_beam
+    true,                                   // bool is_explosion
+    0                                       // int hit_loudness
 },
 
 };

@@ -154,7 +154,8 @@ struct scaling_cost
     operator bool () const { return value != 0; }
 };
 
-/// What affects the failure chance of the ability?
+/** What affects the failure chance of the ability?
+ */
 enum class fail_basis
 {
     xl,
@@ -194,7 +195,7 @@ skill_type invo_skill(god_type god)
     }
 }
 
-/// How to determine the odds of the ability failing?
+/** How to determine the odds of the ability failing? */
 struct failure_info
 {
     /// what determines the variable portion of failure: e.g. xl, evo, invo
@@ -252,7 +253,7 @@ struct failure_info
     }
 };
 
-// Structure for representing an ability:
+/** Structure for representing an ability: */
 struct ability_def
 {
     ability_type        ability;
@@ -270,27 +271,30 @@ static spret_type _do_ability(const ability_def& abil, bool fail);
 static void _pay_ability_costs(const ability_def& abil);
 static int _scale_piety_cost(ability_type abil, int original_cost);
 
-// The description screen was way out of date with the actual costs.
-// This table puts all the information in one place... -- bwr
-//
-// The four numerical fields are: MP, HP, food, and piety.
-// Note:  food_cost  = val + random2avg(val, 2)
-//        piety_cost = val + random2((val + 1) / 2 + 1);
-//        hp cost is in per-mil of maxhp (i.e. 20 = 2% of hp, rounded up)
+/** The description screen was way out of date with the actual costs.
+ * This table puts all the information in one place... -- bwr
+ *
+ * The four numerical fields are: MP, HP, food, and piety.
+ * Note:  food_cost  = val + random2avg(val, 2)
+ *        piety_cost = val + random2((val + 1) / 2 + 1);
+ *        hp cost is in per-mil of maxhp (i.e. 20 = 2% of hp, rounded up)
+ */
 static const ability_def Ability_List[] =
 {
     // NON_ABILITY should always come first
-    { ABIL_NON_ABILITY, "No ability", 0, 0, 0, 0, {}, abflag::none },
+    { ABIL_NON_ABILITY, "No ability",
+      0, 0, 0, 0, {}, abflag::none },
     { ABIL_SPIT_POISON, "Spit Poison",
         0, 0, 40, 0, {fail_basis::xl, 20, 1}, abflag::breath },
 
-    { ABIL_BLINK, "Blink", 0, 50, 50, 0, {fail_basis::xl, -1}, abflag::none },
+    { ABIL_BLINK, "Blink",
+      0, 50, 50, 0, {fail_basis::xl, -1}, abflag::none },
     // ^ failure special-cased
 
     { ABIL_BREATHE_FIRE, "Breathe Fire",
-        0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
+      0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
     { ABIL_BREATHE_FROST, "Breathe Frost",
-        0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
+      0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
     { ABIL_BREATHE_POISON, "Breathe Poison Gas",
       0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
     { ABIL_BREATHE_MEPHITIC, "Breathe Noxious Fumes",
@@ -301,15 +305,18 @@ static const ability_def Ability_List[] =
       0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
     { ABIL_BREATHE_STEAM, "Breathe Steam",
       0, 0, 75, 0, {fail_basis::xl, 20, 1}, abflag::breath },
-    { ABIL_TRAN_BAT, "Bat Form", 2, 0, 0, 0, {fail_basis::xl, 45, 2}, abflag::none },
+    { ABIL_TRAN_BAT, "Bat Form",
+      2, 0, 0, 0, {fail_basis::xl, 45, 2}, abflag::none },
 
     { ABIL_BREATHE_ACID, "Breathe Acid",
       0, 0, 125, 0, {fail_basis::xl, 30, 1}, abflag::breath },
 
-    { ABIL_FLY, "Fly", 3, 0, 100, 0, {fail_basis::xl, 42, 3}, abflag::none },
-    { ABIL_STOP_FLYING, "Stop Flying", 0, 0, 0, 0, {}, abflag::none },
+    { ABIL_FLY, "Fly",
+      3, 0, 100, 0, {fail_basis::xl, 42, 3}, abflag::none },
+    { ABIL_STOP_FLYING, "Stop Flying",
+      0, 0, 0, 0, {}, abflag::none },
     { ABIL_DAMNATION, "Hurl Damnation",
-        0, 150, 200, 0, {fail_basis::xl, 50, 1}, abflag::none },
+      0, 150, 200, 0, {fail_basis::xl, 50, 1}, abflag::none },
 
 #if TAG_MAJOR_VERSION == 34
     { ABIL_DELAYED_FIREBALL, "Release Delayed Fireball",
@@ -318,19 +325,23 @@ static const ability_def Ability_List[] =
     { ABIL_CANCEL_PPROJ, "Cancel Portal Projectile",
       0, 0, 0, 0, {}, abflag::instant },
 
-    { ABIL_DIG, "Dig", 0, 0, 0, 0, {}, abflag::instant },
-    { ABIL_SHAFT_SELF, "Shaft Self", 0, 0, 250, 0, {}, abflag::delay },
+    { ABIL_DIG, "Dig",
+      0, 0, 0, 0, {}, abflag::instant },
+    { ABIL_SHAFT_SELF, "Shaft Self",
+      0, 0, 250, 0, {}, abflag::delay },
 
-    { ABIL_HOP, "Hop", 0, 0, 0, 0, {}, abflag::none },
+    { ABIL_HOP, "Hop",
+      0, 0, 0, 0, {}, abflag::none },
 
-    // EVOKE abilities use Evocations and come from items.
-    // Teleportation and Blink can also come from mutations
-    // so we have to distinguish them (see above). The off items
-    // below are labeled EVOKE because they only work now if the
-    // player has an item with the evocable power (not just because
-    // you used a wand, potion, or miscast effect). I didn't see
-    // any reason to label them as "Evoke" in the text, they don't
-    // use or train Evocations (the others do).  -- bwr
+    /** EVOKE abilities use Evocations and come from items.
+     *  Teleportation and Blink can also come from mutations
+     *  so we have to distinguish them (see above). The off items
+     *  below are labeled EVOKE because they only work now if the
+     *  player has an item with the evocable power (not just because
+     *  you used a wand, potion, or miscast effect). I didn't see
+     *  any reason to label them as "Evoke" in the text, they don't
+     *  use or train Evocations (the others do).  -- bwr
+     */
     { ABIL_EVOKE_BLINK, "Evoke Blink",
       1, 0, 50, 0, {fail_basis::evo, 40, 2}, abflag::none },
     { ABIL_HEAL_WOUNDS, "Heal Wounds",
@@ -376,18 +387,18 @@ static const ability_def Ability_List[] =
       5, 0, 100, 2, {fail_basis::invo, 70, 4, 25}, abflag::none },
     { ABIL_TSO_SUMMON_DIVINE_WARRIOR, "Summon Divine Warrior",
       8, 0, 150, 5, {fail_basis::invo, 80, 4, 25}, abflag::none },
-    { ABIL_TSO_BLESS_WEAPON, "Brand Weapon With Holy Wrath", 0, 0, 0, 0,
-      {fail_basis::invo}, abflag::none },
+    { ABIL_TSO_BLESS_WEAPON, "Brand Weapon With Holy Wrath",
+      0, 0, 0, 0, {fail_basis::invo}, abflag::none },
 
     // Kikubaaqudgha
     { ABIL_KIKU_RECEIVE_CORPSES, "Receive Corpses",
       3, 0, 200, 2, {fail_basis::invo, 40, 5, 20}, abflag::none },
     { ABIL_KIKU_TORMENT, "Torment",
       4, 0, 0, 8, {fail_basis::invo, 60, 5, 20}, abflag::none },
-    { ABIL_KIKU_GIFT_NECRONOMICON, "Receive Necronomicon", 0, 0, 0, 0,
-      {fail_basis::invo}, abflag::none },
-    { ABIL_KIKU_BLESS_WEAPON, "Brand Weapon With Pain", 0, 0, 0, 0,
-      {fail_basis::invo}, abflag::pain },
+    { ABIL_KIKU_GIFT_NECRONOMICON, "Receive Necronomicon",
+      0, 0, 0, 0, {fail_basis::invo}, abflag::none },
+    { ABIL_KIKU_BLESS_WEAPON, "Brand Weapon With Pain",
+      0, 0, 0, 0, {fail_basis::invo}, abflag::pain },
 
     // Yredelemnul
     { ABIL_YRED_INJURY_MIRROR, "Injury Mirror",
@@ -445,8 +456,8 @@ static const ability_def Ability_List[] =
     // Elyvilon
     { ABIL_ELYVILON_LIFESAVING, "Divine Protection",
       0, 0, 0, 0, {fail_basis::invo}, abflag::piety },
-    { ABIL_ELYVILON_LESSER_HEALING, "Lesser Healing", 1, 0, 100,
-      generic_cost::range(0, 1), {fail_basis::invo, 30, 6, 20}, abflag::conf_ok },
+    { ABIL_ELYVILON_LESSER_HEALING, "Lesser Healing",
+      1, 0, 100, generic_cost::range(0, 1), {fail_basis::invo, 30, 6, 20}, abflag::conf_ok },
     { ABIL_ELYVILON_HEAL_OTHER, "Heal Other",
       2, 0, 250, 2, {fail_basis::invo, 40, 5, 20}, abflag::none },
     { ABIL_ELYVILON_PURIFICATION, "Purification",
@@ -461,14 +472,14 @@ static const ability_def Ability_List[] =
       1, 0, 0, 10, {fail_basis::invo, 30, 6, 20}, abflag::none },
     { ABIL_LUGONU_BEND_SPACE, "Bend Space",
       1, scaling_cost::fixed(2), 0, 0, {fail_basis::invo, 40, 5, 20}, abflag::none },
-    { ABIL_LUGONU_BANISH, "Banish", 4, 0, 200, generic_cost::range(3, 4),
-      {fail_basis::invo, 85, 7, 20}, abflag::none },
-    { ABIL_LUGONU_CORRUPT, "Corrupt", 7, scaling_cost::fixed(5), 500, 10,
-      {fail_basis::invo, 70, 4, 25}, abflag::none },
-    { ABIL_LUGONU_ABYSS_ENTER, "Enter the Abyss", 10, 0, 500, 28,
-      {fail_basis::invo, 80, 4, 25}, abflag::pain },
-    { ABIL_LUGONU_BLESS_WEAPON, "Brand Weapon With Distortion", 0, 0, 0, 0,
-      {fail_basis::invo}, abflag::none },
+    { ABIL_LUGONU_BANISH, "Banish",
+      4, 0, 200, generic_cost::range(3, 4), {fail_basis::invo, 85, 7, 20}, abflag::none },
+    { ABIL_LUGONU_CORRUPT, "Corrupt",
+      7, scaling_cost::fixed(5), 500, 10, {fail_basis::invo, 70, 4, 25}, abflag::none },
+    { ABIL_LUGONU_ABYSS_ENTER, "Enter the Abyss",
+      10, 0, 500, 28, {fail_basis::invo, 80, 4, 25}, abflag::pain },
+    { ABIL_LUGONU_BLESS_WEAPON, "Brand Weapon With Distortion",
+      0, 0, 0, 0, {fail_basis::invo}, abflag::none },
 
     // Nemelex
     { ABIL_NEMELEX_TRIPLE_DRAW, "Triple Draw",
@@ -537,8 +548,8 @@ static const ability_def Ability_List[] =
       9, 0, 0, 12, {fail_basis::invo, 80, 4, 25}, abflag::skill_drain },
 
     // Ru
-    { ABIL_RU_DRAW_OUT_POWER, "Draw Out Power", 0, 0, 0, 0,
-      {fail_basis::invo}, abflag::exhaustion|abflag::skill_drain|abflag::conf_ok },
+    { ABIL_RU_DRAW_OUT_POWER, "Draw Out Power",
+      0, 0, 0, 0, {fail_basis::invo}, abflag::exhaustion|abflag::skill_drain|abflag::conf_ok },
     { ABIL_RU_POWER_LEAP, "Power Leap",
       5, 0, 0, 0, {fail_basis::invo}, abflag::exhaustion },
     { ABIL_RU_APOCALYPSE, "Apocalypse",
@@ -608,38 +619,44 @@ static const ability_def Ability_List[] =
 
     // Uskayaw
     { ABIL_USKAYAW_STOMP, "Stomp",
-        3, 0, 100, generic_cost::fixed(20), {fail_basis::invo}, abflag::none },
+      3, 0, 100, generic_cost::fixed(20), {fail_basis::invo}, abflag::none },
     { ABIL_USKAYAW_LINE_PASS, "Line Pass",
-        4, 0, 200, generic_cost::fixed(20), {fail_basis::invo}, abflag::none},
+      4, 0, 200, generic_cost::fixed(20), {fail_basis::invo}, abflag::none},
     { ABIL_USKAYAW_GRAND_FINALE, "Grand Finale",
-        8, 0, 500, generic_cost::fixed(0),
-        {fail_basis::invo, 120 + piety_breakpoint(4), 5, 1}, abflag::none},
+      8, 0, 500, generic_cost::fixed(0),
+      {fail_basis::invo, 120 + piety_breakpoint(4), 5, 1}, abflag::none},
 
     // Hepliaklqana
     { ABIL_HEPLIAKLQANA_RECALL, "Recall Ancestor",
-        2, 0, 0, 0, {fail_basis::invo}, abflag::none },
+      2, 0, 0, 0, {fail_basis::invo}, abflag::none },
     { ABIL_HEPLIAKLQANA_TRANSFERENCE, "Transference",
-        2, 0, 0, 3, {fail_basis::invo, 40, 5, 20},
+      2, 0, 0, 3, {fail_basis::invo, 40, 5, 20},
         abflag::none },
     { ABIL_HEPLIAKLQANA_IDEALISE, "Idealise",
-        4, 0, 0, 4, {fail_basis::invo, 60, 4, 25},
+      4, 0, 0, 4, {fail_basis::invo, 60, 4, 25},
         abflag::none },
 
     { ABIL_HEPLIAKLQANA_TYPE_KNIGHT,       "Ancestor Life: Knight",
-        0, 0, 0, 0, {fail_basis::invo},abflag::none },
+      0, 0, 0, 0, {fail_basis::invo},abflag::none },
     { ABIL_HEPLIAKLQANA_TYPE_BATTLEMAGE,   "Ancestor Life: Battlemage",
-        0, 0, 0, 0, {fail_basis::invo},abflag::none },
+      0, 0, 0, 0, {fail_basis::invo},abflag::none },
     { ABIL_HEPLIAKLQANA_TYPE_HEXER,        "Ancestor Life: Hexer",
-        0, 0, 0, 0, {fail_basis::invo},abflag::none },
+      0, 0, 0, 0, {fail_basis::invo},abflag::none },
 
     { ABIL_HEPLIAKLQANA_IDENTITY,  "Ancestor Identity",
-        0, 0, 0, 0, {fail_basis::invo}, abflag::instant },
+      0, 0, 0, 0, {fail_basis::invo}, abflag::instant },
 
     // Wu Jian
     { ABIL_WU_JIAN_SERPENTS_LASH, "Serpent's Lash",
-        0, 0, 0, 4, {fail_basis::invo}, abflag::exhaustion | abflag::instant },
+      0, 0, 0, 4, {fail_basis::invo}, abflag::exhaustion | abflag::instant },
     { ABIL_WU_JIAN_HEAVENLY_STORM, "Heavenly Storm",
-        0, 0, 0, 20, {fail_basis::invo, piety_breakpoint(5), 0, 1}, abflag::none },
+      0, 0, 0, 20, {fail_basis::invo, piety_breakpoint(5), 0, 1}, abflag::none },
+
+    // Anadorath
+    { ABIL_ANADORATH_ELEMENTAL_BLAST, "Elemental Blast",
+      0, 10, 750, 0, {fail_basis::invo, 60, 4, 20}, abflag::none },
+    /*  { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
+          5, 0, 300, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath }, */
 
     { ABIL_STOP_RECALL, "Stop Recall", 0, 0, 0, 0, {fail_basis::invo}, abflag::none },
     { ABIL_RENOUNCE_RELIGION, "Renounce Religion",
@@ -992,7 +1009,7 @@ ability_type fixup_ability(ability_type ability)
     }
 }
 
-/// Handle special cases for ability failure chances.
+/** Handle special cases for ability failure chances. */
 static int _adjusted_failure_chance(ability_type ability, int base_chance)
 {
     switch (ability)
@@ -1092,7 +1109,7 @@ static string _sacrifice_desc(const ability_type ability)
             + ".\n" + desc;
 }
 
-// XXX: should this be in describe.cc?
+/* XXX: should this be in describe.cc? */
 string get_ability_desc(const ability_type ability)
 {
     const string& name = ability_name(ability);
@@ -1244,9 +1261,10 @@ bool activate_ability()
     return activate_talent(talents[selected]);
 }
 
-// Check prerequisites for a number of abilities.
-// Abort any attempt if these cannot be met, without losing the turn.
-// TODO: Many more cases need to be added!
+/** Check prerequisites for a number of abilities.
+ *  Abort any attempt if these cannot be met, without losing the turn.
+ *  TODO: Many more cases need to be added!
+ */
 static bool _check_ability_possible(const ability_def& abil,
                                     bool hungerCheck = true,
                                     bool quiet = false)
@@ -1755,7 +1773,7 @@ static bool _acid_breath_can_hit(const actor *act)
         return false;
 }
 
-/// If the player is stationary, print 'You cannot move.' and return true.
+/** If the player is stationary, print 'You cannot move.' and return true. */
 static bool _abort_if_stationary()
 {
     if (!you.is_stationary())
@@ -3060,10 +3078,10 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
 
         simple_god_message(" booms: Use this gift wisely!");
 
-#ifndef USE_TILE_LOCAL
+        #ifndef USE_TILE_LOCAL
         // Allow extra time for the flash to linger.
         delay(1000);
-#endif
+        #endif
         break;
     }
 
@@ -3141,6 +3159,29 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
         invalidate_agrid(true);
         break;
 
+    case ABIL_ANADORATH_ELEMENTAL_BLAST:
+    {
+        beam.range = LOS_RADIUS;
+
+        if (!spell_direction(spd, beam))
+            return SPRET_ABORT;
+
+        int power = you.skill(SK_INVOCATIONS, 4)
+                    + random2(1 + you.skill(SK_INVOCATIONS, 1))
+                    + random2(1 + you.skill(SK_INVOCATIONS, 1));
+
+        if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, LOS_RADIUS))
+            return SPRET_ABORT;
+
+        fail_check();
+        {
+            beam.origin_spell = SPELL_NO_SPELL; // let zapping reset this
+            zap_type ztype = ZAP_ELEMENTAL_BLAST;
+            zapping(ztype, power, beam);
+        }
+        break;
+    }
+
     case ABIL_RENOUNCE_RELIGION:
         fail_check();
         if (yesno("Really renounce your faith, foregoing its fabulous benefits?",
@@ -3179,8 +3220,9 @@ static spret_type _do_ability(const ability_def& abil, bool fail)
     return SPRET_SUCCESS;
 }
 
-// [ds] Increase piety cost for god abilities that are particularly
-// overpowered in Sprint. Yes, this is a hack. No, I don't care.
+/** [ds] Increase piety cost for god abilities that are particularly
+ *  overpowered in Sprint. Yes, this is a hack. No, I don't care.
+ */
 static int _scale_piety_cost(ability_type abil, int original_cost)
 {
     // Abilities that have aroused our ire earn 2.5x their classic
@@ -3527,9 +3569,10 @@ vector<talent> your_talents(bool check_confused, bool include_unusable)
             {
                 _add_talent(talents, ABIL_EVOKE_FLIGHT, check_confused);
             }
-            // Now you can only turn flight off if you have an
-            // activatable item. Potions and spells will have to time
-            // out.
+            /** Now you can only turn flight off if you have an
+             *  activatable item. Potions and spells will have to time
+             *  out.
+             */
             if (you.airborne() && !you.attribute[ATTR_FLIGHT_UNCANCELLABLE])
                 _add_talent(talents, ABIL_STOP_FLYING, check_confused);
         }
@@ -3566,8 +3609,9 @@ vector<talent> your_talents(bool check_confused, bool include_unusable)
                 break;
             }
         }
-        // In theory, we could be left with an unreachable ability
-        // here (if you have 53 or more abilities simultaneously).
+        /** In theory, we could be left with an unreachable ability
+         *  here (if you have 53 or more abilities simultaneously).
+         */
     }
 
     return talents;
@@ -3627,22 +3671,25 @@ int auto_assign_ability_slot(int slot)
     return slot;
 }
 
-// Returns an index (0-51) if already assigned, -1 if not.
+/** Returns an index (0-51) if already assigned, -1 if not.
+ */
 static int _lookup_ability_slot(const ability_type abil)
 {
-    // Placeholder handling, part 2: The ability we have might
-    // correspond to a placeholder, in which case the ability letter
-    // table will contain that placeholder. Convert the latter to
-    // its corresponding ability before comparing the two, so that
-    // we'll find the placeholder's index properly.
+    /** Placeholder handling, part 2: The ability we have might
+     * correspond to a placeholder, in which case the ability letter
+     * table will contain that placeholder. Convert the latter to
+     * its corresponding ability before comparing the two, so that
+     * we'll find the placeholder's index properly.
+     */
     for (int slot = 0; slot < 52; slot++)
         if (fixup_ability(you.ability_letter_table[slot]) == abil)
             return slot;
     return -1;
 }
 
-// Assign a new ability slot if necessary. Returns an index (0-51) if
-// successful, -1 if you should just use the next one.
+/** Assign a new ability slot if necessary. Returns an index (0-51) if
+ *  successful, -1 if you should just use the next one.
+ */
 int find_ability_slot(const ability_type abil, char firstletter)
 {
     // If we were already assigned a slot, use it.
@@ -3820,8 +3867,9 @@ int abil_skill_weight(ability_type ability)
 }
 
 
-////////////////////////////////////////////////////////////////////////
-// generic_cost
+/*********************************************************************
+ * generic_cost
+ *********************************************************************/
 
 int generic_cost::cost() const
 {

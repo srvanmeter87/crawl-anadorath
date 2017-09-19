@@ -512,6 +512,11 @@ Electrical Bolt spell
 
 Throws a bolt of electricity at the target, with high accuracy.
 %%%%
+Elemental Blast spell
+
+Causes an explosion from the combining of the four primal elements, creating
+lingering clouds of chaos.
+%%%%
 Energy Bolt spell
 
 Fires a bolt of highly destructive energy.

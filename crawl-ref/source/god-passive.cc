@@ -46,17 +46,17 @@
 #include "unwind.h"
 #include "view.h"
 
-// TODO: template out the differences between this and god_power.
-// TODO: use the display method rather than dummy powers in god_powers.
-// TODO: finish using these for implementing passive abilities.
+/*  TODO: template out the differences between this and god_power.
+    TODO: use the display method rather than dummy powers in god_powers.
+    TODO: finish using these for implementing passive abilities. */
 struct god_passive
 {
-    // 1-6 means it unlocks at that many stars of piety;
-    // 0 means it is always present when in good standing with the god;
-    // -1 means it is present even under penance;
+    /*  1-6 means it unlocks at that many stars of piety;
+        0 means it is always present when in good standing with the god;
+        -1 means it is present even under penance; */
     int rank;
     passive_t pasv;
-    /** Message to be given on gain of this passive.
+    /*  Message to be given on gain of this passive.
      *
      * If the string begins with an uppercase letter, it is treated as
      * a complete sentence. Otherwise, if it contains the substring " NOW ",
@@ -84,31 +84,30 @@ struct god_passive
      * @see god_passive::loss.
      */
     const char* gain;
-    /** Message to be given on loss of this passive.
-     *
-     * If empty, use the gain message. This makes sense only if the message
-     * contains " NOW ", either explicitly or implicitly through not
-     * beginning with a capital letter.
-     *
-     * The substring "GOD" is replaced with the name of the god.
-     * The substring " NOW " is replaced with " no longer ".
-     *
-     * Examples:
-     *   "have super powers"
-     *     => "You no longer have super powers"
-     *   "are NOW powerful"
-     *     => "You are no longer powerful"
-     *   "Your power is NOW great"
-     *     => "Your power is no longer great"
-     *   "GOD NOW makes you powerful"
-     *     => "Moloch no longer makes you powerful"
-     *   "GOD grants you a boon"
-     *     => "Moloch grants you a boon" (probably incorrect)
-     *
-     * FIXME: This member is currently unused.
-     *
-     * @see god_passive::gain.
-     */
+    /*  Message to be given on loss of this passive.
+     
+        If empty, use the gain message. This makes sense only if the message
+        contains " NOW ", either explicitly or implicitly through not
+        beginning with a capital letter.
+
+        The substring "GOD" is replaced with the name of the god.
+        The substring " NOW " is replaced with " no longer ".
+
+        Examples:
+          "have super powers"
+            => "You no longer have super powers"
+          "are NOW powerful"
+            => "You are no longer powerful"
+          "Your power is NOW great"
+            => "Your power is no longer great"
+          "GOD NOW makes you powerful"
+            => "Moloch no longer makes you powerful"
+          "GOD grants you a boon"
+            => "Moloch grants you a boon" (probably incorrect)
+    
+        FIXME: This member is currently unused.
+
+            @see god_passive::gain. */
     const char* loss;
 
     god_passive(int rank_, passive_t pasv_, const char* gain_,
@@ -419,6 +418,32 @@ static const vector<god_passive> god_passives[] =
         { 1, passive_t::wu_jian_whirlwind, "attack monsters by moving around them." },
         { 2, passive_t::wu_jian_wall_jump, "perform distracting airborne attacks by moving against a solid obstacle." },
         { 3, passive_t::wu_jian_lunge, "strike by moving towards foes, devastating them if distracted." },
+    },
+
+    // Anadorath
+    {
+        { -1, passive_t::elemental_buckler,
+              "have a tiny shield forged from ambient earth",
+              "have an elemental shield" },
+        {  2, passive_t::elemental_resist,
+              "are NOW slightly resistant to the primal elements",
+              "are NOW resistant to the primal elements" },
+        {  3, passive_t::elemental_shield,
+              "have a moderate-sized shield imbued with living air,"
+              " allowing it to repel missiles",
+              "Your shield shrinks down to a tiny buckler, once again"
+              " leaving you vulnerable to missiles" },
+        {  4, passive_t::elemental_neutrality,
+              "are NOW neutral to primal elementals" },
+        {  5, passive_t::elemental_protection,
+              "have a large elemental shield, flickering from flaming frost",
+              "Your elemental shield shrinks to a moderate size, its"
+              " illumination dying down" },
+        {  6, passive_t::elemental_resist_plus,
+              "are NOW greatly resistant to the primal elements",
+              "Your elemental resistance wanes, but remains" },
+        {  6, passive_t::elemental_friend,
+              "are NOW allied with primal elementals" },
     },
 };
 COMPILE_CHECK(ARRAYSZ(god_passives) == NUM_GODS);
@@ -1079,14 +1104,25 @@ int qazlal_sh_boost(int piety)
     return min(piety, piety_breakpoint(5)) / 10;
 }
 
-// Not actually passive, but placing it here so that it can be easily compared
-// with Qazlal's boost.
+/*  Not actually passive, but placing it here so that it can be easily compared
+    with Qazlal's boost. */
 int tso_sh_boost()
 {
     if (!you.duration[DUR_DIVINE_SHIELD])
         return 0;
 
     return you.attribute[ATTR_DIVINE_SHIELD];
+}
+
+int anadorath_ac_boost(int piety)
+{
+    if (!have_passive(passive_t::elemental_resist))
+        return 0;
+    if (piety >= piety_breakpoint(5))
+        return 9;
+    if (piety >= piety_breakpoint(0))
+        return 3;
+    return 0;
 }
 
 void qazlal_storm_clouds()
@@ -1581,10 +1617,11 @@ static bool _can_attack_martial(const monster* mons)
            || !you.can_see(*mons));
 }
 
-// A mismatch between attack speed and move speed may cause
-// any particular martial attack to be doubled, tripled, or
-// not happen at all. Given enough time moving, you would have
-// made the same amount of attacks as tabbing.
+/** A mismatch between attack speed and move speed may cause
+ *  any particular martial attack to be doubled, tripled, or
+ *  not happen at all. Given enough time moving, you would have
+ *  made the same amount of attacks as tabbing.
+ */
 static int _wu_jian_number_of_attacks()
 {
     const int move_delay = player_movement_speed() * player_speed();
@@ -1644,7 +1681,7 @@ static void _wu_jian_lunge(const coord_def& old_pos)
     }
 }
 
-/// Monsters adjacent to the given pos that are valid targets for whirlwind.
+//  Monsters adjacent to the given pos that are valid targets for whirlwind.
 static vector<monster*> _get_whirlwind_targets(coord_def pos)
 {
     vector<monster*> targets;
@@ -1800,7 +1837,7 @@ bool wu_jian_can_wall_jump(const coord_def& target, bool messaging)
     return false;
 }
 
-/// Percent chance for an WJC walljump to distract a target of the given HD.
+//  Percent chance for an WJC walljump to distract a target of the given HD.
 static int _walljump_distract_chance(int target_hd)
 {
     // XXX: unify with _walljump_distract_chance()

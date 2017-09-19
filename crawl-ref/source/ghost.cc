@@ -44,6 +44,7 @@ static spell_type search_order_aoe_conj[] =
     SPELL_METAL_SPLINTERS,
     SPELL_ENERGY_BOLT,
     SPELL_ORB_OF_ELECTRICITY,
+    SPELL_ELEMENTAL_BLAST,
 };
 
 // Pan lord conjuration spell list.

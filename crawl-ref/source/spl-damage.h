@@ -74,3 +74,5 @@ spret_type cast_scattershot(const actor *caster, int pow, const coord_def &pos,
                             bool fail = false);
 
 spret_type cast_ignition(const actor *caster, int pow, bool fail);
+spret_type cast_elemental_blast(const spell_type spell, int powc, dist spd,
+                                bolt& beam, bool fail);

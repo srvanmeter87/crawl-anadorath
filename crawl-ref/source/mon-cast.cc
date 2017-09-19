@@ -1521,6 +1521,9 @@ bolt mons_spell_beam(const monster* mons, spell_type spell_cast, int power,
         beam.foe_ratio = 30;
         beam.pierce   = true;
         break;
+    case SPELL_ELEMENTAL_BLAST:
+        zappy(ZAP_ELEMENTAL_BLAST, power, true, beam);
+        break;
 
 #if TAG_MAJOR_VERSION == 34
     case SPELL_HOLY_LIGHT:

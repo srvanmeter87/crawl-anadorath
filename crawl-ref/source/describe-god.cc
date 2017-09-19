@@ -237,6 +237,10 @@ static const char *divine_title[][8] =
     // Wu Jian -- animal/chinese martial arts monk theme
     {"Wooden Rat",          "Young Dog",             "Young Crane",              "Young Tiger",
         "Young Dragon",     "Red Sash",               "Golden Sash",              "Sifu"},
+
+    // Anadorath -- elemental chaos
+    {"Eroded Pebble",       "Breezy Stone",          "Radiating Icicle",         "Fiery Blizzard",
+        "Frostbitten Blaze",      "Englaciated Firestorm",      "Earthen Fury",       "Chaos Elemental"},
 };
 COMPILE_CHECK(ARRAYSZ(divine_title) == NUM_GODS);
 
@@ -529,7 +533,7 @@ static void _print_string_wrapped(string str, int width)
  */
 static string _describe_god_wrath_causes(god_type which_god)
 {
-    if (which_god == GOD_RU)
+    if (which_god == GOD_RU || which_god == GOD_ANADORATH)
         return ""; // no wrath
     vector<god_type> evil_gods;
     vector<god_type> chaotic_gods;
@@ -763,16 +767,18 @@ static void _describe_god_powers(god_type which_god)
 
     bool have_any = false;
 
-    // set default color here, so we don't have to set in multiple places for
-    // always available passive abilities
+    /** set default color here, so we don't have to set in multiple places for
+     *  always available passive abilities
+     */
     if (!you_worship(which_god))
         textcolour(DARKGREY);
     else
         textcolour(god_colour(which_god));
 
-    // mv: Some gods can protect you from harm.
-    // The god isn't really protecting the player - only sometimes saving
-    // his life.
+    /** mv: Some gods can protect you from harm.
+     *  The god isn't really protecting the player - only sometimes saving
+     *  his life.
+     */
     if (have_passive(passive_t::protect_from_harm))
     {
         have_any = true;
@@ -798,9 +804,9 @@ static void _describe_god_powers(god_type which_god)
         }
 
         const char *how = (prot_chance >= 85) ? "carefully" :
-                          (prot_chance >= 55) ? "often" :
-                          (prot_chance >= 25) ? "sometimes"
-                                              : "occasionally";
+                        (prot_chance >= 55) ? "often" :
+                        (prot_chance >= 25) ? "sometimes"
+                                            : "occasionally";
 
         cprintf("%s %s watches over you%s.\n",
                 uppercase_first(god_name(which_god)).c_str(),
@@ -810,166 +816,241 @@ static void _describe_god_powers(god_type which_god)
 
     switch (which_god)
     {
-    case GOD_ZIN:
-    {
-        have_any = true;
-        const char *how =
-            (piety >= piety_breakpoint(5)) ? "carefully" :
-            (piety >= piety_breakpoint(3)) ? "often" :
-            (piety >= piety_breakpoint(1)) ? "sometimes" :
-                                             "occasionally";
-
-        cprintf("%s %s shields you from chaos.\n",
-                uppercase_first(god_name(which_god)).c_str(), how);
-        break;
-    }
-
-    case GOD_SHINING_ONE:
-    {
-        have_any = true;
-        cprintf("%s prevents you from stabbing unaware foes.\n",
-                uppercase_first(god_name(which_god)).c_str());
-        if (piety < piety_breakpoint(1))
-            textcolour(DARKGREY);
-        else
-            textcolour(god_colour(which_god));
-        const char *how =
-            (piety >= piety_breakpoint(5)) ? "completely" :
-            (piety >= piety_breakpoint(3)) ? "mostly" :
-                                             "partially";
-
-        cprintf("%s %s shields you from negative energy.\n",
-                uppercase_first(god_name(which_god)).c_str(), how);
-
-        const int halo_size = you_worship(which_god) ? you.halo_radius() : -1;
-        if (halo_size < 0)
-            textcolour(DARKGREY);
-        else
-            textcolour(god_colour(which_god));
-        cprintf("You radiate a%s righteous aura, and others within it are "
-                "easier to hit.\n",
-                halo_size > 5 ? " large" :
-                halo_size > 3 ? "" :
-                                " small");
-        break;
-    }
-
-    case GOD_JIYVA:
-        have_any = true;
-        if (have_passive(passive_t::resist_corrosion))
-            textcolour(god_colour(which_god));
-        else
-            textcolour(DARKGREY);
-        cprintf("%s shields you from corrosive effects.\n",
-                uppercase_first(god_name(which_god)).c_str());
-
-        if (have_passive(passive_t::slime_feed))
-            textcolour(god_colour(which_god));
-        else
-            textcolour(DARKGREY);
-        cprintf("You gain nutrition%s when your fellow slimes consume items.\n",
-                have_passive(passive_t::slime_hp) ? ", magic and health" :
-                have_passive(passive_t::slime_mp) ? " and magic" :
-                                                    "");
-        break;
-
-    case GOD_FEDHAS:
-        have_any = true;
-        cprintf("You can walk through plants and fire through allied plants.\n");
-        break;
-
-    case GOD_ASHENZARI:
-        have_any = true;
-        cprintf("You are provided with a bounty of information.\n");
-        break;
-
-    case GOD_CHEIBRIADOS:
-        have_any = true;
-        if (have_passive(passive_t::stat_boost))
-            textcolour(god_colour(which_god));
-        else
-            textcolour(DARKGREY);
-        cprintf("%s %sslows your movement.\n",
-                uppercase_first(god_name(which_god)).c_str(),
-                piety >= piety_breakpoint(5) ? "greatly " :
-                piety >= piety_breakpoint(2) ? "" :
-                                               "slightly ");
-        if (you.species != SP_GNOLL)
+        case GOD_ZIN:
         {
-            cprintf("%s supports your attributes. (+%d)\n",
-                    uppercase_first(god_name(which_god)).c_str(),
-                    chei_stat_boost(piety));
+            have_any = true;
+            const char *how =
+                (piety >= piety_breakpoint(5)) ? "carefully" :
+                (piety >= piety_breakpoint(3)) ? "often" :
+                (piety >= piety_breakpoint(1)) ? "sometimes" :
+                                                "occasionally";
+
+            cprintf("%s %s shields you from chaos.\n",
+                    uppercase_first(god_name(which_god)).c_str(), how);
+            break;
         }
-        break;
 
-    case GOD_VEHUMET:
-        have_any = true;
-        if (const int numoffers = you.vehumet_gifts.size())
+        case GOD_SHINING_ONE:
         {
-            const char* offer = numoffers == 1
-                               ? spell_title(*you.vehumet_gifts.begin())
-                               : "some of Vehumet's most lethal spells";
-            cprintf("You can memorise %s.\n", offer);
+            have_any = true;
+            cprintf("%s prevents you from stabbing unaware foes.\n",
+                    uppercase_first(god_name(which_god)).c_str());
+            if (piety < piety_breakpoint(1))
+                textcolour(DARKGREY);
+            else
+                textcolour(god_colour(which_god));
+            const char *how =
+                (piety >= piety_breakpoint(5)) ? "completely" :
+                (piety >= piety_breakpoint(3)) ? "mostly" :
+                                                "partially";
+
+            cprintf("%s %s shields you from negative energy.\n",
+                    uppercase_first(god_name(which_god)).c_str(), how);
+
+            const int halo_size = you_worship(which_god) ? you.halo_radius() : -1;
+            if (halo_size < 0)
+                textcolour(DARKGREY);
+            else
+                textcolour(god_colour(which_god));
+            cprintf("You radiate a%s righteous aura, and others within it are "
+                    "easier to hit.\n",
+                    halo_size > 5 ? " large" :
+                    halo_size > 3 ? "" :
+                                    " small");
+            break;
         }
-        else
+
+        case GOD_JIYVA:
         {
-            textcolour(DARKGREY);
-            cprintf("You can memorise some of Vehumet's spells.\n");
-        }
-        break;
-
-    case GOD_DITHMENOS:
-    {
-        have_any = true;
-        const int umbra_size = you_worship(which_god) ? you.umbra_radius() : -1;
-        if (umbra_size < 0)
-            textcolour(DARKGREY);
-        else
-            textcolour(god_colour(which_god));
-        cprintf("You radiate a%s aura of darkness, enhancing your stealth "
-                "and reducing the accuracy of your foes.\n",
-                umbra_size > 5 ? " large" :
-                umbra_size > 3 ? "n" :
-                                 " small");
-        break;
-    }
-
-    case GOD_GOZAG:
-        have_any = true;
-        cprintf("You passively detect gold.\n");
-        cprintf("%s turns your defeated foes' bodies to gold.\n",
-                uppercase_first(god_name(which_god)).c_str());
-        cprintf("Your enemies may become distracted by gold.\n");
-        break;
-
-    case GOD_HEPLIAKLQANA:
-        have_any = true;
-        cprintf("Your life essence is reduced. (-10% HP)\n");
-        break;
-
-    case GOD_PAKELLAS:
-    {
-        have_any = true;
-        cprintf("%s prevents your magic from regenerating.\n",
-                uppercase_first(god_name(which_god)).c_str());
-        cprintf("%s identifies device charges for you.\n",
-                uppercase_first(god_name(which_god)).c_str());
-        if (!you_foodless_normally())
-        {
-            if (have_passive(passive_t::bottle_mp))
+            have_any = true;
+            if (have_passive(passive_t::resist_corrosion))
                 textcolour(god_colour(which_god));
             else
                 textcolour(DARKGREY);
-
-            cprintf("%s will collect and distill excess magic from your "
-                    "kills.\n",
+            cprintf("%s shields you from corrosive effects.\n",
                     uppercase_first(god_name(which_god)).c_str());
-        }
-        break;
-    }
 
-    default:
-        break;
+            if (have_passive(passive_t::slime_feed))
+                textcolour(god_colour(which_god));
+            else
+                textcolour(DARKGREY);
+            cprintf("You gain nutrition%s when your fellow slimes consume items.\n",
+                    have_passive(passive_t::slime_hp) ? ", magic and health" :
+                    have_passive(passive_t::slime_mp) ? " and magic" :
+                                                        "");
+            break;
+        }
+
+        case GOD_FEDHAS:
+        {
+            have_any = true;
+            cprintf("You can walk through plants and fire through allied plants.\n");
+            break;
+        }
+
+        case GOD_ANADORATH:
+        {
+            have_any = true;
+            if (have_passive(passive_t::elemental_buckler))
+            {
+                if (have_passive(passive_t::elemental_shield))
+                {
+                    if (have_passive(passive_t::elemental_protection))
+                    {
+                        textcolour(LIGHTGREEN);
+                    }
+                    textcolour(LIGHTBLUE);
+                }
+                textcolour(god_colour(which_god));
+            }
+            else
+            {
+                textcolour(DARKGREY);
+            }
+            cprintf("%s grants you a %s forged from primal elements.\n",
+                    uppercase_first(god_name(which_god)).c_str(),
+                    piety >= piety_breakpoint(4) ? "large elemental shield" :
+                    piety >= piety_breakpoint(2) ? "moderate-size shield" :
+                                                   "small buckler");
+            
+            if (have_passive(passive_t::elemental_resist))
+                textcolour(YELLOW);
+            else if (have_passive(passive_t::elemental_resist_plus))
+                textcolour(LIGHTGREEN);
+            else
+                textcolour(DARKGREY);
+            cprintf("%s %s you from primal elements. (AC+%d%s%s%s)\n",
+                    uppercase_first(god_name(which_god)).c_str(),
+                    piety >= piety_breakpoint(5) ? "greatly protects" :
+                    piety >= piety_breakpoint(1) ? "slightly protects" : "may one day protect",
+                    anadorath_ac_boost(piety),
+                    piety >= piety_breakpoint(5) ? " rC++" :
+                    piety >= piety_breakpoint(1) ? " rC+" : "",
+                    piety >= piety_breakpoint(5) ? " rF++" :
+                    piety >= piety_breakpoint(1) ? " rF+" : "",
+                    piety >= piety_breakpoint(5) ? " rElec+" : "");
+            
+            if (have_passive(passive_t::elemental_neutrality))
+            {
+                if (have_passive(passive_t::elemental_friend))
+                    textcolour(LIGHTGREEN);
+                else
+                    textcolour(YELLOW);
+            }
+            else
+            {
+                textcolour(DARKGREY);
+            }
+            cprintf("%s's boon%s.\n",
+                    uppercase_first(god_name(which_god)).c_str(),
+                    piety >= piety_breakpoint(5) ? " allies you with primal elementals" :
+                    piety >= piety_breakpoint(2) ? " neutralises primal elementals" :
+                                                   " would make primal elementals cease hostility");
+            break;
+        }
+            
+        case GOD_ASHENZARI:
+        {
+            have_any = true;
+            cprintf("You are provided with a bounty of information.\n");
+            break;
+        }
+
+        case GOD_CHEIBRIADOS:
+        {
+            have_any = true;
+            if (have_passive(passive_t::stat_boost))
+                textcolour(god_colour(which_god));
+            else
+                textcolour(DARKGREY);
+            cprintf("%s %sslows your movement.\n",
+                    uppercase_first(god_name(which_god)).c_str(),
+                    piety >= piety_breakpoint(5) ? "greatly " :
+                    piety >= piety_breakpoint(2) ? "" :
+                                                "slightly ");
+            if (you.species != SP_GNOLL)
+            {
+                cprintf("%s supports your attributes. (+%d)\n",
+                        uppercase_first(god_name(which_god)).c_str(),
+                        chei_stat_boost(piety));
+            }
+            break;
+        }
+
+        case GOD_VEHUMET:
+        {
+            have_any = true;
+            if (const int numoffers = you.vehumet_gifts.size())
+            {
+                const char* offer = numoffers == 1
+                                ? spell_title(*you.vehumet_gifts.begin())
+                                : "some of Vehumet's most lethal spells";
+                cprintf("You can memorise %s.\n", offer);
+            }
+            else
+            {
+                textcolour(DARKGREY);
+                cprintf("You can memorise some of Vehumet's spells.\n");
+            }
+            break;
+        }
+
+        case GOD_DITHMENOS:
+        {
+            have_any = true;
+            const int umbra_size = you_worship(which_god) ? you.umbra_radius() : -1;
+            if (umbra_size < 0)
+                textcolour(DARKGREY);
+            else
+                textcolour(god_colour(which_god));
+            cprintf("You radiate a%s aura of darkness, enhancing your stealth "
+                    "and reducing the accuracy of your foes.\n",
+                    umbra_size > 5 ? " large" :
+                    umbra_size > 3 ? "n" :
+                                    " small");
+            break;
+        }
+
+        case GOD_GOZAG:
+        {
+            have_any = true;
+            cprintf("You passively detect gold.\n");
+            cprintf("%s turns your defeated foes' bodies to gold.\n",
+                    uppercase_first(god_name(which_god)).c_str());
+            cprintf("Your enemies may become distracted by gold.\n");
+            break;
+        }
+
+        case GOD_HEPLIAKLQANA:
+        {
+            have_any = true;
+            cprintf("Your life essence is reduced. (-10% HP)\n");
+            break;
+        }
+
+        case GOD_PAKELLAS:
+        {
+            have_any = true;
+            cprintf("%s prevents your magic from regenerating.\n",
+                    uppercase_first(god_name(which_god)).c_str());
+            cprintf("%s identifies device charges for you.\n",
+                    uppercase_first(god_name(which_god)).c_str());
+            if (!you_foodless_normally())
+            {
+                if (have_passive(passive_t::bottle_mp))
+                    textcolour(god_colour(which_god));
+                else
+                    textcolour(DARKGREY);
+
+                cprintf("%s will collect and distill excess magic from your "
+                        "kills.\n",
+                        uppercase_first(god_name(which_god)).c_str());
+            }
+            break;
+        }
+
+        default:
+            break;
     }
 
     for (const auto& power : get_god_powers(which_god))

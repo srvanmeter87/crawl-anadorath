@@ -471,6 +471,7 @@ hep4
 hep5
 wu_jian DNGN_ALTAR_WU_JIAN
 ecumenical DNGN_ALTAR_ECUMENICAL
+anadorath DNGN_ALTAR_ANADORATH
 unknown DNGN_UNKNOWN_ALTAR
 
 %sdir dngn

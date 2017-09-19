@@ -1331,6 +1331,45 @@ static const species_skill_aptitude species_skill_aptitudes[] =
     APT(SP_OCTOPODE,        SK_INVOCATIONS,     1),
     APT(SP_OCTOPODE,        SK_EVOCATIONS,      1),
 
+    // SP_PYROLITH
+    APT(SP_PYROLITH,        SK_FIGHTING,         2),
+    APT(SP_PYROLITH,        SK_SHORT_BLADES,    -3),
+    APT(SP_PYROLITH,        SK_LONG_BLADES,      3),
+    APT(SP_PYROLITH,        SK_AXES,             3),
+    APT(SP_PYROLITH,        SK_MACES_FLAILS,    -2),
+    APT(SP_PYROLITH,        SK_POLEARMS,         3),
+    APT(SP_PYROLITH,        SK_STAVES,           3),
+    APT(SP_PYROLITH,        SK_SLINGS,          -4),
+    APT(SP_PYROLITH,        SK_BOWS,            -4),
+    APT(SP_PYROLITH,        SK_CROSSBOWS,        3),
+    APT(SP_PYROLITH,        SK_THROWING,        -6),
+    APT(SP_PYROLITH,        SK_ARMOUR,           3),
+    APT(SP_PYROLITH,        SK_DODGING,         -8),
+    APT(SP_PYROLITH,        SK_STEALTH,         -8),
+#if TAG_MAJOR_VERSION == 34
+    APT(SP_PYROLITH,        SK_STABBING,       UNUSABLE_SKILL),
+#endif
+    APT(SP_PYROLITH,        SK_SHIELDS,          4),
+#if TAG_MAJOR_VERSION == 34
+    APT(SP_PYROLITH,        SK_TRAPS,          UNUSABLE_SKILL),
+#endif
+    APT(SP_PYROLITH,        SK_UNARMED_COMBAT,   2),
+    APT(SP_PYROLITH,        SK_SPELLCASTING,     4),
+    APT(SP_PYROLITH,        SK_CONJURATIONS,     4),
+    APT(SP_PYROLITH,        SK_HEXES,           -2),
+    APT(SP_PYROLITH,        SK_CHARMS,          -2),
+    APT(SP_PYROLITH,        SK_SUMMONINGS,      -2),
+    APT(SP_PYROLITH,        SK_NECROMANCY,       4),
+    APT(SP_PYROLITH,        SK_TRANSLOCATIONS,  -8),
+    APT(SP_PYROLITH,        SK_TRANSMUTATIONS,  -8),
+    APT(SP_PYROLITH,        SK_FIRE_MAGIC,       4),
+    APT(SP_PYROLITH,        SK_ICE_MAGIC,      UNUSABLE_SKILL),
+    APT(SP_PYROLITH,        SK_AIR_MAGIC,      UNUSABLE_SKILL),
+    APT(SP_PYROLITH,        SK_EARTH_MAGIC,      4),
+    APT(SP_PYROLITH,        SK_POISON_MAGIC,   UNUSABLE_SKILL),
+    APT(SP_PYROLITH,        SK_INVOCATIONS,      4),
+    APT(SP_PYROLITH,        SK_EVOCATIONS,       2),
+
 #if TAG_MAJOR_VERSION == 34
     // It seems that we need to keep this as long as SP_DJINNI/SP_LAVAORC
     // (which  are needed for loading old Djinni saves) is still around.

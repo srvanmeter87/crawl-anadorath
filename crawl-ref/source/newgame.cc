@@ -189,6 +189,7 @@ static const species_type species_order[] =
     SP_TENGU,          SP_BASE_DRACONIAN,
     SP_GARGOYLE,       SP_FORMICID,
     SP_BARACHI,        SP_GNOLL,
+    SP_PYROLITH,
     // mostly human shape but made of a strange substance
     SP_VINE_STALKER,
     // celestial species
@@ -988,6 +989,7 @@ static species_group species_groups[] =
             SP_FELID,
             SP_BARACHI,
             SP_MUMMY,
+            SP_PYROLITH,
         }
     },
 };
@@ -1080,7 +1082,8 @@ static job_group jobs_order[] =
     {
         "Zealot",
         coord_def(15, 0), 20,
-        { JOB_BERSERKER, JOB_ABYSSAL_KNIGHT, JOB_CHAOS_KNIGHT }
+        { JOB_BERSERKER, JOB_ABYSSAL_KNIGHT, JOB_CHAOS_KNIGHT,
+          JOB_PRIMALIST }
     },
     {
         "Warrior-mage",

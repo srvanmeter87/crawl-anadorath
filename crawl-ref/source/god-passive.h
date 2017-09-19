@@ -253,6 +253,19 @@ enum class passive_t
     wu_jian_lunge,
     wu_jian_whirlwind,
     wu_jian_wall_jump,
+
+    // Anadorath's elemental hostility modifier
+    elemental_neutrality,
+    elemental_friend,
+
+    // Anadorath's elemental shields
+    elemental_buckler,
+    elemental_shield,
+    elemental_protection,
+
+    // Anadorath's elemental resistances
+    elemental_resist,
+    elemental_resist_plus,
 };
 
 enum ru_interference
@@ -279,6 +292,7 @@ map<skill_type, int8_t> ash_get_boosted_skills(eq_type type);
 int gozag_gold_in_los(actor* whom);
 int qazlal_sh_boost(int piety = you.piety);
 int tso_sh_boost();
+int anadorath_ac_boost(int piety = you.piety);
 void qazlal_storm_clouds();
 void qazlal_element_adapt(beam_type flavour, int strength);
 bool does_ru_wanna_redirect(monster* mon);

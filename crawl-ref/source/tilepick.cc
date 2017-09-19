@@ -453,6 +453,8 @@ tileidx_t tileidx_feature_base(dungeon_feature_type feat)
         return TILE_DNGN_ALTAR_WU_JIAN;
     case DNGN_ALTAR_ECUMENICAL:
         return TILE_DNGN_ALTAR_ECUMENICAL;
+    case DNGN_ALTAR_ANADORATH:
+        return TILE_DNGN_ALTAR_ANADORATH;
     case DNGN_FOUNTAIN_BLUE:
         return TILE_DNGN_BLUE_FOUNTAIN;
     case DNGN_FOUNTAIN_SPARKLING:
@@ -3503,7 +3505,7 @@ tileidx_t tileidx_ability(const ability_type ability)
         return TILEG_ABILITY_HEP_BATTLEMAGE;
     case ABIL_HEPLIAKLQANA_TYPE_HEXER:
         return TILEG_ABILITY_HEP_HEXER;
-    // usk
+    // Uskayaw
    case ABIL_USKAYAW_STOMP:
         return TILEG_ABILITY_USKAYAW_STOMP;
    case ABIL_USKAYAW_LINE_PASS:
@@ -3515,6 +3517,11 @@ tileidx_t tileidx_ability(const ability_type ability)
         return TILEG_ABILITY_WU_JIAN_SERPENTS_LASH;
     case ABIL_WU_JIAN_HEAVENLY_STORM:
         return TILEG_ABILITY_WU_JIAN_HEAVENLY_STORM;
+    case ABIL_ANADORATH_ELEMENTAL_BLAST:
+        return TILEG_ABILITY_BREATHE_ENERGY;
+    /* Anadorath
+    case ABIL_ANADORATH_ELEMENTAL_BLAST:
+        return TILEG_ABILITY_ANADORATH_ELEMENTAL_BLAST; */
 
     // General divine (pseudo) abilities.
     case ABIL_RENOUNCE_RELIGION:

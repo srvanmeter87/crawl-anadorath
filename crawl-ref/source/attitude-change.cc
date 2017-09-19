@@ -66,6 +66,8 @@ void mons_att_changed(monster* mon)
 
 static void _jiyva_convert_slime(monster* slime);
 static void _fedhas_neutralise_plant(monster* plant);
+static void _anadorath_convert_elemental(monster* elemental);
+static void _anadorath_neutralise_elemental(monster* elemental);
 
 void beogh_follower_convert(monster* mons, bool orc_hit)
 {
@@ -124,6 +126,42 @@ void fedhas_neutralise(monster* mons)
         _fedhas_neutralise_plant(mons);
         mons->flags |= MF_ATT_CHANGE_ATTEMPT;
         del_exclude(mons->pos());
+    }
+}
+
+void anadorath_convert(monster* mons)
+{
+    if (have_passive(passive_t::elemental_friend)
+        && anadorath_converts(*mons)
+        && !mons->friendly()
+        && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
+    {
+        mons->flags |= MF_ATT_CHANGE_ATTEMPT;
+        if (!player_under_penance())
+        {
+            _anadorath_convert_elemental(mons);
+            stop_running();
+            del_exclude(mons->pos());
+        }
+    }
+}
+
+void anadorath_neutralise(monster* mons)
+{
+    if (have_passive(passive_t::elemental_neutrality)
+        && !have_passive(passive_t::elemental_friend)
+        && anadorath_converts(*mons)
+        && !mons->neutral()
+        && !mons->friendly()
+        && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
+    {
+        mons->flags |= MF_ATT_CHANGE_ATTEMPT;
+        if (!player_under_penance())
+        {
+            _anadorath_neutralise_elemental(mons);
+            stop_running();
+            del_exclude(mons->pos());
+        }
     }
 }
 
@@ -345,6 +383,53 @@ static void _fedhas_neutralise_plant(monster* plant)
     plant->attitude = ATT_GOOD_NEUTRAL;
     plant->flags   |= MF_WAS_NEUTRAL;
     mons_att_changed(plant);
+}
+
+static void _anadorath_convert_elemental(monster* elemental)
+{
+    ASSERT(elemental);
+    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
+           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
+
+    behaviour_event(elemental, ME_ALERT);
+
+    if (you.can_see(*elemental))
+    {
+        mprf(MSGCH_GOD, "%s seems to appreciate your presence and joins you!",
+        
+        elemental->name(DESC_THE).c_str());
+    }
+
+    elemental->attitude = ATT_FRIENDLY;
+    elemental->flags   |= MF_WAS_NEUTRAL;
+
+    mons_make_god_gift(*elemental, GOD_ANADORATH);
+
+    mons_att_changed(elemental);
+}
+
+static void _anadorath_neutralise_elemental(monster* elemental)
+{
+    ASSERT(elemental);
+    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
+           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
+
+    behaviour_event(elemental, ME_ALERT);
+
+    if (you.can_see(*elemental))
+    {
+        mprf(MSGCH_GOD, "%s stares at you suspiciously for a moment, "
+                        "then relaxes.",
+
+        elemental->name(DESC_THE).c_str());
+    }
+
+    elemental->attitude = ATT_GOOD_NEUTRAL;
+    elemental->flags   |= MF_WAS_NEUTRAL;
+
+    mons_make_god_gift(*elemental, GOD_ANADORATH);
+
+    mons_att_changed(elemental);
 }
 
 static void _jiyva_convert_slime(monster* slime)

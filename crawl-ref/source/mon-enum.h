@@ -215,7 +215,7 @@ enum mon_resist_flags
 #if TAG_MAJOR_VERSION == 34
     MR_OLD_RES_ACID      = 1 << 25,
 #else
-    // unused 1 << 25,
+    // unused            = 1 << 25,
 #endif
     MR_RES_STICKY_FLAME  = 1 << 26,
     MR_RES_WIND          = 1 << 27,

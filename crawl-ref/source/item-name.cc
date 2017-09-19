@@ -1086,6 +1086,8 @@ static const char* _book_type_name(int booktype)
     case BOOK_DREAMS:                 return "Dreams";
     case BOOK_ALCHEMY:                return "Alchemy";
     case BOOK_BEASTS:                 return "Beasts";
+    case BOOK_PRIMALIST:              return "the Primalist";
+    case BOOK_ELEMENTAL_POWER:        return "Elemental Power";
     case BOOK_RANDART_LEVEL:          return "Fixed Level";
     case BOOK_RANDART_THEME:          return "Fixed Theme";
     default:                          return "Bugginess";

@@ -49,32 +49,32 @@
 #include "view.h"
 
 #if TAG_MAJOR_VERSION == 34
-// This spell has two main advantages over Fireball:
-//
-// (1) The release is instantaneous, so monsters will not
-//     get an action before the player... this allows the
-//     player to hit monsters with a double fireball (this
-//     is why we only allow one delayed fireball at a time,
-//     if you want to allow for more, then the release should
-//     take at least some amount of time).
-//
-//     The casting of this spell still costs a turn. So
-//     casting Delayed Fireball and immediately releasing
-//     the fireball is only slightly different from casting
-//     a regular Fireball (monsters act in the middle instead
-//     of at the end). This is why we allow for the spell
-//     level discount so that Fireball is free with this spell
-//     (so that it only costs 7 levels instead of 12 to have
-//     both).
-//
-// (2) When the fireball is released, it is guaranteed to
-//     go off... the spell only fails at this point. This can
-//     be a large advantage for characters who have difficulty
-//     casting Fireball in their standard equipment. However,
-//     the power level for the actual fireball is determined at
-//     release, so if you do swap out your enhancers you'll
-//     get a less powerful ball when it's released. - bwr
-//
+/** This spell has two main advantages over Fireball:
+ * 
+ *  (1) The release is instantaneous, so monsters will not
+ *      get an action before the player... this allows the
+ *      player to hit monsters with a double fireball (this
+ *      is why we only allow one delayed fireball at a time,
+ *      if you want to allow for more, then the release should
+ *      take at least some amount of time).
+ *
+ *      The casting of this spell still costs a turn. So
+ *      casting Delayed Fireball and immediately releasing
+ *      the fireball is only slightly different from casting
+ *      a regular Fireball (monsters act in the middle instead
+ *      of at the end). This is why we allow for the spell
+ *      level discount so that Fireball is free with this spell
+ *      (so that it only costs 7 levels instead of 12 to have
+ *      both).
+ *
+ *  (2) When the fireball is released, it is guaranteed to
+ *      go off... the spell only fails at this point. This can
+ *      be a large advantage for characters who have difficulty
+ *      casting Fireball in their standard equipment. However,
+ *      the power level for the actual fireball is determined at
+ *      release, so if you do swap out your enhancers you'll
+ *      get a less powerful ball when it's released. - bwr
+ */
 spret_type cast_delayed_fireball(bool fail)
 {
     fail_check();
@@ -1141,31 +1141,31 @@ static int _shatter_walls(coord_def where, int pow, actor *agent)
         break;
 
     case DNGN_METAL_WALL:
-        chance = pow / 10;
+        chance = pow / 4;
         break;
 
     case DNGN_ORCISH_IDOL:
     case DNGN_GRANITE_STATUE:
-        chance = 50;
+        chance = 75;
         break;
 
     case DNGN_CLEAR_STONE_WALL:
     case DNGN_STONE_WALL:
-        chance = pow / 6;
+        chance = pow / 3;
         break;
 
     case DNGN_CLEAR_ROCK_WALL:
     case DNGN_ROCK_WALL:
     case DNGN_SLIMY_WALL:
-        chance = pow / 4;
+        chance = pow / 2;
         break;
 
     case DNGN_CRYSTAL_WALL:
-        chance = 50;
+        chance = 80;
         break;
 
     case DNGN_TREE:
-        chance = 33;
+        chance = 50;
         break;
 
     default:
@@ -1199,7 +1199,9 @@ static int _shatter_player_dice()
     // flyers get no extra damage.
     else if (you.airborne())
         return 1;
-    else if (you.form == transformation::statue || you.species == SP_GARGOYLE)
+    else if (you.form == transformation::statue ||
+             you.species == SP_GARGOYLE ||
+             you.species == SP_PYROLITH)
         return 6;
     else if (you.form == transformation::ice_beast)
         return random_range(4, 5);
@@ -2110,7 +2112,9 @@ bool setup_fragmentation_beam(bolt &beam, int pow, const actor *caster,
     {
         const bool petrified = (you.petrified() || you.petrifying());
 
-        if (you.form == transformation::statue || you.species == SP_GARGOYLE)
+        if (you.form == transformation::statue ||
+            you.species == SP_GARGOYLE ||
+            you.species == SP_PYROLITH)
         {
             beam.name       = "blast of rock fragments";
             beam.colour     = BROWN;
@@ -3210,6 +3214,30 @@ spret_type cast_scattershot(const actor *caster, int pow, const coord_def &pos,
 
         print_wounds(*mons);
     }
+
+    return SPRET_SUCCESS;
+}
+
+spret_type cast_elemental_blast(const spell_type spell, int powc, dist spd,
+                                bolt& beam, bool fail)
+{
+    beam.range = LOS_RADIUS;
+    if (!spell_direction(spd, beam))
+        return SPRET_ABORT;
+
+    int power = random2avg((you.skill(SK_AIR_MAGIC, 2) + you.skill(SK_EARTH_MAGIC, 2)
+                 + you.skill(SK_FIRE_MAGIC, 2) + you.skill(SK_ICE_MAGIC, 2)), 7)
+                 + random2(1 + you.skill(SK_SPELLCASTING, 1));
+    
+    if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, LOS_RADIUS))
+        return SPRET_ABORT;
+
+    fail_check();
+
+    beam.origin_spell = SPELL_ELEMENTAL_BLAST;
+    beam.ex_size = random_range(0, power > 100 ? 3 : 2);
+    zap_type ztype = ZAP_ELEMENTAL_BLAST;
+    zapping(ztype, power, beam);
 
     return SPRET_SUCCESS;
 }

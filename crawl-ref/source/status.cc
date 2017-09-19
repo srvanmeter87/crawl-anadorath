@@ -1060,7 +1060,9 @@ static void _describe_missiles(status_info* inf)
         bool perm = you.get_mutation_level(MUT_DISTORTION_FIELD) == 3
                     || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
                     || you.scan_artefacts(ARTP_RMSL)
-                    || have_passive(passive_t::upgraded_storm_shield);
+                    || have_passive(passive_t::upgraded_storm_shield)
+                    || have_passive(passive_t::elemental_shield)
+                    || have_passive(passive_t::elemental_protection);
         inf->light_colour = perm ? WHITE : LIGHTBLUE;
         inf->light_text   = "RMsl";
         inf->short_text   = "repel missiles";

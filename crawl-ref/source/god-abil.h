@@ -191,3 +191,6 @@ bool hepliaklqana_choose_ancestor_type(int ancestor_type);
 spret_type hepliaklqana_idealise(bool fail);
 spret_type hepliaklqana_transference(bool fail);
 void hepliaklqana_choose_identity();
+
+// spret_type anadorath_blistering_cold(const coord_def &pos, bool fail);
+// void anadorath_elemental_shielding();

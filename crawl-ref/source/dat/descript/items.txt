@@ -232,6 +232,10 @@ book of power
 A book of powerful magic spells, crackling and shuddering with barely-contained
 energies.
 %%%%
+book of the primalist
+
+A worn, well-studied tome of elemental spells.
+%%%%
 book of spatial translocations
 
 A basic spellbook on the magical field of Translocations.
@@ -249,6 +253,10 @@ aspects.
 book of the earth
 
 A textbook of advanced Earth magic.
+%%%%
+book of elemental power
+
+An advanced level grimoire of the elements.
 %%%%
 book of the sky
 

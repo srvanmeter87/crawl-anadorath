@@ -29,6 +29,7 @@ enum class lifesaving_chance
 bool is_evil_god(god_type god);
 bool is_good_god(god_type god);
 bool is_chaotic_god(god_type god);
+bool is_elemental_god(god_type god);
 bool is_unknown_god(god_type god);
 bool god_has_name(god_type god);
 
@@ -111,6 +112,7 @@ bool jiyva_is_dead();
 void set_penance_xp_timeout();
 bool fedhas_protects(const monster& target);
 bool fedhas_neutralises(const monster& target);
+bool anadorath_converts(const monster& target);
 void nemelex_death_message();
 
 void mons_make_god_gift(monster& mon, god_type god = you.religion);
@@ -119,6 +121,7 @@ bool mons_is_god_gift(const monster& mon, god_type god = you.religion);
 int yred_random_servants(unsigned int threshold, bool force_hostile = false);
 bool is_yred_undead_slave(const monster& mon);
 bool is_orcish_follower(const monster& mon);
+bool is_elemental_follower(const monster& mon);
 bool is_fellow_slime(const monster& mon);
 bool is_follower(const monster& mon);
 

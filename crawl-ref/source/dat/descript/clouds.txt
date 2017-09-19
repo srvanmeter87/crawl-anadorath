@@ -167,3 +167,7 @@ golden dust cloud
 
 A cloud of shimmering golden dust. While within it, followers of the Council
 gain tremendous strength in combat.
+%%%%
+elemental chaos cloud
+
+A colourful, yet lethal result of binding repulsing elements together.

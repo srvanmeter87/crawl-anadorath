@@ -2840,7 +2840,7 @@ static void tag_read_you(reader &th)
             you.mutation[MUT_TRAMPLE_RESISTANCE] = 0;
         if (you.mutation[MUT_CLING] == 1)
             you.mutation[MUT_CLING] = 0;
-        if (you.species == SP_GARGOYLE)
+        if (you.species == SP_GARGOYLE || you.species == SP_PYROLITH)
         {
             you.mutation[MUT_POISON_RESISTANCE] =
             you.innate_mutation[MUT_POISON_RESISTANCE] = 0;
@@ -2894,7 +2894,8 @@ static void tag_read_you(reader &th)
         }
 
         if (you.species == SP_VINE_STALKER
-            || you.species == SP_GARGOYLE)
+            || you.species == SP_GARGOYLE
+            || you.species == SP_PYROLITH)
         {
             you.mutation[MUT_ROT_IMMUNITY] =
             you.innate_mutation[MUT_ROT_IMMUNITY] = 1;

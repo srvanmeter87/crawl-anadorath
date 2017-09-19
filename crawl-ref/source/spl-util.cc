@@ -1022,6 +1022,7 @@ int spell_effect_noise(spell_type spell)
     // worst case scenario for these
     case SPELL_FIRE_STORM:
     case SPELL_CONJURE_BALL_LIGHTNING:
+    case SPELL_ELEMENTAL_BLAST:
         expl_size = 3;
         break;
 
@@ -1156,7 +1157,7 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
         break;
 
     case SPELL_STATUE_FORM:
-        if (SP_GARGOYLE == you.species)
+        if (SP_GARGOYLE == you.species || SP_PYROLITH == you.species)
             return "you're already a statue.";
         // fallthrough to other forms
 
@@ -1256,6 +1257,7 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
         if (you.species == SP_GARGOYLE
             || you.species == SP_GHOUL
             || you.species == SP_MUMMY
+            || you.species == SP_PYROLITH
             || (temp && !form_can_bleed(you.form)))
         {
             return "you have no blood to sublime.";
@@ -1392,6 +1394,7 @@ bool spell_no_hostile_in_range(spell_type spell)
     case SPELL_FREEZING_CLOUD:
     case SPELL_POISONOUS_CLOUD:
     case SPELL_HOLY_BREATH:
+    case SPELL_ELEMENTAL_BLAST:
     {
         targeter_cloud tgt(&you, range);
         // Accept monsters that are in clouds for the hostiles-in-range check

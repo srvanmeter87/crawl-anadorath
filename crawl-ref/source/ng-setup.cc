@@ -140,8 +140,10 @@ item_def* newgame_make_item(object_class_type base,
             item.sub_type = ARM_SHIELD;
         else if (is_shield(item))
             item.sub_type = ARM_BUCKLER;
+        else if (item.sub_type == ARM_ROBE)
+            item.sub_type = ARM_CLOAK;
         else
-            item.sub_type = ARM_ROBE;
+            item.sub_type = ARM_SCARF;
     }
 
     // Make sure we didn't get a stack of shields or such nonsense.
@@ -276,6 +278,16 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_ARMOUR]++;
 
         break;
+    
+    case JOB_PRIMALIST:
+        you.religion = GOD_ANADORATH;
+        you.piety = 15;
+        if (species_apt(SK_ARMOUR) < species_apt(SK_DODGING))
+            you.skills[SK_DODGING]++;
+        else
+            you.skills[SK_ARMOUR]++;
+
+        break;
 
     case JOB_WANDERER:
         create_wanderer();
@@ -299,6 +311,15 @@ static void _give_items_skills(const newgame_def& ng)
 
     if (job_gets_ranged_weapons(you.char_class))
         _give_ammo(ng.weapon, you.char_class == JOB_HUNTER ? 1 : 0);
+    
+    if (you.species == SP_PYROLITH)
+    {
+        you.skills[SK_AIR_MAGIC] = 0;
+        you.skills[SK_ICE_MAGIC] = 0;
+        you.skills[SK_POISON_MAGIC] = 0;
+        you.skills[SK_TRANSLOCATIONS] = 0;
+        you.skills[SK_TRANSMUTATIONS] = 0;
+    }
 
     if (you.species == SP_FELID)
     {

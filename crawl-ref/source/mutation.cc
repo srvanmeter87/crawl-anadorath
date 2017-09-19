@@ -641,6 +641,7 @@ string describe_mutations(bool center_title)
                     make_stringf("Your %s. (AC +%d)",
                        you.species == SP_NAGA ? "serpentine skin is tough" :
                        you.species == SP_GARGOYLE ? "stone body is resilient" :
+                       you.species == SP_PYROLITH ? "fiery body is tempered" :
                                                     scale_clause.c_str(),
                        you.racial_ac(false) / 100),
                     player_is_shapechanged()
@@ -1212,7 +1213,7 @@ bool physiology_mutation_conflict(mutation_type mutat)
 
     // Only Draconians (and gargoyles) can get wings.
     if (!species_is_draconian(you.species) && you.species != SP_GARGOYLE
-        && mutat == MUT_BIG_WINGS)
+        && you.species != SP_PYROLITH && mutat == MUT_BIG_WINGS)
     {
         return true;
     }
@@ -1256,7 +1257,8 @@ bool physiology_mutation_conflict(mutation_type mutat)
     }
 
     // Already immune.
-    if (you.species == SP_GARGOYLE && mutat == MUT_POISON_RESISTANCE)
+    if ((you.species == SP_GARGOYLE || you.species == SP_PYROLITH)
+        && mutat == MUT_POISON_RESISTANCE)
         return true;
 
     // Gnolls can't get any stat-affecting mutations

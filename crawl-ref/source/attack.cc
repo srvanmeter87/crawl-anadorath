@@ -1494,6 +1494,7 @@ bool attack::apply_damage_brand(const char *what)
     case SPWPN_FREEZING:
         calc_elemental_brand_damage(BEAM_COLD, "freeze", what);
         defender->expose_to_element(BEAM_COLD, 2);
+        attacker->god_conduct(DID_ICE, 1);
         break;
 
     case SPWPN_HOLY_WRATH:
@@ -1509,6 +1510,7 @@ bool attack::apply_damage_brand(const char *what)
                     defender->conj_verb("convulse").c_str(),
                     attack_strength_punctuation(special_damage).c_str());
         }
+        attacker->god_conduct(DID_HOLY, 1);
         break;
 
     case SPWPN_ELECTROCUTION:
@@ -1525,7 +1527,7 @@ bool attack::apply_damage_brand(const char *what)
             special_damage_flavour = BEAM_ELECTRICITY;
             defender->expose_to_element(BEAM_ELECTRICITY, 2);
         }
-
+        attacker->god_conduct(DID_AIR, 1);
         break;
 
     case SPWPN_VENOM:

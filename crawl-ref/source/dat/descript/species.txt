@@ -81,6 +81,13 @@ Kobold
 
 Kobolds are small, mischievous and a little fragile, but multi-talented.
 %%%%
+Pyrolith
+
+Pyroliths are beings composed entirely of time-worn, pressure treated magma
+from the planet's core. As the epitome of fire and earth, their respective
+spellcasting schools are toys more than skills, though other elements evade
+their abilities.
+%%%%
 Merfolk
 
 Half fish, half human, Merfolk are citizens of both water and land. They are

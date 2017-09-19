@@ -92,92 +92,100 @@ const vector<god_power> god_powers[NUM_GODS] =
     { },
 
     // Zin
-    { { 1, ABIL_ZIN_RECITE, "recite Zin's Axioms of Law" },
-      { 2, ABIL_ZIN_VITALISATION, "call upon Zin for vitalisation" },
-      { 3, ABIL_ZIN_IMPRISON, "call upon Zin to imprison the lawless" },
-      { 5, ABIL_ZIN_SANCTUARY, "call upon Zin to create a sanctuary" },
-      {-1, ABIL_ZIN_DONATE_GOLD, "donate money to Zin" },
-      { 7, ABIL_ZIN_CURE_ALL_MUTATIONS,
-           "Zin will cure all your mutations... once.",
-           "Zin is no longer ready to cure all your mutations." },
+    {
+        { 1, ABIL_ZIN_RECITE, "recite Zin's Axioms of Law" },
+        { 2, ABIL_ZIN_VITALISATION, "call upon Zin for vitalisation" },
+        { 3, ABIL_ZIN_IMPRISON, "call upon Zin to imprison the lawless" },
+        { 5, ABIL_ZIN_SANCTUARY, "call upon Zin to create a sanctuary" },
+        {-1, ABIL_ZIN_DONATE_GOLD, "donate money to Zin" },
+        { 7, ABIL_ZIN_CURE_ALL_MUTATIONS,
+             "Zin will cure all your mutations... once.",
+             "Zin is no longer ready to cure all your mutations." },
     },
 
     // TSO
-    { { 1, "You and your allies can gain power from killing the unholy and evil.",
-           "You and your allies can no longer gain power from killing the unholy and evil." },
-      { 2, ABIL_TSO_DIVINE_SHIELD, "call upon the Shining One for a divine shield" },
-      { 4, ABIL_TSO_CLEANSING_FLAME, "channel blasts of cleansing flame", },
-      { 5, ABIL_TSO_SUMMON_DIVINE_WARRIOR, "summon a divine warrior" },
-      { 7, ABIL_TSO_BLESS_WEAPON,
-           "The Shining One will bless your weapon with holy wrath... once.",
-           "The Shining One is no longer ready to bless your weapon." },
+    {
+        { 1, "You and your allies can gain power from killing the unholy and evil.",
+             "You and your allies can no longer gain power from killing the unholy and evil." },
+        { 2, ABIL_TSO_DIVINE_SHIELD, "call upon the Shining One for a divine shield" },
+        { 4, ABIL_TSO_CLEANSING_FLAME, "channel blasts of cleansing flame", },
+        { 5, ABIL_TSO_SUMMON_DIVINE_WARRIOR, "summon a divine warrior" },
+        { 7, ABIL_TSO_BLESS_WEAPON,
+             "The Shining One will bless your weapon with holy wrath... once.",
+             "The Shining One is no longer ready to bless your weapon." },
     },
 
     // Kikubaaqudgha
-    { { 1, ABIL_KIKU_RECEIVE_CORPSES, "receive cadavers from Kikubaaqudgha" },
-      { 2, "Kikubaaqudgha is protecting you from necromantic miscasts and death curses.",
-           "Kikubaaqudgha no longer protects you from necromantic miscasts or death curses." },
-      { 4, "Kikubaaqudgha is protecting you from unholy torment.",
-           "Kikubaaqudgha will no longer protect you from unholy torment." },
-      { 5, ABIL_KIKU_TORMENT, "invoke torment by sacrificing a corpse" },
-      { 7, ABIL_KIKU_BLESS_WEAPON,
-           "Kikubaaqudgha will grant you a Necronomicon or bloody your weapon with pain... once.",
-           "Kikubaaqudgha is no longer ready to enhance your necromancy." },
-      { 7, ABIL_KIKU_GIFT_NECRONOMICON,
-           "Kikubaaqudgha will grant you a Necronomicon.",
-           "Kikubaaqudgha is no longer ready to enhance your necromancy." },
+    {
+        { 1, ABIL_KIKU_RECEIVE_CORPSES, "receive cadavers from Kikubaaqudgha" },
+        { 2, "Kikubaaqudgha is protecting you from necromantic miscasts and death curses.",
+             "Kikubaaqudgha no longer protects you from necromantic miscasts or death curses." },
+        { 4, "Kikubaaqudgha is protecting you from unholy torment.",
+             "Kikubaaqudgha will no longer protect you from unholy torment." },
+        { 5, ABIL_KIKU_TORMENT, "invoke torment by sacrificing a corpse" },
+        { 7, ABIL_KIKU_BLESS_WEAPON,
+             "Kikubaaqudgha will grant you a Necronomicon or bloody your weapon with pain... once.",
+             "Kikubaaqudgha is no longer ready to enhance your necromancy." },
+        { 7, ABIL_KIKU_GIFT_NECRONOMICON,
+             "Kikubaaqudgha will grant you a Necronomicon.",
+             "Kikubaaqudgha is no longer ready to enhance your necromancy." },
     },
 
     // Yredelemnul
-    { { 1, ABIL_YRED_ANIMATE_REMAINS, "animate remains" },
-      { 2, ABIL_YRED_RECALL_UNDEAD_SLAVES, "recall your undead slaves" },
-      { 2, ABIL_YRED_INJURY_MIRROR, "mirror injuries on your foes" },
-      { 3, ABIL_YRED_ANIMATE_DEAD, "animate legions of the dead" },
-      { 3, "Yredelemnul will gift you servants as your piety grows.",
-           "Yredelemnul will no longer gift you servants." },
-      { 4, ABIL_YRED_DRAIN_LIFE, "drain ambient life force" },
-      { 5, ABIL_YRED_ENSLAVE_SOUL, "enslave living souls" },
+    {
+        { 1, ABIL_YRED_ANIMATE_REMAINS, "animate remains" },
+        { 2, ABIL_YRED_RECALL_UNDEAD_SLAVES, "recall your undead slaves" },
+        { 2, ABIL_YRED_INJURY_MIRROR, "mirror injuries on your foes" },
+        { 3, ABIL_YRED_ANIMATE_DEAD, "animate legions of the dead" },
+        { 3, "Yredelemnul will gift you servants as your piety grows.",
+             "Yredelemnul will no longer gift you servants." },
+        { 4, ABIL_YRED_DRAIN_LIFE, "drain ambient life force" },
+        { 5, ABIL_YRED_ENSLAVE_SOUL, "enslave living souls" },
     },
 
     // Xom
     { },
 
     // Vehumet
-    { { 1, "gain magical power from killing" },
-      { 3, "Vehumet is aiding your destructive magics.",
-           "Vehumet will no longer aid your destructive magics." },
-      { 4, "Vehumet is extending the range of your destructive magics.",
-           "Vehumet will no longer extend the range of your destructive magics." },
+    {
+        { 1, "gain magical power from killing" },
+        { 3, "Vehumet is aiding your destructive magics.",
+             "Vehumet will no longer aid your destructive magics." },
+        { 4, "Vehumet is extending the range of your destructive magics.",
+             "Vehumet will no longer extend the range of your destructive magics." },
     },
 
     // Okawaru
-    { { 1, ABIL_OKAWARU_HEROISM, "gain great but temporary skills" },
-      { 3, "Okawaru will gift you ammunition as your piety grows.",
-           "Okawaru will no longer gift you ammunition." },
-      { 5, ABIL_OKAWARU_FINESSE, "speed up your combat" },
-      { 5, "Okawaru will gift you equipment as your piety grows.",
-           "Okawaru will no longer gift you equipment." },
+    {
+        { 1, ABIL_OKAWARU_HEROISM, "gain great but temporary skills" },
+        { 3, "Okawaru will gift you ammunition as your piety grows.",
+             "Okawaru will no longer gift you ammunition." },
+        { 5, ABIL_OKAWARU_FINESSE, "speed up your combat" },
+        { 5, "Okawaru will gift you equipment as your piety grows.",
+             "Okawaru will no longer gift you equipment." },
     },
 
     // Makhleb
-    { { 1, "gain health from killing" },
-      { 2, ABIL_MAKHLEB_MINOR_DESTRUCTION, "harness Makhleb's destructive might" },
-      { 3, ABIL_MAKHLEB_LESSER_SERVANT_OF_MAKHLEB, "summon a lesser servant of Makhleb" },
-      { 4, ABIL_MAKHLEB_MAJOR_DESTRUCTION, "hurl Makhleb's greater destruction" },
-      { 5, ABIL_MAKHLEB_GREATER_SERVANT_OF_MAKHLEB, "summon a greater servant of Makhleb" },
+    {
+        { 1, "gain health from killing" },
+        { 2, ABIL_MAKHLEB_MINOR_DESTRUCTION, "harness Makhleb's destructive might" },
+        { 3, ABIL_MAKHLEB_LESSER_SERVANT_OF_MAKHLEB, "summon a lesser servant of Makhleb" },
+        { 4, ABIL_MAKHLEB_MAJOR_DESTRUCTION, "hurl Makhleb's greater destruction" },
+        { 5, ABIL_MAKHLEB_GREATER_SERVANT_OF_MAKHLEB, "summon a greater servant of Makhleb" },
     },
 
     // Sif Muna
-    { { 1, ABIL_SIF_MUNA_DIVINE_ENERGY, "request divine energy to cast spells "
-                                        "with insufficient magic",
-           "request divine energy" },
-      { 2, "Sif Muna is protecting you from the effects of miscast magic.",
-           "Sif Muna no longer protects you from the effects of miscast magic." },
-      { 3, ABIL_SIF_MUNA_CHANNEL_ENERGY, "call upon Sif Muna for magical energy"},
-      { 4, ABIL_SIF_MUNA_FORGET_SPELL, "freely open your mind to new spells",
-          "forget spells at will" },
-      { 5, "Sif Muna will gift you books as your piety grows.",
-           "Sif Muna will no longer gift you books." },
+    {
+        { 1, ABIL_SIF_MUNA_DIVINE_ENERGY, "request divine energy to cast spells "
+                                          "with insufficient magic",
+             "request divine energy" },
+        { 2, "Sif Muna is protecting you from the effects of miscast magic.",
+             "Sif Muna no longer protects you from the effects of miscast magic." },
+        { 3, ABIL_SIF_MUNA_CHANNEL_ENERGY, "call upon Sif Muna for magical energy"},
+        { 4, ABIL_SIF_MUNA_FORGET_SPELL, "freely open your mind to new spells",
+             "forget spells at will" },
+        { 5, "Sif Muna will gift you books as your piety grows.",
+             "Sif Muna will no longer gift you books." },
     },
 
     // Trog
@@ -192,48 +200,53 @@ const vector<god_power> god_powers[NUM_GODS] =
     },
 
     // Nemelex
-    { { 3, ABIL_NEMELEX_TRIPLE_DRAW, "choose one out of three cards" },
-      { 4, ABIL_NEMELEX_DEAL_FOUR, "deal four cards at a time" },
-      { 5, ABIL_NEMELEX_STACK_FIVE, "order the top five cards of a deck, losing the rest",
-                                    "stack decks" },
+    {
+        { 3, ABIL_NEMELEX_TRIPLE_DRAW, "choose one out of three cards" },
+        { 4, ABIL_NEMELEX_DEAL_FOUR, "deal four cards at a time" },
+        { 5, ABIL_NEMELEX_STACK_FIVE, "order the top five cards of a deck, losing the rest",
+                                      "stack decks" },
     },
 
     // Elyvilon
-    { { 1, ABIL_ELYVILON_LESSER_HEALING, "provide lesser healing for yourself" },
-      { 2, ABIL_ELYVILON_HEAL_OTHER, "heal and attempt to pacify others" },
-      { 3, ABIL_ELYVILON_PURIFICATION, "purify yourself" },
-      { 4, ABIL_ELYVILON_GREATER_HEALING, "provide greater healing for yourself" },
-      { 5, ABIL_ELYVILON_DIVINE_VIGOUR, "call upon Elyvilon for divine vigour" },
-      { 1, ABIL_ELYVILON_LIFESAVING, "call on Elyvilon to save your life" },
+    {
+        { 1, ABIL_ELYVILON_LESSER_HEALING, "provide lesser healing for yourself" },
+        { 2, ABIL_ELYVILON_HEAL_OTHER, "heal and attempt to pacify others" },
+        { 3, ABIL_ELYVILON_PURIFICATION, "purify yourself" },
+        { 4, ABIL_ELYVILON_GREATER_HEALING, "provide greater healing for yourself" },
+        { 5, ABIL_ELYVILON_DIVINE_VIGOUR, "call upon Elyvilon for divine vigour" },
+        { 1, ABIL_ELYVILON_LIFESAVING, "call on Elyvilon to save your life" },
     },
 
     // Lugonu
-    { { 1, ABIL_LUGONU_ABYSS_EXIT, "depart the Abyss", "depart the Abyss at will" },
-      { 2, ABIL_LUGONU_BEND_SPACE, "bend space around yourself" },
-      { 3, ABIL_LUGONU_BANISH, "banish your foes" },
-      { 4, ABIL_LUGONU_CORRUPT, "corrupt the fabric of space" },
-      { 5, ABIL_LUGONU_ABYSS_ENTER, "gate yourself to the Abyss" },
-      { 7, ABIL_LUGONU_BLESS_WEAPON, "Lugonu will corrupt your weapon with distortion... once.",
-                                     "Lugonu is no longer ready to corrupt your weapon." },
+    {
+        { 1, ABIL_LUGONU_ABYSS_EXIT, "depart the Abyss", "depart the Abyss at will" },
+        { 2, ABIL_LUGONU_BEND_SPACE, "bend space around yourself" },
+        { 3, ABIL_LUGONU_BANISH, "banish your foes" },
+        { 4, ABIL_LUGONU_CORRUPT, "corrupt the fabric of space" },
+        { 5, ABIL_LUGONU_ABYSS_ENTER, "gate yourself to the Abyss" },
+        { 7, ABIL_LUGONU_BLESS_WEAPON, "Lugonu will corrupt your weapon with distortion... once.",
+                                       "Lugonu is no longer ready to corrupt your weapon." },
     },
 
     // Beogh
-    { { 2, ABIL_BEOGH_SMITING, "smite your foes" },
-      { 3, "gain orcish followers" },
-      { 4, ABIL_BEOGH_RECALL_ORCISH_FOLLOWERS, "recall your orcish followers" },
-      { 5, "walk on water" },
-      { 5, ABIL_BEOGH_GIFT_ITEM, "give items to your followers" },
-      { 6, ABIL_BEOGH_RESURRECTION, "revive fallen orcs" },
+    {
+        { 2, ABIL_BEOGH_SMITING, "smite your foes" },
+        { 3, "gain orcish followers" },
+        { 4, ABIL_BEOGH_RECALL_ORCISH_FOLLOWERS, "recall your orcish followers" },
+        { 5, "walk on water" },
+        { 5, ABIL_BEOGH_GIFT_ITEM, "give items to your followers" },
+        { 6, ABIL_BEOGH_RESURRECTION, "revive fallen orcs" },
     },
 
     // Jiyva
-    { { 1, ABIL_JIYVA_CALL_JELLY, "request a jelly" },
-      { 3, "Jiyva will mutate your body as your piety grows.",
-           "Jiyva will no longer mutate your body." },
-      { 4, ABIL_JIYVA_SLIMIFY, "turn your foes to slime" },
-      { 5, "You may now expel jellies when seriously injured.",
-           "You will no longer expel jellies when injured." },
-      { 5, ABIL_JIYVA_CURE_BAD_MUTATION, "call upon Jiyva to remove your harmful mutations" },
+    {
+        { 1, ABIL_JIYVA_CALL_JELLY, "request a jelly" },
+        { 3, "Jiyva will mutate your body as your piety grows.",
+             "Jiyva will no longer mutate your body." },
+        { 4, ABIL_JIYVA_SLIMIFY, "turn your foes to slime" },
+        { 5, "You may now expel jellies when seriously injured.",
+             "You will no longer expel jellies when injured." },
+        { 5, ABIL_JIYVA_CURE_BAD_MUTATION, "call upon Jiyva to remove your harmful mutations" },
     },
 
     // Fedhas
@@ -247,41 +260,45 @@ const vector<god_power> god_powers[NUM_GODS] =
     },
 
     // Cheibriados
-    { { 0, ABIL_CHEIBRIADOS_TIME_BEND, "bend time to slow others" },
-      { 1, "Cheibriados slows and strengthens your metabolism.",
-           "Cheibriados no longer slows and strengthens your metabolism." },
-      { 3, ABIL_CHEIBRIADOS_DISTORTION, "warp the flow of time around you" },
-      { 4, ABIL_CHEIBRIADOS_SLOUCH, "inflict damage on those overly hasty" },
-      { 5, ABIL_CHEIBRIADOS_TIME_STEP, "step out of the time flow" },
+    {
+        { 0, ABIL_CHEIBRIADOS_TIME_BEND, "bend time to slow others" },
+        { 1, "Cheibriados slows and strengthens your metabolism.",
+             "Cheibriados no longer slows and strengthens your metabolism." },
+        { 3, ABIL_CHEIBRIADOS_DISTORTION, "warp the flow of time around you" },
+        { 4, ABIL_CHEIBRIADOS_SLOUCH, "inflict damage on those overly hasty" },
+        { 5, ABIL_CHEIBRIADOS_TIME_STEP, "step out of the time flow" },
     },
 
     // Ashenzari
-    { { 0, ABIL_ASHENZARI_CURSE, "curse your items" },
-      { 1, ABIL_ASHENZARI_SCRYING, "scry through walls" },
-      { 2, "The more cursed you are, the more Ashenzari supports your skills.",
-           "Ashenzari no longer supports your skills." },
-      { 3, "Ashenzari reveals the unseen.",
-           "Ashenzari no longer reveals the unseen." },
-      { 4, "Ashenzari keeps your mind clear.",
-           "Ashenzari no longer keeps your mind clear." },
-      { 5, ABIL_ASHENZARI_TRANSFER_KNOWLEDGE,
-           "Ashenzari helps you to reconsider your skills.",
-           "Ashenzari no longer helps you to reconsider your skills." },
+    {
+        { 0, ABIL_ASHENZARI_CURSE, "curse your items" },
+        { 1, ABIL_ASHENZARI_SCRYING, "scry through walls" },
+        { 2, "The more cursed you are, the more Ashenzari supports your skills.",
+             "Ashenzari no longer supports your skills." },
+        { 3, "Ashenzari reveals the unseen.",
+             "Ashenzari no longer reveals the unseen." },
+        { 4, "Ashenzari keeps your mind clear.",
+             "Ashenzari no longer keeps your mind clear." },
+        { 5, ABIL_ASHENZARI_TRANSFER_KNOWLEDGE,
+             "Ashenzari helps you to reconsider your skills.",
+             "Ashenzari no longer helps you to reconsider your skills." },
     },
 
     // Dithmenos
-    { { 2, ABIL_DITHMENOS_SHADOW_STEP, "step into the shadows of nearby creatures" },
-      { 3, "You now sometimes bleed smoke when heavily injured by enemies.",
-           "You no longer bleed smoke." },
-      { 4, "Your shadow now sometimes tangibly mimics your actions.",
-           "Your shadow no longer tangibly mimics your actions." },
-      { 5, ABIL_DITHMENOS_SHADOW_FORM, "transform into a swirling mass of shadows" },
+    {
+        { 2, ABIL_DITHMENOS_SHADOW_STEP, "step into the shadows of nearby creatures" },
+        { 3, "You now sometimes bleed smoke when heavily injured by enemies.",
+             "You no longer bleed smoke." },
+        { 4, "Your shadow now sometimes tangibly mimics your actions.",
+             "Your shadow no longer tangibly mimics your actions." },
+        { 5, ABIL_DITHMENOS_SHADOW_FORM, "transform into a swirling mass of shadows" },
     },
 
     // Gozag
-    { { 0, ABIL_GOZAG_POTION_PETITION, "petition Gozag for potion effects" },
-      { 0, ABIL_GOZAG_CALL_MERCHANT, "fund merchants seeking to open stores in the dungeon" },
-      { 0, ABIL_GOZAG_BRIBE_BRANCH, "bribe branches to halt enemies' attacks and recruit allies" },
+    {
+        { 0, ABIL_GOZAG_POTION_PETITION, "petition Gozag for potion effects" },
+        { 0, ABIL_GOZAG_CALL_MERCHANT, "fund merchants seeking to open stores in the dungeon" },
+        { 0, ABIL_GOZAG_BRIBE_BRANCH, "bribe branches to halt enemies' attacks and recruit allies" },
     },
 
     // Qazlal
@@ -298,13 +315,14 @@ const vector<god_power> god_powers[NUM_GODS] =
     },
 
     // Ru
-    { { 1, "You exude an aura of power that intimidates your foes.",
-           "You no longer exude an aura of power that intimidates your foes." },
-      { 2, "Your aura of power can strike those that harm you.",
-           "Your aura of power no longer strikes those that harm you." },
-      { 3, ABIL_RU_DRAW_OUT_POWER, "heal your body and restore your magic" },
-      { 4, ABIL_RU_POWER_LEAP, "gather your power into a mighty leap" },
-      { 5, ABIL_RU_APOCALYPSE, "wreak a terrible wrath on your foes" },
+    {
+        { 1, "You exude an aura of power that intimidates your foes.",
+             "You no longer exude an aura of power that intimidates your foes." },
+        { 2, "Your aura of power can strike those that harm you.",
+             "Your aura of power no longer strikes those that harm you." },
+        { 3, ABIL_RU_DRAW_OUT_POWER, "heal your body and restore your magic" },
+        { 4, ABIL_RU_POWER_LEAP, "gather your power into a mighty leap" },
+        { 5, ABIL_RU_APOCALYPSE, "wreak a terrible wrath on your foes" },
     },
 
     // Pakellas
@@ -331,22 +349,29 @@ const vector<god_power> god_powers[NUM_GODS] =
     },
 
     // Hepliaklqana
-    { { 0, ABIL_HEPLIAKLQANA_RECALL, "recall your ancestor" },
-      { 0, ABIL_HEPLIAKLQANA_IDENTITY, "remember your ancestor's identity" },
-      { 3, ABIL_HEPLIAKLQANA_TRANSFERENCE, "swap creatures with your ancestor" },
-      { 4, ABIL_HEPLIAKLQANA_IDEALISE, "heal and protect your ancestor" },
-      { 5, "drain nearby creatures when transferring your ancestor"},
+    {
+        { 0, ABIL_HEPLIAKLQANA_RECALL, "recall your ancestor" },
+        { 0, ABIL_HEPLIAKLQANA_IDENTITY, "remember your ancestor's identity" },
+        { 3, ABIL_HEPLIAKLQANA_TRANSFERENCE, "swap creatures with your ancestor" },
+        { 4, ABIL_HEPLIAKLQANA_IDEALISE, "heal and protect your ancestor" },
+        { 5, "drain nearby creatures when transferring your ancestor"},
     },
 
     // Wu Jian
-    { { 1, "attack monsters by moving around them",
+    {
+        { 1, "attack monsters by moving around them",
            "no longer perform spinning attacks" },
-      { 2, "perform distracting airborne attacks by moving against a solid obstacle",
+        { 2, "perform distracting airborne attacks by moving against a solid obstacle",
            "no longer perform airborne attacks" },
-      { 3, "strike by moving towards foes, devastating them if distracted",
+        { 3, "strike by moving towards foes, devastating them if distracted",
            "no longer perform lunging strikes" },
-      { 4, ABIL_WU_JIAN_SERPENTS_LASH, "briefly move at supernatural speeds" },
-      { 5, ABIL_WU_JIAN_HEAVENLY_STORM, "summon a storm of heavenly clouds to empower your attacks" },
+        { 4, ABIL_WU_JIAN_SERPENTS_LASH, "briefly move at supernatural speeds" },
+        { 5, ABIL_WU_JIAN_HEAVENLY_STORM, "summon a storm of heavenly clouds to empower your attacks" },
+    },
+
+    // Anadorath
+    {
+        {  7, ABIL_ANADORATH_ELEMENTAL_BLAST, "conjure a chaotic blast of elements" },
     },
 };
 
@@ -415,6 +440,11 @@ bool is_chaotic_god(god_type god)
            || god == GOD_MAKHLEB
            || god == GOD_LUGONU
            || god == GOD_JIYVA;
+}
+
+bool is_elemental_god(god_type god)
+{
+    return god == GOD_ANADORATH;
 }
 
 bool is_unknown_god(god_type god)
@@ -529,7 +559,8 @@ bool xp_penance(god_type god)
                || god == GOD_GOZAG
                || god == GOD_HEPLIAKLQANA
                || god == GOD_PAKELLAS
-               || god == GOD_ELYVILON)
+               || god == GOD_ELYVILON
+               || god == GOD_ANADORATH)
            && god_hates_your_god(god, you.religion);
 }
 
@@ -602,6 +633,17 @@ void dec_penance(god_type god, int val)
             if (have_passive(passive_t::neutral_slimes))
                 add_daction(DACT_SLIME_NEW_ATTEMPT);
 
+            if (have_passive(passive_t::elemental_neutrality)
+                && !(have_passive(passive_t::elemental_friend)))
+            {
+                simple_god_message(" calms elemental worshippers, neutralising them.");
+                add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
+            }
+            if (have_passive(passive_t::elemental_friend))
+            {
+                simple_god_message(" restores your alliance with elemental worshippers.");
+                add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
+            }
             if (have_passive(passive_t::identify_devices))
                 pakellas_id_device_charges();
 
@@ -790,6 +832,23 @@ static void _inc_penance(god_type god, int val)
                 mprf(MSGCH_DURATION,
                      "Your resistance to physical damage fades away.");
                 you.duration[DUR_QAZLAL_AC] = 0;
+                you.redraw_armour_class = true;
+            }
+        }
+        else if (god == GOD_ANADORATH)
+        {
+            if (you.piety >= piety_breakpoint(3))
+            {
+                mprf(MSGCH_GOD, god, "Elemental worshippers frown upon you.");
+            }
+            if (you.piety >= piety_breakpoint(2))
+            {
+                mprf(MSGCH_GOD, god, "Your elemental shield shrinks.");
+                you.redraw_armour_class = true;
+            }
+            if (you.piety >= piety_breakpoint(1))
+            {
+                mprf(MSGCH_GOD, god, "Your elemental resistance dissipates.");
                 you.redraw_armour_class = true;
             }
         }
@@ -1227,6 +1286,12 @@ bool is_orcish_follower(const monster& mon)
 {
     return mon.alive() && mon.attitude == ATT_FRIENDLY
            && mons_is_god_gift(mon, GOD_BEOGH);
+}
+
+bool is_elemental_follower(const monster& mon)
+{
+    return mon.alive() && mon.attitude == ATT_FRIENDLY
+           && mons_is_god_gift(mon, GOD_ANADORATH);
 }
 
 bool is_fellow_slime(const monster& mon)
@@ -2086,7 +2151,8 @@ string god_name(god_type which_god, bool long_name)
     case GOD_PAKELLAS:      return "Pakellas";
     case GOD_USKAYAW:       return "Uskayaw";
     case GOD_HEPLIAKLQANA:  return "Hepliaklqana";
-    case GOD_WU_JIAN:     return "Wu Jian";
+    case GOD_WU_JIAN:       return "Wu Jian";
+    case GOD_ANADORATH:     return "Anadorath";
     case GOD_JIYVA: // This is handled at the beginning of the function
     case GOD_ECUMENICAL:    return "an unknown god";
     case NUM_GODS:          return "Buggy";
@@ -2597,10 +2663,21 @@ bool fedhas_neutralises(const monster& target)
            && target.type != MONS_SNAPLASHER_VINE_SEGMENT;
 }
 
+bool anadorath_converts(const monster& target)
+{
+    return mons_is_airy(target)
+           || mons_is_earthy(target)
+           || mons_is_fiery(target)
+           || mons_is_icy(target);
+}
+
 static string _god_hates_your_god_reaction(god_type god, god_type your_god)
 {
     if (god_hates_your_god(god, your_god))
     {
+        // Anadorath hates because reasons.
+        if (is_elemental_god(god))
+            return " for reasons";
         // Non-good gods always hate your current god.
         if (!is_good_god(god))
             return "";
@@ -2628,6 +2705,7 @@ int initial_wrath_penance_for(god_type god)
     // TODO: transform to data (tables)
     switch (god)
     {
+        case GOD_ANADORATH:
         case GOD_ASHENZARI:
         case GOD_BEOGH:
         case GOD_ELYVILON:
@@ -2789,6 +2867,17 @@ void excommunication(bool voluntary, god_type new_god)
         }
 
         env.level_state |= LSTATE_BEOGH;
+        break;
+
+    case GOD_ANADORATH:
+        if (query_daction_counter(DACT_NEUTRAL_ELEMENTAL))
+        {
+            simple_god_message("Beware the elements.", old_god);
+            mprf(MSGCH_MONSTER_ENCHANT, "Anadorath's elemental worshippers turn on you.");
+            add_daction(DACT_NEUTRAL_ELEMENTAL);
+            remove_all_companions(GOD_ANADORATH);
+        }
+
         break;
 
     case GOD_SIF_MUNA:
@@ -3001,6 +3090,7 @@ bool god_hates_attacking_friend(god_type god, const monster& fr)
         case GOD_SHINING_ONE:
         case GOD_ELYVILON:
         case GOD_OKAWARU:
+        case GOD_ANADORATH:
             return true;
         case GOD_BEOGH: // added penance to avoid killings for loot
             return mons_genus(species) == MONS_ORC;
@@ -3008,6 +3098,11 @@ bool god_hates_attacking_friend(god_type god, const monster& fr)
             return mons_class_is_slime(species);
         case GOD_FEDHAS:
             return _fedhas_protects_species(species);
+        /* case GOD_ANADORATH:
+            return (mons_is_airy(fr)
+                   || mons_is_earthy(fr)
+                   || mons_is_fiery(fr)
+                   || mons_is_icy(fr)); */
         default:
             return false;
     }
@@ -3080,6 +3175,9 @@ bool player_can_join_god(god_type which_god)
         return false;
 
     if (which_god == GOD_GOZAG && you.gold < gozag_service_fee())
+        return false;
+
+    if (you.get_mutation_level(MUT_ANTI_WIZARDRY) > 0 && which_god == GOD_ANADORATH)
         return false;
 
     if (you.get_mutation_level(MUT_NO_LOVE) && _god_rejects_loveless(which_god))
@@ -3165,12 +3263,13 @@ static void _make_empty_vec(CrawlStoreValue &v, store_val_type vectype)
     }
 }
 
-// Note: we're trying for a behaviour where the player gets
-// to keep their assigned invocation slots if they get excommunicated
-// and then rejoin (but if they spend time with another god we consider
-// the old invocation slots void and erase them). We also try to
-// protect any bindings the character might have made into the
-// traditional invocation slots (a-e and X). -- bwr
+/** Note: we're trying for a behaviour where the player gets
+ *  to keep their assigned invocation slots if they get excommunicated
+ *  and then rejoin (but if they spend time with another god we consider
+ *  the old invocation slots void and erase them). We also try to
+ *  protect any bindings the character might have made into the
+ *  traditional invocation slots (a-e and X). -- bwr
+ */
 void set_god_ability_slots()
 {
     ASSERT(!you_worship(GOD_NO_GOD));
@@ -3822,6 +3921,18 @@ int had_gods()
 
 bool god_likes_your_god(god_type god, god_type your_god)
 {
+    if (your_god == GOD_ANADORATH)
+        return (god == GOD_CHEIBRIADOS || god == GOD_ELYVILON
+                || god == GOD_FEDHAS || god == GOD_QAZLAL
+                || god == GOD_RU || god == GOD_SIF_MUNA
+                || god == GOD_VEHUMET);
+
+    if (god == GOD_ANADORATH)
+        return (your_god == GOD_CHEIBRIADOS || your_god == GOD_ELYVILON
+                || your_god == GOD_FEDHAS || your_god == GOD_QAZLAL
+                || your_god == GOD_RU || your_god == GOD_SIF_MUNA
+                || your_god == GOD_VEHUMET);
+
     return is_good_god(god) && is_good_god(your_god);
 }
 
@@ -3830,6 +3941,14 @@ bool god_hates_your_god(god_type god, god_type your_god)
     // Ru doesn't care.
     if (god == GOD_RU)
         return false;
+
+    // Anadorath is a special case.
+    if (is_elemental_god(god))
+        return (is_evil_god(your_god) || your_god == GOD_JIYVA
+                || your_god == GOD_PAKELLAS || your_god == GOD_SHINING_ONE
+                || your_god == GOD_TROG || your_god == GOD_USKAYAW
+                || your_god == GOD_XOM || your_god == GOD_YREDELEMNUL
+                || your_god == GOD_ZIN);
 
     // Gods do not hate themselves.
     if (god == your_god)
@@ -3896,6 +4015,11 @@ bool god_likes_spell(spell_type spell, god_type god)
 {
     switch (god)
     {
+    case GOD_ANADORATH:
+        return spell_typematch(spell, SPTYP_AIR)
+               || spell_typematch(spell, SPTYP_EARTH)
+               || spell_typematch(spell, SPTYP_FIRE)
+               || spell_typematch(spell, SPTYP_ICE);
     case GOD_VEHUMET:
         return vehumet_supports_spell(spell);
     case GOD_KIKUBAAQUDGHA:
@@ -4101,7 +4225,8 @@ void handle_god_time(int /*time_delta*/)
         case GOD_SIF_MUNA:
         case GOD_SHINING_ONE:
         case GOD_NEMELEX_XOBEH:
-            if (one_chance_in(35))
+        case GOD_ANADORATH:
+            if (one_chance_in(30))
                 lose_piety(1);
             break;
 
@@ -4183,6 +4308,7 @@ int god_colour(god_type god) // mv - added
     case GOD_HEPLIAKLQANA:
         return LIGHTCYAN;
 
+    case GOD_ANADORATH:
     case GOD_DITHMENOS:
     case GOD_USKAYAW:
         return MAGENTA;
@@ -4269,6 +4395,7 @@ colour_t god_message_altar_colour(god_type god)
     case GOD_JIYVA:
         return random_choose(GREEN, LIGHTGREEN);
 
+    case GOD_ANADORATH:
     case GOD_DITHMENOS:
         return MAGENTA;
 
@@ -4689,7 +4816,9 @@ const god_power* god_power_from_ability(ability_type abil)
         for (const auto& power : god_powers[god])
         {
             if (power.abil == abil)
+            {
                 return &power;
+            }
         }
     }
     return nullptr;

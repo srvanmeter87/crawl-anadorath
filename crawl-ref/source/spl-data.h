@@ -5,7 +5,7 @@
  * Flag descriptions are in spl-cast.h.
 **/
 
-/*
+/* Reference copied from spl-util.cc
 struct spell_desc
 {
     enum, spell name,
@@ -561,8 +561,8 @@ static const struct spell_desc spelldata[] =
     TILEG_BLINK_CLOSE,
 },
 
-// The following name was found in the hack.exe file of an early version
-// of PCHACK - credit goes to its creator (whoever that may be):
+/*  The following name was found in the hack.exe file of an early version
+    of PCHACK - credit goes to its creator (whoever that may be): */
 {
     SPELL_ISKENDERUNS_MYSTIC_BLAST, "Iskenderun's Mystic Blast",
     SPTYP_CONJURATION,
@@ -1951,7 +1951,8 @@ static const struct spell_desc spelldata[] =
     TILEG_SPIT_ACID,
 },
 
-{ SPELL_ACID_SPLASH, "Acid Splash",
+{
+    SPELL_ACID_SPLASH, "Acid Splash",
     SPTYP_CONJURATION,
     SPFLAG_DIR_OR_TARGET | SPFLAG_MONSTER | SPFLAG_NOISY | SPFLAG_NEEDS_TRACER,
     5,
@@ -3917,6 +3918,36 @@ static const struct spell_desc spelldata[] =
     -1, -1,
     8, 0,
     TILEG_IGNITION,
+},
+
+/*  enum, spell name,
+    spell schools,
+    flags,
+    level,
+    power_cap,
+    min_range, max_range, (-1 if not applicable)
+    noise, effect_noise
+    tile */
+
+/*  SPELL_NOXIOUS_CLOUD, "Noxious Cloud",
+    SPTYP_CONJURATION | SPTYP_POISON | SPTYP_AIR,
+    SPFLAG_TARGET | SPFLAG_AREA | SPFLAG_MONSTER | SPFLAG_NEEDS_TRACER
+        | SPFLAG_CLOUD,
+    5,
+    200,
+    5, 5,
+    5, 0,
+    TILEG_NOXIOUS_CLOUD, */
+
+{
+    SPELL_ELEMENTAL_BLAST, "Elemental Blast",
+    SPTYP_AIR | SPTYP_EARTH | SPTYP_FIRE | SPTYP_ICE,
+    SPFLAG_AREA | SPFLAG_CLOUD | SPFLAG_CHAOTIC | SPFLAG_NOISY,
+    9,
+    200,
+    LOS_RADIUS, LOS_RADIUS,
+    20, 10,
+    TILEG_IOOD,
 },
 
 {

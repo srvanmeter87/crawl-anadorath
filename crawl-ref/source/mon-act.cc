@@ -1472,6 +1472,8 @@ static void _pre_monster_move(monster& mons)
     reset_spectral_weapon(&mons);
 
     fedhas_neutralise(&mons);
+    anadorath_neutralise(&mons);
+    anadorath_convert(&mons);
 
     // Monster just summoned (or just took stairs), skip this action.
     if (testbits(mons.flags, MF_JUST_SUMMONED))
@@ -2326,12 +2328,12 @@ static void _clear_monster_flags()
 }
 
 /**
-* On each monster turn, check to see if we need to update monster attitude.
-* At the time of writing, it just checks for MUT_NO_LOVE from Ru Sacrifice Love.
-*
-* @param mon     The targeted monster
-* @return        Void
-**/
+ * On each monster turn, check to see if we need to update monster attitude.
+ * At the time of writing, it just checks for MUT_NO_LOVE from Ru Sacrifice Love.
+ *
+ * @param mon     The targeted monster
+ * @return        Void
+ */
 static void _update_monster_attitude(monster *mon)
 {
     if (you.get_mutation_level(MUT_NO_LOVE)
