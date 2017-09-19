@@ -15,7 +15,7 @@ crawl_dir = /home/kaedan/.git/repo/crawl/crawl-ref/source
 morgue_dir = morgue\
 save_dir = saves\
 macro_dir = ..\settings\
-sound_file_path = sounds\
+sound_file_path = ..\sounds\
 one_SDL_sound_channel = false
 sound += LOW MAGIC WARNING:beeuboop.wav
 sound += FIRE_PROMPT:thoonk.wav
@@ -738,4 +738,4 @@ dos_use_background_intensity = true
 
 ### 6 - Lua Code
 
-lua_file = lua/functions.lua
+# lua_file = lua/functions.lua
