@@ -44,6 +44,7 @@ enum object_selector
                                         // are included, to prevent information
                                         // leakage.
     OSEL_DIVINE_RECHARGE         = -21,
+    OSEL_BRANDABLE_ARMOUR        = -22,
 };
 
 /// Behaviour flags for prompt_invent_item().

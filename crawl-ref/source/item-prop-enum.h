@@ -422,6 +422,7 @@ enum scroll_type
 #if TAG_MAJOR_VERSION == 34
     SCR_CURSE_JEWELLERY,
 #endif
+    SCR_BRAND_ARMOUR,
     NUM_SCROLLS
 };
 

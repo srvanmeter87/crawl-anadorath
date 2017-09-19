@@ -416,6 +416,8 @@ string no_selectables_message(int item_selector)
     case OSEL_RECHARGE:
     case OSEL_SUPERCHARGE:
         return "You aren't carrying any rechargeable items.";
+    case OSEL_BRANDABLE_ARMOUR:
+        return "You aren't carrying any armour that can be branded.";
     case OSEL_ENCHANTABLE_ARMOUR:
         return "You aren't carrying any armour which can be enchanted further.";
     case OBJ_CORPSES:
@@ -1045,8 +1047,11 @@ bool item_is_selected(const item_def &i, int selector)
     case OSEL_EVOKABLE:
         return item_is_evokable(i, true, true, true);
 
+    case OSEL_BRANDABLE_ARMOUR:
+        return is_brandable_armour(i);
+    
     case OSEL_ENCHANTABLE_ARMOUR:
-        return is_enchantable_armour(i, true);
+        return is_enchantable_armour(i);
 
     case OBJ_FOOD:
         return itype == OBJ_FOOD && !is_inedible(i);

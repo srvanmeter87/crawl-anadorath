@@ -1925,6 +1925,17 @@ bool convert2bad(item_def &item)
     return false;
 }
 
+bool is_brandable_armour(const item_def &arm)
+{
+    if (arm.base_type != OBJ_ARMOUR)
+        return false;
+
+    if (is_artefact(arm))
+        return false;
+
+    return true;
+}
+
 bool is_brandable_weapon(const item_def &wpn, bool allow_ranged, bool divine)
 {
     if (wpn.base_type != OBJ_WEAPONS)

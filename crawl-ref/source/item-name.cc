@@ -731,6 +731,7 @@ static const char* scroll_type_name(int scrolltype)
     case SCR_VULNERABILITY:      return "vulnerability";
     case SCR_SILENCE:            return "silence";
     case SCR_AMNESIA:            return "amnesia";
+    case SCR_BRAND_ARMOUR:       return "brand armour";
     default:                     return "bugginess";
     }
 }
@@ -3496,6 +3497,7 @@ bool is_useless_item(const item_def &item, bool temp)
         case SCR_ENCHANT_WEAPON:
         case SCR_ENCHANT_ARMOUR:
         case SCR_BRAND_WEAPON:
+        case SCR_BRAND_ARMOUR:
             return you.species == SP_FELID;
         case SCR_SUMMONING:
             return you.get_mutation_level(MUT_NO_LOVE) > 0;
