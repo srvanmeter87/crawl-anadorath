@@ -19,12 +19,12 @@
 #define LOWER "abcdefghijklmnopqrstuvwxyz"
 #define LETTERS UPPER LOWER
 
-// Any resemblance to the speech of a particular character from Rich Burlew's
-// work is entirely accidental. Suggestion that this table has been produced
-// by transcribing the whole corpus of that character's speech and making it
-// produce the same output from regular English must be dismissed as a rumour.
+/*  Any resemblance to the speech of a particular character from Rich Burlew's
+    work is entirely accidental. Suggestion that this table has been produced
+    by transcribing the whole corpus of that character's speech and making it
+    produce the same output from regular English must be dismissed as a rumour.
 
-// For Perl version, "apt-get install filters".
+    For Perl version, "apt-get install filters". */
 static const char* dwarven[][4] =
 {
   {"^yes$","aye"},            {"there","thar"},             {"eir$","ar"},
@@ -54,9 +54,9 @@ static const char* dwarven[][4] =
   {0}
 };
 
-// Resemblances to the manner of speech of Jägermonsters from "Girl Genius" by
-// Phil and Kaja Foglio are... hrm dammit, using the proper name gives it out.
-// And s/dammit/gotterdammerung/.
+/*  Resemblances to the manner of speech of Jägermonsters from "Girl Genius" by
+    Phil and Kaja Foglio are... hrm dammit, using the proper name gives it out.
+    And s/dammit/gotterdammerung/. */
 static const char* jager[][4] =
 {
   {"this","dis"},
