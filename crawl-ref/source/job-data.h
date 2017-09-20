@@ -207,14 +207,14 @@ static const map<job_type, job_def> job_data =
 
 { JOB_PRIMALIST, {
     "Pm", "Primalist",
-    2, 8, 2, // 12
-    { SP_BASE_DRACONIAN, SP_DEMONSPAWN, SP_GARGOYLE, SP_PYROLITH, },
-    { "robe", "ring of wizardry", "book of the Primalist",
-      "book of Elemental Power", "stone q:25" },
+    1, 9, 2, // 12
+    { SP_BASE_DRACONIAN, SP_DEEP_ELF, SP_DEEP_DWARF, SP_DEMONSPAWN,
+      SP_GARGOYLE, SP_PYROLITH, },
+    { "stone q:15", "robe", "amulet of harm", "ring of wizardry",
+      "book of the Primalist", "book of Elemental Power" },
     WCHOICE_NONE,
-    { { SK_CONJURATIONS, 4 }, { SK_STEALTH, 1 }, { SK_SPELLCASTING, 5 },
-      { SK_EARTH_MAGIC, 2 }, { SK_FIRE_MAGIC, 2 }, { SK_AIR_MAGIC, 2 },
-      { SK_ICE_MAGIC, 2 }, { SK_NECROMANCY, 1 }, { SK_SUMMONINGS, 1 }, },
+    { { SK_CONJURATIONS, 3 }, { SK_SPELLCASTING, 4 }, { SK_EARTH_MAGIC, 2 },
+      { SK_FIRE_MAGIC, 2 }, { SK_AIR_MAGIC, 2 }, { SK_ICE_MAGIC, 2 }, },
 } },
 
 { JOB_SKALD, {
