@@ -315,10 +315,12 @@ static void _give_items_skills(const newgame_def& ng)
     if (you.species == SP_PYROLITH)
     {
         you.skills[SK_AIR_MAGIC] = 0;
+        you.skills[SK_DODGING] = 0;
         you.skills[SK_ICE_MAGIC] = 0;
         you.skills[SK_POISON_MAGIC] = 0;
         you.skills[SK_TRANSLOCATIONS] = 0;
         you.skills[SK_TRANSMUTATIONS] = 0;
+        you.skills[SK_STEALTH] = 0;
     }
 
     if (you.species == SP_FELID)

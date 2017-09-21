@@ -620,9 +620,7 @@ static const map<species_type, species_def> species_data =
     HT_LAVA, US_ALIVE, SIZE_MEDIUM,
     11, 14, 5, // 29
     { STAT_STR, STAT_INT }, 1,
-    { { MUT_CLAWS, 2, 1 },
-      { MUT_COLD_VULNERABILITY, 2, 1 },
-      { MUT_FANGS, 3, 1 },
+    { { MUT_COLD_VULNERABILITY, 2, 1 },
       { MUT_FLAME_CLOUD_IMMUNITY, 1, 1 },
       { MUT_HEAT_RESISTANCE, 2, 1 },
       { MUT_MANA_REGENERATION, 1, 1 },
@@ -638,7 +636,6 @@ static const map<species_type, species_def> species_data =
       { MUT_REGENERATION, 1, 1 },
       { MUT_ROT_IMMUNITY, 1, 1 },
       { MUT_SHOCK_RESISTANCE, 1, 1 },
-      { MUT_TALONS, 2, 1 },
       { MUT_TORMENT_RESISTANCE, 1, 1 },
       { MUT_UNBREATHING, 1, 1 },
       { MUT_ANTIMAGIC_BITE, 1, 7 },
@@ -664,7 +661,7 @@ static const map<species_type, species_def> species_data =
     { "lava elemental", "elemental befuddlement", "molten glow" },
     { JOB_CONJURER, JOB_EARTH_ELEMENTALIST, JOB_FIRE_ELEMENTALIST,
       JOB_PRIMALIST, JOB_WIZARD },
-    { SK_AXES, SK_LONG_BLADES, SK_POLEARMS, SK_STAVES, SK_UNARMED_COMBAT, },
+    { SK_LONG_BLADES, SK_POLEARMS, SK_STAVES },
 } },
 
 { SP_SPRIGGAN, {
