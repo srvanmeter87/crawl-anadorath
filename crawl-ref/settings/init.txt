@@ -1,4 +1,4 @@
-## 1 - Starting Screen
+﻿## 1 - Starting Screen
 name =
 remember_name = false
 # weapon +=
@@ -702,6 +702,8 @@ tile_layout_priority = minimap, inventory, gold_turn, ability, spell, monster
 # tile_web_mouse_control = true
 
 ## 4 - Character Dump
+arena_dump_msgs = true
+arena_dump_msgs_all = true
 dump_on_save = true
 ## 4b - Items & Kills
 # kill_map =
