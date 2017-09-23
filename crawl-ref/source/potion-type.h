@@ -49,5 +49,7 @@ enum potion_type
 #if TAG_MAJOR_VERSION == 34
     POT_BENEFICIAL_MUTATION,
 #endif
+    POT_DIVINE_FAVOUR,
+    POT_PENANCE,
     NUM_POTIONS
 };

@@ -1378,7 +1378,7 @@ static void _generate_potion_item(item_def& item, int force_type,
         // Currently does nothing, until we come up with a boring potion.
         do
         {
-            // total weight: 1045
+            // total weight: 1070
             stype = random_choose_weighted(192, POT_CURING,
                                            105, POT_HEAL_WOUNDS,
                                             73, POT_LIGNIFY,
@@ -1395,6 +1395,8 @@ static void _generate_potion_item(item_def& item, int force_type,
                                             35, POT_BERSERK_RAGE,
                                             35, POT_CANCELLATION,
                                             35, POT_AMBROSIA,
+                                            20, POT_PENANCE,
+                                             5, POT_DIVINE_FAVOUR,
                                              2, POT_EXPERIENCE);
         }
         while (agent == GOD_XOM

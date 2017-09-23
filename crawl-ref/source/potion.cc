@@ -1242,6 +1242,154 @@ public:
 };
 #endif
 
+class PotionDivineFavour : public PotionEffect
+{
+private:
+    PotionDivineFavour() : PotionEffect(POT_DIVINE_FAVOUR) { }
+    DISALLOW_COPY_AND_ASSIGN(PotionDivineFavour);
+public:
+    static const PotionDivineFavour &instance()
+    {
+        static PotionDivineFavour inst; return inst;
+    }
+
+    bool can_quaff(string *reason = nullptr) const override
+    {
+        if (you.religion == GOD_NO_GOD)
+        {
+            if (reason)
+            {
+                *reason = "You have no god with whom to gain favour.";
+            }
+            return false;
+        }
+        else if (you.religion == GOD_GOZAG)
+        {
+            if (reason)
+            {
+                *reason = "Gozag cares only for gold.";
+            }
+            return false;
+        }
+        else if (you.religion == GOD_RU)
+        {
+            if (reason)
+            {
+                *reason = "Ru does not consider this a sacrifice.";
+            }
+            return false;
+        }
+        else if (you.religion == GOD_XOM)
+        {
+            if (reason)
+            {
+                *reason = "You cannot gain favour with the chaotic Xom.";
+            }
+            return false;
+        }
+        return true;
+    }
+
+    bool quaff(bool was_known) const override
+    {
+        if (was_known && !check_known_quaff())
+            return false;
+        
+        effect();
+        return true;
+    }
+
+    bool effect(bool=true, int pgn = 50, bool=true) const override
+    {
+        bool nothing_happens = true;
+        if (player_under_penance() > 0)
+        {
+            dec_penance(player_under_penance());
+            return !nothing_happens;
+        }
+        else
+        {
+            mpr("You feel appreciated.");
+            gain_piety(pgn, 1, false);
+            return !nothing_happens;
+        }
+        return nothing_happens;
+    }
+};
+
+class PotionPenance : public PotionEffect
+{
+private:
+    PotionPenance() : PotionEffect(POT_PENANCE) { }
+    DISALLOW_COPY_AND_ASSIGN(PotionPenance);
+public:
+    static const PotionPenance &instance()
+    {
+        static PotionPenance inst; return inst;
+    }
+
+    bool can_quaff(string *reason = nullptr) const override
+    {
+        if (you.religion == GOD_NO_GOD || you.religion == GOD_GOZAG
+            || you.religion == GOD_RU || you.religion == GOD_XOM)
+        {
+            if (reason)
+            {
+                *reason = "You cannot bring yourself to quaff this right now.";
+            }
+            return false;
+        }
+        return true;
+    }
+
+    bool quaff(bool was_known) const override
+    {
+        if (was_known && !check_known_quaff())
+            return false;
+
+        if (was_known
+            && !yesno("You will lose a great amount of piety; Quaff anyway?",
+                      false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return false;
+        }
+        effect();
+        return true;
+    }
+
+    bool effect(bool=true, int=40, bool=true) const override
+    {
+        bool nothing_happens = true;
+        if (you.religion == GOD_NO_GOD)
+        {
+            return nothing_happens;
+        }
+
+        if (player_under_penance() > 0)
+        {
+            mpr("You feel very guilty.");
+            if (player_under_penance() >= 20)
+            {
+                excommunication();
+                return !nothing_happens;
+            }
+            else
+            {
+                dock_piety(20, 20);
+                return !nothing_happens;
+            }
+        }
+        else
+        {
+            mpr("You feel extremely guilty.");
+            dock_piety(40, 20);
+            return !nothing_happens;
+        }
+        return nothing_happens;
+    }
+};
+
 // placeholder 'buggy' potion
 class PotionStale : public PotionEffect
 {
@@ -1309,7 +1457,9 @@ static const PotionEffect* potion_effects[] =
 #if TAG_MAJOR_VERSION == 34
     &PotionBeneficialMutation::instance(),
 #endif
-    &PotionStale::instance()
+    &PotionDivineFavour::instance(),
+    &PotionPenance::instance(),
+    &PotionStale::instance(),
 };
 
 const PotionEffect* get_potion_effect(potion_type pot)

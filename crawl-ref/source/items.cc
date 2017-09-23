@@ -3538,8 +3538,8 @@ colour_t item_def::potion_colour() const
         BLUE, RED, YELLOW, GREEN, BROWN, LIGHTMAGENTA, WHITE,
         // emerald, grey, pink, copper, gold, dark, puce
         LIGHTGREEN, LIGHTGREY, LIGHTRED, YELLOW, YELLOW, BROWN, BROWN,
-        // amethyst, sapphire
-        MAGENTA, BLUE
+        // amethyst, sapphire, fiery
+        MAGENTA, BLUE//, YELLOW
     };
     COMPILE_CHECK(ARRAYSZ(potion_colours) == NDSC_POT_PRI);
     return potion_colours[subtype_rnd % NDSC_POT_PRI];

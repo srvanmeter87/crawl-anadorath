@@ -476,6 +476,10 @@ unsigned int item_value(item_def item, bool ident)
                 break;
 #endif
 
+            case POT_DIVINE_FAVOUR:
+                valued += 225;
+                break;
+
             case POT_RESISTANCE:
             case POT_HASTE:
                 valued += 100;
@@ -486,6 +490,7 @@ unsigned int item_value(item_def item, bool ident)
             case POT_CANCELLATION:
             case POT_AMBROSIA:
             case POT_MUTATION:
+            case POT_PENANCE:
                 valued += 80;
                 break;
 

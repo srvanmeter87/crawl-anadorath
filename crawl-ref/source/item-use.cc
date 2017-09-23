@@ -347,6 +347,40 @@ bool can_wield(const item_def *weapon, bool say_reason,
         return false;
     }
 
+    if (you.get_mutation_level(MUT_NO_BOWS)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_SHORTBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_LONGBOW)))
+    {
+        SAY(mpr("You can't use bows."));
+        return false;
+    }
+
+    if (you.get_mutation_level(MUT_NO_SHORT_BLADES)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_DAGGER)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_QUICK_BLADE)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_RAPIER)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_SHORT_SWORD)))
+    {
+        SAY(mpr("You can't use short blades."));
+        return false;
+    }
+
+    if (you.get_mutation_level(MUT_NO_SLINGS)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_FUSTIBALUS)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_HUNTING_SLING)))
+    {
+        SAY(mpr("You can't use slings."));
+        return false;
+    }
+
+    if (you.get_mutation_level(MUT_NO_THROWING)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_BLOWGUN)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_THROWN)))
+    {
+        SAY(mpr("You can't use throwing weapons."));
+        return false;
+    }
+
     for (int i = EQ_MIN_ARMOUR; i <= EQ_MAX_WORN; i++)
     {
         if (you.equip[i] != -1 && &you.inv[you.equip[i]] == weapon)
@@ -2188,47 +2222,47 @@ static void _rebrand_armour(item_def& arm)
                  || armtype == ARM_SCALE_MAIL
                  || armtype == ARM_CHAIN_MAIL)
         {
-            new_ego = random_choose_weighted(1, SPARM_FLYING,
-                                             2, SPARM_RESISTANCE,
-                                             4, SPARM_POSITIVE_ENERGY,
-                                             4, SPARM_MAGIC_RESISTANCE,
-                                             5, SPARM_COLD_RESISTANCE,
-                                             5, SPARM_FIRE_RESISTANCE);
+            new_ego = random_choose_weighted(15, SPARM_FIRE_RESISTANCE,
+                                             15, SPARM_COLD_RESISTANCE,
+                                              7, SPARM_MAGIC_RESISTANCE,
+                                              7, SPARM_POSITIVE_ENERGY,
+                                              3, SPARM_RESISTANCE,
+                                              2, SPARM_FLYING,
+                                              1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_PLATE_ARMOUR)
         {
-            new_ego = random_choose_weighted(26, SPARM_FIRE_RESISTANCE,
-                                             26, SPARM_COLD_RESISTANCE,
-                                             19, SPARM_POISON_RESISTANCE,
-                                             15, SPARM_MAGIC_RESISTANCE,
+            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
+                                             25, SPARM_COLD_RESISTANCE,
+                                             18, SPARM_POISON_RESISTANCE,
+                                             14, SPARM_MAGIC_RESISTANCE,
                                               9, SPARM_POSITIVE_ENERGY,
                                               6, SPARM_PONDEROUSNESS,
-                                              2, SPARM_FLYING);
+                                              2, SPARM_FLYING,
+                                              1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_CRYSTAL_PLATE_ARMOUR)
         {
-            new_ego = random_choose_weighted(26, SPARM_FIRE_RESISTANCE,
-                                             26, SPARM_COLD_RESISTANCE,
-                                             19, SPARM_POISON_RESISTANCE,
-                                             15, SPARM_MAGIC_RESISTANCE,
+            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
+                                             25, SPARM_COLD_RESISTANCE,
+                                             18, SPARM_POISON_RESISTANCE,
+                                             14, SPARM_MAGIC_RESISTANCE,
                                               9, SPARM_POSITIVE_ENERGY,
                                               6, SPARM_PONDEROUSNESS,
-                                              1, SPARM_FLYING);
+                                              2, SPARM_FLYING,
+                                              1, SPARM_ARCHMAGI);
         }
-        else if (armtype == ARM_CLOAK)
+        else if (armtype == ARM_CLOAK
+                 || armtype == ARM_SCARF)
         {
-            new_ego = random_choose(SPARM_FIRE_RESISTANCE,
+            new_ego = random_choose(SPARM_CLOUD_IMMUNE,
                                     SPARM_COLD_RESISTANCE,
+                                    SPARM_FIRE_RESISTANCE,
+                                    SPARM_INVISIBILITY,
                                     SPARM_MAGIC_RESISTANCE,
                                     SPARM_POISON_RESISTANCE,
-                                    SPARM_INVISIBILITY);
-        }
-        else if (armtype == ARM_SCARF)
-        {
-            new_ego = random_choose_weighted(1, SPARM_SPIRIT_SHIELD,
-                                             1, SPARM_RESISTANCE,
-                                             1, SPARM_REPULSION,
-                                             1, SPARM_CLOUD_IMMUNE);
+                                    SPARM_REPULSION,
+                                    SPARM_RESISTANCE);
         }
         else if (armtype == ARM_HAT)
         {
@@ -2252,6 +2286,7 @@ static void _rebrand_armour(item_def& arm)
         {
             new_ego = random_choose_weighted(9, SPARM_RUNNING,
                                              5, SPARM_STEALTH,
+                                             3, SPARM_DEXTERITY,
                                              1, SPARM_FLYING);
         }
         else if (armtype == ARM_BUCKLER
@@ -2263,10 +2298,15 @@ static void _rebrand_armour(item_def& arm)
                                               5, SPARM_POISON_RESISTANCE,
                                               5, SPARM_COLD_RESISTANCE,
                                               5, SPARM_FIRE_RESISTANCE,
-                                              4, SPARM_RESISTANCE);
+                                              4, SPARM_RESISTANCE,
+                                              4, SPARM_STRENGTH);
         }
-        else if (armtype == ARM_ANIMAL_SKIN
-                 || armtype == ARM_TROLL_LEATHER_ARMOUR
+        else if (armtype == ARM_ANIMAL_SKIN)
+        {
+            new_ego = random_choose(SPARM_FIRE_RESISTANCE,
+                                    SPARM_COLD_RESISTANCE);
+        }
+        else if (armtype == ARM_TROLL_LEATHER_ARMOUR
                  || armtype == ARM_FIRE_DRAGON_ARMOUR
                  || armtype == ARM_ICE_DRAGON_ARMOUR
                  || armtype == ARM_STEAM_DRAGON_ARMOUR
@@ -2278,10 +2318,14 @@ static void _rebrand_armour(item_def& arm)
                  || armtype == ARM_SHADOW_DRAGON_ARMOUR
                  || armtype == ARM_QUICKSILVER_DRAGON_ARMOUR)
         {
-            new_ego = random_choose_weighted(13, SPARM_STRENGTH,
-                                             10, SPARM_DEXTERITY,
-                                              7, SPARM_RESISTANCE,
-                                              7, SPARM_POSITIVE_ENERGY);
+            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
+                                             25, SPARM_COLD_RESISTANCE,
+                                             18, SPARM_POISON_RESISTANCE,
+                                             14, SPARM_MAGIC_RESISTANCE,
+                                              9, SPARM_POSITIVE_ENERGY,
+                                              6, SPARM_PONDEROUSNESS,
+                                              2, SPARM_FLYING,
+                                              1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_CENTAUR_BARDING
                  || armtype == ARM_NAGA_BARDING)

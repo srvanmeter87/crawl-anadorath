@@ -49,6 +49,7 @@ enum potion_description_colour_type
     PDC_PUCE,
     PDC_AMETHYST,
     PDC_SAPPHIRE,
+    //PDC_FIERY,
     PDC_NCOLOURS
 };
 

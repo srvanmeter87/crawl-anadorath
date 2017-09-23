@@ -707,6 +707,10 @@ potion of degeneration
 
 A noxious concotion which reduces strength, intelligence and dexterity.
 %%%%
+potion of divine favour
+
+An ethereal liquid suggested to tempt even the gods themselves.
+%%%%
 potion of experience
 
 A truly wonderful and very rare drink, which grants experience when consumed.
@@ -743,6 +747,10 @@ potion of mutation
 
 A potion which mutates the drinker, removing several mutations then
 granting a few mutations, at least one beneficial.
+%%%%
+potion of penance
+
+An ethereal liquid rumoured to disgust the gods themselves.
 %%%%
 potion of resistance
 

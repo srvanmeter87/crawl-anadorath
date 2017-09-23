@@ -697,6 +697,8 @@ const char* potion_type_name(int potiontype)
 #if TAG_MAJOR_VERSION == 34
     case POT_BENEFICIAL_MUTATION: return "beneficial mutation";
 #endif
+    case POT_DIVINE_FAVOUR:     return "divine favour";
+    case POT_PENANCE:           return "penance";
     default:                    return "bugginess";
     }
 }
@@ -1839,7 +1841,7 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
                 "blue", "black", "silvery", "cyan", "purple", "orange",
                 "inky", "red", "yellow", "green", "brown", "ruby", "white",
                 "emerald", "grey", "pink", "coppery", "golden", "dark", "puce",
-                "amethyst", "sapphire",
+                "amethyst", "sapphire"//, "fiery"
             };
             COMPILE_CHECK(ARRAYSZ(potion_colours) == PDC_NCOLOURS);
 
@@ -3230,6 +3232,8 @@ bool is_good_item(const item_def &item)
         case POT_BENEFICIAL_MUTATION:
             return you.species != SP_GHOUL; // Mummies are already handled
 #endif
+        case POT_DIVINE_FAVOUR:
+            return true;
         default:
             return false;
         }
@@ -3365,6 +3369,7 @@ bool is_dangerous_item(const item_def &item, bool temp)
         {
         case POT_MUTATION:
         case POT_LIGNIFY:
+        case POT_PENANCE:
             return true;
         default:
             return false;

@@ -818,6 +818,7 @@ murky
 puce
 purple_red
 sky_blue
+# fiery
 
 %sdir item/potion
 %back i-label
@@ -858,7 +859,9 @@ i-blood POT_BLOOD
 i-coagulated-blood POT_BLOOD_COAGULATED
 i-lignify POT_LIGNIFY
 # please remove POT_BENEFICIAL_MUTATION when TAG_MAJOR_VERSION is bumped
-i-good-mutation POT_REMOVEME9 POT_ID_LAST
+i-good-mutation POT_REMOVEME9
+i-divine-favour POT_DIVINE_FAVOUR
+i-penance POT_PENANCE POT_ID_LAST
 %back none
 %rim 1
 

@@ -313,28 +313,28 @@ static void _give_items_skills(const newgame_def& ng)
     
     if (you.species == SP_PYROLITH)
     {
-        you.skills[SK_AIR_MAGIC] = 0;
-        you.skills[SK_BOWS] = 0;
-        you.skills[SK_DODGING] = 0;
-        you.skills[SK_ICE_MAGIC] = 0;
-        you.skills[SK_POISON_MAGIC] = 0;
-        you.skills[SK_SHORT_BLADES] = 0;
-        you.skills[SK_SLINGS] = 0;
-        you.skills[SK_STEALTH] = 0;
-        you.skills[SK_THROWING] = 0;
-        you.skills[SK_TRANSLOCATIONS] = 0;
-        you.skills[SK_TRANSMUTATIONS] = 0;
+        you.skills[SK_AIR_MAGIC]        = 0;
+        you.skills[SK_BOWS]             = 0;
+        you.skills[SK_DODGING]          = 0;
+        you.skills[SK_ICE_MAGIC]        = 0;
+        you.skills[SK_POISON_MAGIC]     = 0;
+        you.skills[SK_SHORT_BLADES]     = 0;
+        you.skills[SK_SLINGS]           = 0;
+        you.skills[SK_STEALTH]          = 0;
+        you.skills[SK_THROWING]         = 0;
+        you.skills[SK_TRANSLOCATIONS]   = 0;
+        you.skills[SK_TRANSMUTATIONS]   = 0;
     }
 
     if (you.species == SP_FELID)
     {
-        you.skills[SK_THROWING] = 0;
-        you.skills[SK_SHIELDS] = 0;
+        you.skills[SK_THROWING]         = 0;
+        you.skills[SK_SHIELDS]          = 0;
     }
 
     if (!you_worship(GOD_NO_GOD))
     {
-        you.worshipped[you.religion] = 1;
+        you.worshipped[you.religion]    = 1;
         set_god_ability_slots();
         if (!you_worship(GOD_XOM))
             you.piety_max[you.religion] = you.piety;
