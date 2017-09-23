@@ -1922,6 +1922,38 @@ static const mutation_def mut_data[] =
   {"Your sense of smell grows stronger.", "", ""},
   {"Your sense of smell gets weaker.", "", ""},
 },
+
+{ MUT_NO_BOWS, 0, 1, mutflag::bad, false,
+  "no bows",
+
+  {"You cannot use drawn bows.", "", ""},
+  {"You can no longer use drawn bows.", "", ""},
+  {"You can use drawn bows again.", "", ""},
+},
+
+{ MUT_NO_THROWING, 0, 1, mutflag::bad, false,
+  "no throwing weapons",
+
+  {"You cannot use thrown or blown weapons.", "", ""},
+  {"You can no longer use thrown or blown weapons.", "", ""},
+  {"You can use thrown and blown weapons again.", "", ""},
+},
+
+{ MUT_NO_SHORT_BLADES, 0, 1, mutflag::bad, false,
+  "no short blades",
+
+  {"You cannot use short blades.", "", ""},
+  {"You can no longer use short blades.", "", ""},
+  {"You can use short blades again.", "", ""},
+},
+
+{ MUT_NO_SLINGS, 0, 1, mutflag::bad, false,
+  "no sling weapons",
+
+  {"You cannot use sling weapons.", "", ""},
+  {"You can no longer use sling weapons.", "", ""},
+  {"You can use sling weapons again.", "", ""},
+},
 };
 
 static const mutation_category_def category_mut_data[] =

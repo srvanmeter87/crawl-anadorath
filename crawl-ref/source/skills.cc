@@ -1419,6 +1419,7 @@ bool is_useless_skill(skill_type skill)
 #endif
 
     if ((skill == SK_AIR_MAGIC && you.get_mutation_level(MUT_NO_AIR_MAGIC))
+        || (skill == SK_BOWS && you.get_mutation_level(MUT_NO_BOWS))
         || (skill == SK_CHARMS && you.get_mutation_level(MUT_NO_CHARM_MAGIC))
         || (skill == SK_CONJURATIONS
             && you.get_mutation_level(MUT_NO_CONJURATION_MAGIC))
@@ -1433,10 +1434,13 @@ bool is_useless_skill(skill_type skill)
             && you.get_mutation_level(MUT_NO_POISON_MAGIC))
         || (skill == SK_SUMMONINGS
             && you.get_mutation_level(MUT_NO_SUMMONING_MAGIC))
+        || (skill == SK_THROWING && you.get_mutation_level(MUT_NO_THROWING))
         || (skill == SK_TRANSLOCATIONS
             && you.get_mutation_level(MUT_NO_TRANSLOCATION_MAGIC))
         || (skill == SK_TRANSMUTATIONS
             && you.get_mutation_level(MUT_NO_TRANSMUTATION_MAGIC))
+        || (skill == SK_SHORT_BLADES && you.get_mutation_level(MUT_NO_SHORT_BLADES))
+        || (skill == SK_SLINGS && you.get_mutation_level(MUT_NO_SLINGS))
         || (skill == SK_DODGING && you.get_mutation_level(MUT_NO_DODGING))
         || (skill == SK_ARMOUR && you.get_mutation_level(MUT_NO_ARMOUR))
         || (skill == SK_SHIELDS && you.get_mutation_level(MUT_MISSING_HAND))

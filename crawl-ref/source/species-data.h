@@ -613,7 +613,7 @@ static const map<species_type, species_def> species_data =
 
 { SP_PYROLITH, {
     "Py",
-    "Pyrolith", "Pyrolithic", "Pyrolith",
+    "Pyrolith", "Pyrolithic", "Gargoyle",
     SPF_NO_HAIR,
     3, 2, 2, 6,
     MONS_MOLTEN_GARGOYLE,
@@ -627,11 +627,16 @@ static const map<species_type, species_def> species_data =
       { MUT_MUTATION_RESISTANCE, 2, 1 },
       { MUT_NEGATIVE_ENERGY_RESISTANCE, 1, 1 },
       { MUT_NO_AIR_MAGIC, 1, 1 },
+      { MUT_NO_DODGING, 1, 1 },
       { MUT_NO_ICE_MAGIC, 1, 1 },
       { MUT_NO_POISON_MAGIC, 1, 1 },
       { MUT_POISON_RESISTANCE, 1, 1 },
+      { MUT_NO_SHORT_BLADES, 1, 1 },
+      { MUT_NO_SLINGS, 1, 1 },
+      { MUT_NO_THROWING, 1, 1 },
       { MUT_NO_TRANSLOCATION_MAGIC, 1, 1 },
       { MUT_NO_TRANSMUTATION_MAGIC, 1, 1 },
+      { MUT_NO_STEALTH, 1, 1 },
       { MUT_PETRIFICATION_RESISTANCE, 1, 1 },
       { MUT_REGENERATION, 1, 1 },
       { MUT_ROT_IMMUNITY, 1, 1 },
@@ -661,7 +666,7 @@ static const map<species_type, species_def> species_data =
     { "lava elemental", "elemental befuddlement", "molten glow" },
     { JOB_CONJURER, JOB_EARTH_ELEMENTALIST, JOB_FIRE_ELEMENTALIST,
       JOB_PRIMALIST, JOB_WIZARD },
-    { SK_LONG_BLADES, SK_POLEARMS, SK_STAVES },
+    { SK_LONG_BLADES, SK_POLEARMS, SK_STAVES, SK_CROSSBOWS },
 } },
 
 { SP_SPRIGGAN, {

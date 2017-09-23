@@ -1,4 +1,4 @@
-++++++++++++++++++++++++++++++++++++++++
+﻿++++++++++++++++++++++++++++++++++++++++
 Dungeon Crawl Stone Soup manual
 ++++++++++++++++++++++++++++++++++++++++
 
@@ -1668,6 +1668,23 @@ Gargoyles
   Their natural armour makes them strong melee fighters, and they are naturally
   skilled with blunt weapons and in unarmed combat. They can also be exceptional
   earth-based conjurers.
+
+Pyroliths
+  To delve further into Gargoyles' family tree, Pyroliths are found in an
+  entry beside their brothers, Molten Gargoyles. With Gargoyle affinity to
+  earth and Molten Gargoyle affinity to fire, Pyroliths are often described
+  as 'walking magma'. They are diamond-tough, but with that density comes
+  the inability to make use of throwing weapons or bows. Their hellish glow
+  makes stealth and dodging impossible, but their bond with primal lava
+  leaves them with phenomenal conjuration, earth, and fire magic aptitude.
+
+  Pyroliths have all the ups and downs of being a Gargoyle, including
+  breathless life, poison immunity, resistance to electricity and negative
+  energy, and ability to grow wings. In addition, they are nearly
+  impervious to fire, including lava; however, this leaves them inherently
+  vulnerable to cold and ice magic. Their density also has some
+  disadvantages, in that they cannot make use of translocation or
+  transmutation magic.
 
 Formicids
   The Formicids are a species of humanoid ants. Just like their tiny insect
