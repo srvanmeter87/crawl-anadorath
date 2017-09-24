@@ -3454,6 +3454,11 @@ static void _set_initial_god_piety()
     }
         you.props[RU_SACRIFICE_PENALTY_KEY] = 0;
         break;
+    case GOD_ANADORATH:
+        you.piety = 40;
+        you.piety_hysteresis = 0;
+        you.gift_timeout = 0;
+        break;
 
     default:
         you.piety = 15; // to prevent near instant excommunication
@@ -3967,11 +3972,11 @@ bool god_hates_your_god(god_type god, god_type your_god)
 
 bool god_hates_killing(god_type god, const monster& mon)
 {
-    // Must be at least a creature of sorts. Smacking down an enchanted
-    // weapon or disrupting a lightning doesn't count. Technically, this
-    // might raise a concern about necromancy but zombies traditionally
-    // count as creatures and that's the average person's (even if not ours)
-    // intuition.
+    /*  Must be at least a creature of sorts. Smacking down an enchanted
+        weapon or disrupting a lightning doesn't count. Technically, this
+        might raise a concern about necromancy but zombies traditionally
+        count as creatures and that's the average person's (even if not ours)
+        intuition. */
     if (mons_is_object(mon.type))
         return false;
 
@@ -4769,8 +4774,8 @@ static bool _cmp_god_by_name(god_type god1, god_type god2)
     return god_name(god1, false) < god_name(god2, false);
 }
 
-// Vector of temple gods.
-// Sorted by name for the benefit of the overview.
+/*  Vector of temple gods.
+    Sorted by name for the benefit of the overview. */
 vector<god_type> temple_god_list()
 {
     vector<god_type> god_list;
@@ -4781,8 +4786,8 @@ vector<god_type> temple_god_list()
     return god_list;
 }
 
-// Vector of non-temple gods.
-// Sorted by name for the benefit of the overview.
+/*  Vector of non-temple gods.
+    Sorted by name for the benefit of the overview. */
 vector<god_type> nontemple_god_list()
 {
     vector<god_type> god_list;

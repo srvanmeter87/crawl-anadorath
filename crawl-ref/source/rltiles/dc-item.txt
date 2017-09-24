@@ -818,7 +818,7 @@ murky
 puce
 purple_red
 sky_blue
-# fiery
+fiery
 
 %sdir item/potion
 %back i-label

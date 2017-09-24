@@ -855,16 +855,11 @@ bool mons_is_icy(const monster& mon)
     {
         return true;
     }
-    if (mons_genus(mon.type) == MONS_FREEZING_WRAITH
-        || mons_genus(mon.type) == MONS_ICE_BEAST
-        || mons_genus(mon.type) == MONS_ICE_DEVIL
+    if (mons_genus(mon.type) == MONS_ICE_BEAST
         || mons_genus(mon.type) == MONS_ICE_DRAGON
-        || mons_genus(mon.type) == MONS_ICE_FIEND
-        || mons_genus(mon.type) == MONS_ICE_STATUE
         || mons_genus(mon.type) == MONS_SIMULACRUM
         || mons_genus(mon.type) == MONS_SIMULACRUM_LARGE
-        || mons_genus(mon.type) == MONS_SIMULACRUM_SMALL
-        || mons_genus(mon.type) == MONS_WHITE_IMP)
+        || mons_genus(mon.type) == MONS_SIMULACRUM_SMALL)
     {
         return true;
     }
@@ -882,16 +877,12 @@ bool mons_is_earthy(const monster& mon)
     if (mons_genus(mon.type) == MONS_BASILISK
         || mons_genus(mon.type) == MONS_DEEP_TROLL_EARTH_MAGE
         || mons_genus(mon.type) == MONS_EARTH_ELEMENTAL //
-        || mons_genus(mon.type) == MONS_GARGOYLE
         || mons_genus(mon.type) == MONS_IRON_DRAGON //
         || mons_genus(mon.type) == MONS_IRON_ELEMENTAL
         || mons_genus(mon.type) == MONS_IRON_GIANT
         || mons_genus(mon.type) == MONS_IRON_GOLEM
-        || mons_genus(mon.type) == MONS_IRON_IMP
         || mons_genus(mon.type) == MONS_IRON_TROLL //
         || mons_genus(mon.type) == MONS_QUICKSILVER_DRAGON //
-        || mons_genus(mon.type) == MONS_RUST_DEVIL
-        || mons_genus(mon.type) == MONS_STATUE
         || mons_genus(mon.type) == MONS_STONE_GIANT) //
     {
         return true;
