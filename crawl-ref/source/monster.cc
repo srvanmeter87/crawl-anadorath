@@ -6316,7 +6316,9 @@ void monster::steal_item_from_player()
             item_def &new_item = mitm[idx];
             new_item.base_type = OBJ_GOLD;
             new_item.sub_type  = 0;
-            new_item.plus      = 0;
+            // Don't re-tithe stolen gold under Zin.
+            new_item.tithe_state = (you_worship(GOD_ZIN)) ? TS_NO_TITHE
+                                                          : TS_NO_PIETY;
             new_item.plus2     = 0;
             new_item.special   = 0;
             new_item.flags     = 0;
@@ -6330,14 +6332,17 @@ void monster::steal_item_from_player()
             inv[MSLOT_GOLD] = idx;
             new_item.set_holding_monster(*this);
         }
-        mitm[inv[MSLOT_GOLD]].flags |= ISFLAG_THROWN;
-        mprf("%s steals %s your gold!",
+        mprf("%s steals %d gold piece%s!",
              name(DESC_THE).c_str(),
-             stolen_amount == you.gold ? "all" : "some of");
+             stolen_amount,
+             stolen_amount != 1 ? "s" : "");
 
         you.attribute[ATTR_GOLD_FOUND] -= stolen_amount;
 
         you.del_gold(stolen_amount);
+        mprf("You now have %d gold piece%s.",
+             you.gold, you.gold != 1 ? "s" : "");
+
         return;
     }
 
