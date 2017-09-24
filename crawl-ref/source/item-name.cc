@@ -1841,7 +1841,7 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
                 "blue", "black", "silvery", "cyan", "purple", "orange",
                 "inky", "red", "yellow", "green", "brown", "ruby", "white",
                 "emerald", "grey", "pink", "coppery", "golden", "dark", "puce",
-                "amethyst", "sapphire", "fiery"
+                "amethyst", "sapphire", "fiery",
             };
             COMPILE_CHECK(ARRAYSZ(potion_colours) == PDC_NCOLOURS);
 
@@ -3452,8 +3452,8 @@ bool is_useless_item(const item_def &item, bool temp)
             return false;
         }
 
-        // Save for the above spells, all missiles are useless for felids.
-        if (you.species == SP_FELID)
+        // Save for the above spells, all missiles are useless for felids and pyroliths.
+        if (you.species == SP_FELID || you.species == SP_PYROLITH)
             return true;
 
         // These are the same checks as in is_throwable(), except that
@@ -3598,6 +3598,10 @@ bool is_useless_item(const item_def &item, bool temp)
             return _invisibility_is_useless(temp);
         case POT_DEGENERATION:
             return you.species == SP_GNOLL;
+        case POT_DIVINE_FAVOUR:
+        case POT_PENANCE:
+            return (you.religion == GOD_NO_GOD || you.religion == GOD_GOZAG
+                    || you.religion == GOD_RU || you.religion == GOD_XOM);
         }
 
         return false;
