@@ -1,738 +1,84 @@
-## 1 - Starting Screen
-name =
-remember_name = false
-# weapon +=
-# species +=
-# background +=
-# combo +=
-restart_after_game = true
-restart_after_save = true
-default_manual_training = false
-autopickup_starting_ammo = true
+##### Crawl Init file ###############################################
+# For descriptions of all options, as well as some more in-depth information
+# on setting them, consult the file
+#    options_guide.txt
+# in your /docs directory. If you can't find it, the file is also available
+# online at:
+# https://github.com/crawl/crawl/blob/master/crawl-ref/docs/options_guide.txt
+#
+# Crawl uses the first file of the following list as its option file:
+#  * init.txt in the -rcdir directory (if specified)
+#  * .crawlrc in the -rcdir directory (if specified)
+#  * init.txt (in the Crawl directory)
+#  * ~/.crawl/init.txt (Unix only)
+#  * ~/.crawlrc (Unix only)
+#  * ~/init.txt (Unix only)
+#  * settings/init.txt (in the Crawl directory)
 
-## 2 - Filesystem
-crawl_dir = /home/kaedan/.git/repo/crawl/crawl-ref/source
-morgue_dir = morgue\
-save_dir = saves\
-macro_dir = ..\settings\
-sound_file_path = sound/
-one_SDL_sound_channel = false
-sound += LOW MAGIC WARNING:beeuboop.wav
-sound += FIRE_PROMPT:thoonk.wav
-sound += (HP|[Mm]agic) restored:beenk.wav
-sound += residual magic fades:beenk.wav
-sound += (contamin|infus):beeuboop.wav
-sound += Your skin (toughens|feels delicate):thoonk.wav
-sound += You feel (strong|clever|agile|weak|dopey|clumsy):thoonk.wav
-sound += You feel.* resistant to poisons:thoonk.wav
-sound += You hunger for flesh:thoonk.wav
-sound += You hunger for vegetation:thoonk.wav
-sound += You feel able to eat a more balanced diet:thoonk.wav
-sound += You.* feel (heat|cold) resistant:thoonk.wav
-sound += You.* feel.* (resistant|vulnerable) to (heat|cold):thoonk.wav
-sound += You feel the presence of a demonic guardian:thoonk.wav
-sound += Your guardian grows in power:thoonk.wav
-sound += Your demonic guardian is (gone|weakened):thoonk.wav
-sound += You feel (insulated|conductive):thoonk.wav
-sound += You feel.* vulnerable to electricity:thoonk.wav
-sound += You begin to (heal more quickly|regenerate):thoonk.wav
-sound += Your rate of healing slows:thoonk.wav
-sound += Your regeneration stops near monsters:thoonk.wav
-sound += You begin to regenerate regardless of the presence:thoonk.wav
-sound += You feel a little hungry:thoonk.wav
-sound += Your metabolism slows:thoonk.wav
-sound += You feel (controlled|random|stable):thoonk.wav
-sound += You feel.* weirdly uncertain:thoonk.wav
-sound += You feel.* to.* hostile enchantments:thoonk.wav
-sound += You feel (quick|sluggish):thoonk.wav
-sound += Your vision (sharpens|seems duller):thoonk.wav
-sound += Your body twists and deforms:thoonk.wav
-sound += Your body's shape seems more normal:thoonk.wav
-sound += There is a nasty taste in your mouth for a moment:thoonk.wav
-sound += You feel an ache in your throat:thoonk.wav
-sound += Your throat feels hot:thoonk.wav
-sound += A chill runs up and down your throat:thoonk.wav
-sound += You feel.* sure on your feet:thoonk.wav
-sound += You.* feel jittery:thoonk.wav
-sound += Your muscles feel (sore|loose):thoonk.wav
-sound += You.* urge to (shout|yell|scream) (disappears|lessens):thoonk.wav
-sound += Your (thinking|thoughts) seem (clearer|confused):thoonk.wav
-sound += You feel.* angry:thoonk.wav
-sound += You feel a little.* (calm|angry):thoonk.wav
-sound += You feel yourself wasting away:thoonk.wav
-sound += You feel your body start to fall apart:thoonk.wav
-sound += You feel.* healthier:thoonk.wav
-sound += Your vision (blurs|sharpens):thoonk.wav
-sound += You feel genetically:thoonk.wav
-sound += You feel nature experimenting on you:thoonk.wav
-sound += Your genes go into a fast flux:thoonk.wav
-sound += Nature stops experimenting on you:thoonk.wav
-sound += Your wild genetic ride slows down:thoonk.wav
-sound += You feel (frail|robust):thoonk.wav
-sound += You feel breathless:thoonk.wav
-sound += You feel a strange anaesthesia:thoonk.wav
-sound += You feel.* resistant to negative energy:thoonk.wav
-sound += You can now infuse your body with magic:thoonk.wav
-sound += You feel more in touch with the powers of death:thoonk.wav
-sound += You have gained the ability to fly:thoonk.wav
-sound += You can now fly continuously:thoonk.wav
-sound += You smell a hint of brimstone:thoonk.wav
-sound += A pair of horns grows on your head:thoonk.wav
-sound += The horns on your head grow some more:thoonk.wav
-sound += The horns on your head shrink:thoonk.wav
-sound += You have a beak for a mouth:thoonk.wav
-sound += Your mouth lengthens and hardens into a beak:thoonk.wav
-sound += Your beak shortens and softens into a mouth:thoonk.wav
-sound += Your (fingernails|hands):thoonk.wav
+##### Some basic explanation of option syntax #######################
+# Lines beginning with '#' are comments. The basic syntax is:
+#
+# field = value         or      field.subfield = value
+#
+# Only one specification is allowed per line.
+#
+# The terms are typically case-insensitive except in the fairly obvious
+# cases (the character's name and specifying files or directories when
+# on a system that has case-sensitive filenames).
+#
+# White space is stripped from the beginning and end of the line, as
+# well as immediately before and after the '='. If the option allows
+# multiple comma/semicolon-separated terms (such as
+# autopickup_exceptions), all whitespace around the separator is also
+# trimmed. All other whitespace is left intact.
+#
+# There are three broad types of Crawl options: true/false values (booleans),
+# arbitrary values, and lists of values. The first two types use only the
+# simple =, with later options - which includes your options that are different
+# from the defaults - overriding earlier ones. List options allow using +=, ^=,
+# -=, and = to append, prepend, remove, and reset, respectively. Usually you will
+# want to use += to add to a list option. Lastly, there is := which you can use
+# to create an alias, like so:
+#   ae := autopickup_exceptions
+# From there on, 'ae' will be treated as if it you typed autopickup_exceptions,
+# so you can save time typing it.
+#
 
-sound += You fall into the lava!:boomk.wav
-sound += You have reached level:boomk.wav
-sound += Your scales start:beeuboop.wav
-sound += You fall through a shaft:boomk.wav
-sound += You fall into the water!:boomk.wav
-sound += You focus on prolonging your flight:boomk.wav
-sound += Marking area around .* as unsafe:beenk.wav
-sound += breaks free of your control:boomk.wav
-sound += doesn't seem very happy:thoonk.wav
-sound += You cannot cast spells when silenced:thoonk.wav
-sound += You don't have the energy to cast that spell:thoonk.wav
-sound += This is a scroll of acquirement:dingding.wav
-sound += Careful!:thoonk.wav
-sound += interdimensional caravan:dingding.wav
-sound += distant snort:dingding.wav
-sound += roar of battle:dingding.wav
-sound += wave of frost:dingding.wav
-sound += hiss of flowing sand:dingding.wav
-sound += sound of rushing water:dingding.wav
-sound += oppressive heat about you:dingding.wav
-sound += crackle of arcane power:dingding.wav
-sound += distant wind:dingding.wav
-sound += press .* to convert to Beogh:beenk.wav
-sound += You have lost your religion:thoonk.wav
-sound += You are cast into the Abyss:beeuboop.wav
-sound += You are cast deeper into the Abyss:beeuboop.wav
-sound += The Abyss bends around you:thoonk.wav
+##### Other files ###################################################
+# You can include other files from your options file using the 'include'
+# option. Crawl will treat it as if you copied the whole text of that file
+# into your options file in that spot. You can uncomment some of the following
+# lines by removing the beginning '#' to include some of the other files in
+# this folder.
 
-## 3a - Interface
-autopickup = (/%?!+:\0}X$
-#    )  Weapons     (  Missiles    [  Armour
-#    /  Wands       %  Food        ?  Scrolls
-#    "  Amulets     =  Rings       !  Potions
-#    +  Manuals     :  Books       |  Staves
-#    \  Rods        0  Orbs        }  Misc. items
-#    X  Corpses     $  Gold
+# Some useful, more advanced options, implemented in LUA.
+# include = advanced_optioneering.txt
 
-ae := autopickup_exceptions
-ae =
-ae += <rune of Zot
-ae += amulet of (nothing|inaccuracy|the gourmand|regeneration|harm|rage|guardian spirit|faith|magic regeneration)
-ae += ring of (see invisible|flight|poison resistance|resist corrosion)
-ae += [^n]identified.*spellbook
-default_autopickup = true
-pickup_thrown = true
-assign_item_slot = backward
-pickup_menu_limit = 1
-drop_filter =
+# Alternative vi bindings for Dvorak users.
+# include = dvorak_command_keys.txt
 
-## 3b - Passive Sightings
-detected_monster_colour = lightmagenta
-detected_item_colour = lightcyan
-remembered_monster_colour = yellow
+# Alternative vi bindings for Colemak users.
+# include = colemak_command_keys.txt
 
-## 3c - Branding
-friend_brand = hi:lightcyan
-neutral_brand = hi:green
-stab_brand = hi:brown
-may_stab_brand = hi:yellow
-heap_brand = reverse
-feature_item_brand = reverse
-trap_item_brand = reverse
+# Override the vi movement keys with a non-command.
+# include = no_vi_command_keys.txt
 
-## 3d - Level Map Functions
-level_map_cursor_step = 5
+# Turn the shift-vi keys into safe move, instead of run.
+# include = safe_move_shift.txt
 
-## 3e - Viewport Display
-view_max_width = 81
-view_max_height = 71
-view_lock_x = true
-view_lock_y = true
-view_lock = true
-center_on_scroll = false
-symmetric_scroll = true
-scroll_margin_x = 2
-scroll_margin_y = 2
-scroll_margin = 2
-always_show_exclusions = true
+##### Ancient versions ##############################################
+# If you're used to the interface of ancient versions of Crawl, you may
+# get back parts of it by uncommenting the following options:
 
-## 3f - Travel & Exploration
-travel_delay = 25
-explore_delay = 25
-rest_delay = -1
-# travel_avoid_terrain = deep water
-explore_greedy = true
-explore_stop = shops,altars,portals,branches,runed_doors
-explore_stop += glowing_items,artefacts,runes
-explore_stop += greedy_pickup_smart,greedy_visited_item_stack
-# explore_stop_pickup_ignore += gold
-explore_wall_bias = 3
-travel_key_stop = true
-tc_reachable      = green
-tc_dangerous      = cyan
-tc_disconnected   = darkgrey
-tc_excluded       = lightmagenta
-tc_exclude_circle = red
-ignore := runrest_ignore_message
-ignore ^= You feel.*sick
-stop := runrest_stop_message
-stop += god:wrath finds you
-stop += Your transformation is almost over
-stop += You are starting to lose your buoyancy
-interrupt_armour_on = monster_attack, monster, mimic
-interrupt_armour_off = interrupt_armour_on
-interrupt_jewellery_on = interrupt_armour_on
-interrupt_memorise = hp_loss, monster_attack, stat
-interrupt_butcher = interrupt_armour_on, teleport, stat
-interrupt_bottle_blood = interrupt_butcher
-interrupt_vampire_feed = interrupt_butcher
-interrupt_multidrop = hp_loss, monster_attack, teleport, stat
-interrupt_macro = interrupt_multidrop
-interrupt_travel = interrupt_butcher, hungry, hit_monster
-interrupt_run = teleport, stat, hit_monster, message
-interrupt_rest = interrupt_travel, stat, hit_monster, message, full_hp, full_mp
-delay_safe_poison = 80:100
-runrest_ignore_monster = ^butterfly$:1, ^wandering mushroom$:1, fish:2
-rest_wait_both = true
-rest_wait_percent = 100
-explore_auto_rest = true
-auto_exclude = oklob, statue, roxanne, hyperactive, lightning spire
+# include                 = 034_command_keys.txt
 
-## 3g - Command Enhancements
-auto_switch = true
-travel_open_doors = true
-easy_unequip = true
-equip_unequip = true
-jewellery_prompt = false
-easy_confirm = all
-simple_targeting = false
-allow_self_target = yes
-auto_butcher = true
-confirm_butcher = never
-easy_eat_chunks = false
-auto_eat_chunks = false
-easy_quit_item_prompts = true
-easy_exit_menu = false
-ability_menu = true
-easy_floor_use = true
-sort_menus = true : equipped, charged, art, ego, identified, glowing, basename, dbname, curse, >qty
-spell_slot ^= Shatter:+z
-spell_slot ^= Lee's Rapid Deconstruction:+y
-spell_slot ^= Fireball:+x
-spell_slot ^= Ignition:+w
-spell_slot ^= Fire Storm:+v
-spell_slot ^= Glaciate:+u
-spell_slot ^= Airstrike:+t
-spell_slot ^= Necromutation:+s
-spell_slot ^= Sublimation of Blood:+r
-spell_slot += .*:abcdefghijklmnopq
-# item_slot ^=
-# ability_slot ^=
-autofight_stop = 33
-autofight_warning = 25
-autofight_hunger_stop = -2
-autofight_hunger_stop_undead = true
-autofight_throw = true
-autofight_throw_nomove = true
-autofight_fire_stop = false
-autofight_caught = true
-autofight_wait = true
-autofight_prompt_range = true
-automagic_enable = true
-automagic_slot = a
-automagic_fight = false
-automagic_stop = 0
-fail_severity_to_confirm = 2
-easy_door = true
-warn_hatches = false
-enable_recast_spell = true
-# confirm_action += regex
-regex_search = true
-autopickup_search = false
+# And to revert monster glyph and colouring changes:
 
-## 3h - Messages & Display Enhancements
-hp_warning = 25
-mp_warning = 20
-hp_colour = 101:green, 88:lightgreen, 75:yellow, 63:brown, 50:red, 38:lightred, 25:lightmagenta, 13:magenta
-mp_colour = 101:cyan, 88:lightcyan, 75:lightblue, 63:blue, 50:magenta, 38:lightmagenta, 25:lightred, 13:red
-stat_colour = 1:lightred, 2:red, 3:magenta
-status_caption_colour = brown
-enemy_hp_colour = green yellow brown red lightred lightmagenta
-clear_messages = false
-show_more = false
-small_more = false
-show_newturn_mark = true
-show_game_time = true
-equip_bar = false
-item_stack_summary_minimum = 4
-# mlist_min_height = 5
-# mlist_allow_alternate_layout = false
-msg_min_height = 16
-msg_max_height = 16
-messages_at_top = true
-msg_condense_repeats = true
-msg_condense_short = true
-show_travel_trail = true
-skill_focus = true
-default_show_all_skills = false
-mlc := monster_list_colour
-mlc = friendly:lightblue, good_neutral:green, neutral:brown, strict_neutral:brown, trivial:green, easy:lightgreen, tough:yellow, nasty:lightmagenta
-view_delay = 750
-# use_animations -=
-darken_beyond_range = true
-fmm := force_more_message
-fmm =
-fmm += You focus on prolonging your flight
-fmm += Marking area around .* as unsafe
-fmm += breaks free of your control
-fmm += doesn't seem very happy
-fmm += You rejoin the land of the living
-fmm += You cannot cast spells when silenced
-fmm += You don't have the energy to cast that spell
-fmm += This is a scroll of acquirement
-fmm += Careful!
-fmm += interdimensional caravan
-fmm += distant snort
-fmm += roar of battle
-fmm += wave of frost
-fmm += hiss of flowing sand
-fmm += sound of rushing water
-fmm += oppressive heat about you
-fmm += crackle of arcane power
-fmm += distant wind
-fmm += press .* to convert to Beogh
-fmm += welcomes you( back)?!
-fmm += You have lost your religion
-fmm += is wielding.*distortion
-fmm += there is a.*distortion
-fmm += of distortion comes into view.
-fmm += You are slowing down
-fmm += You fall asleep
-fmm += Found a gateway leading out of the Abyss
-fmm += a gateway leading .* appears
-fmm += Found .* abyssal rune of Zot
-fmm += watery aura .* (staircase|hatch)
-fmm += You pick up the .* rune and feel its power
-fmm += The lock glows eerily
-fmm += Heavy smoke blows from the lock
-fmm += The gate opens wide
-fmm += With a loud hiss the gate opens wide
-fmm += grants you a gift
-fmm += offers you knowledge of
-fmm += believes you are ready to make a new sacrifice
-fmm += may now remember your ancestor
-fmm += You finish merging with the rock
-fmm += You bow before the missionary of Beogh
-fmm += You .* the altar of
-fmm += will bless one of your weapons
-fmm += will bloody your weapon with pain
-fmm += will brand one of your weapons
-fmm += It is a scroll of amnesia
-fmm += It is a scroll of brand weapon
-fmm += It is a scroll of enchant armour
-fmm += It is a scroll of enchant weapon
-fmm += It is a scroll of identify
-fmm += It is a scroll of recharging
-fmm += You feel more experienced
-fmm += A flood of memories washes over you
-fmm += There's only one card left
-fmm += The deck only has .* cards
-fmm += The deck has exactly five cards
-fmm += You draw the first five cards
-fsm := flash_screen_message
-fsm =
-fsm += You have reached level
-fsm += Your scales start
-fsm += You fall through a shaft
-fsm += You fall into the water!
-fsm += You fall into the lava!
-fsm += grants you a gift
-fsm += offers you knowledge of
-fsm += believes you are ready to make a new sacrifice
-fsm += may now remember your ancestor
-fsm += You are cast into the Abyss
-fsm += You are cast deeper into the Abyss
-fsm += The Abyss bends around you
-fsm += You are slowing down
-fsm += You fall asleep
-fsm += Found a gateway leading out of the Abyss
-fsm += a gateway leading .* appears
-fsm += interdimensional caravan
-fsm += distant snort
-fsm += roar of battle
-fsm += wave of frost
-fsm += hiss of flowing sand
-fsm += sound of rushing water
-fsm += oppressive heat about you
-fsm += crackle of arcane power
-fsm += distant wind
-cloud_status = true
-
-## 3i - Colours (Messages/Menus)
-menu := menu_colour
-menu =
-menu = lightred:.*forbidden.*
-menu += inventory:lightgreen:(poisonous|rot-inducing), blue:(preferred|royal jell(y|ies)), red:mutagenic, green:inedible
-menu += shop:lightgreen:(poisonous|rot-inducing), blue:preferred, red:(mutagenic|contaminated), green:inedible
-menu += stash:lightgreen:(poisonous|rot-inducing), blue:preferred, red:(mutagenic|contaminated), green:inedible
-menu += inventory:magenta:.*equipped.* cursed
-menu += inventory:cyan:.*equipped.*
-menu += inventory:red:.* cursed.*
-menu += inventory:yellow:.*emergency_item.*
-menu += inventory:blue:.*good_item.*
-menu += darkgrey:(melded)
-menu += red:.*bad_item.*
-menu += green:.*useless_item.*
-menu += inventory:brown:.*missile.*
-menu += magenta:.*equipped.* cursed
-menu += red: (a|the) cursed
-menu += cyan:.*equipped.*
-menu += lightmagenta:.*misc.*rune of Zot
-menu += lightmagenta:.*orb.*Zot
-menu += yellow:(^identified.*artefact.*)
-menu += brown:^unidentified.*artefact.*
-menu += lightblue:(^identified.*armour.*of.*of.*)
-menu += white:(^identified.*armour.*pair.*of.*)
-menu += lightblue:(^identified.*armour.*of.*)
-menu += lightblue:(^identified.*weapon.*of.*)
-menu += lightblue:(^identified.*weapon.*vampiric.*)
-menu += lightblue:(^identified.*weapon.*antimagic.*)
-menu += blue:^known .*(weapon|armour|jewellery|magical staff)
-menu += lightcyan:^unidentified .*weapon.*(runed|glowing)
-menu += lightcyan:^unidentified .*armour.*(runed|glowing|embroidered|shiny|dyed)
-menu += lightcyan:^unidentified.*(jewellery|magical staff)
-menu += cyan:^unidentified .*(weapon|armour)
-menu += brown:^unidentified .*(potion|scroll|wand|misc)
-menu += yellow:.*emergency_item.*
-menu += blue:.*book.*
-menu += blue:.*good_item.*
-menu += magenta:.*dangerous_item.*
-menu += blue:.*misc.*[lL]antern
-menu += lightgreen:^identified.*(potion|scroll|wand|jewellery|magical staff|misc)
-: if you.god() == "Nemelex Xobeh" then
-    menu += lightblue:deck of cards
-: end
-menu += pickup:lightgreen:god gift
-menu += white:(^identified.*(weapon|armour).*)
-menu += notes:magenta:Reached XP level
-
-msc := message_colour
-msc =
-msc += lightmagenta:LOW HITPOINT WARNING
-msc += lightcyan:LOW MAGIC WARNING
-msc += $danger:drains you
-msc += $danger:feel drained
-msc += $danger:strangely .*stable
-msc += $danger:curare-tipped.*hits you
-msc += $danger:Space warps.* around you
-msc += $danger:Space bends around you
-msc += $danger:sense of stasis
-msc += $danger:clumsily bash
-msc += $danger:goes berserk!
-msc += $danger:The blast of calcifying dust hits you!
-msc += $danger:you are engulfed in calcifying dust
-msc += $danger:is moving more slowly
-msc += lightgreen:Something appears (at your feet|before you)
-msc += $danger:^Something .* you
-msc += $danger:you block its attack
-msc += $danger:constricts you
-msc += $danger:you convulse
-msc += $danger:You feel a build-up of mutagenic energy
-msc += $danger:place you under penance
-msc += $danger:cause instant excommunication
-msc += $danger:corrodes you
-msc += $danger:rotting away
-msc += $warning:ticking.*clock
-msc += $warning:dying ticks
-msc += $warning:distant snort
-msc += $warning:odd grinding sound
-msc += $warning:creaking of ancient gears
-msc += $warning:floor suddenly vibrates
-msc += $warning:a sudden draft
-msc += $warning:coins.*counted
-msc += $warning:tolling.*bell
-msc += $warning:roar of battle
-msc += $warning:creaking.*portcullis
-msc += $warning:portcullis is probably
-msc += $warning:wave of frost
-msc += $warning:crackling.*melting
-msc += $warning:hiss.*sand
-msc += $warning:sound.*rushing water
-msc += $warning:rusting.*drain
-msc += $warning:drain falling apart
-msc += $warning:heat about you
-msc += $warning:falling.*rocks
-msc += $warning:rumble.*avalanche of rocks
-msc += $warning:crackle.*arcane power
-msc += $warning:crackle.*magical portal
-msc += $warning:distant wind
-msc += $warning:whistling.*wind
-msc += $warning:rapidly growing quiet
-msc += $warning:slides
-msc += $warning:settles down
-msc += $warning:fails to return
-msc += $warning:no longer ripe
-msc += $warning:This .* contains the .* runes? of Zot.
-msc += $warning:They guard the .* runes? of Zot.
-msc += $warning:Beware, you cannot shaft yourself on this level.
-msc += $boring:You start (resting|waiting)
-msc += $boring:Unknown command
-msc += $boring:disappears? in a puff of smoke
-msc += $boring:dissolves? into (sparkling lights|shadows)
-msc += $boring:(crumbles|melts) away\.
-msc += $boring:returns to the deep
-msc += $boring:shimmers and vanishes
-msc += $boring:plain:miss(es)? (the|you|it)
-msc += $boring:but (do no|doesn't do any) damage
-msc += $boring:(prevent|prevents) you from hitting
-msc += $boring:nimbly evade
-msc += $boring:waved at by a branch
-msc += $boring:lunges up near
-msc += mute:Uskayaw will no longer force your foes to helplessly watch your dance\.
-msc += mute:Uskayaw will no longer force your foes to share their pain\.
-
-## 3j - Missiles
-fire_items_start = a
-fire_order  = launcher, return
-fire_order += javelin, tomahawk, net, stone, rock
-fire_order += inscribed
-
-## 3k - Message Channels
-#channel.CHANNEL_NAME = (COLOUR | mute | default | on | off | plain)
-channel.plain = plain
-channel.prompt = yellow
-channel.god = default
-channel.duration = cyan
-channel.danger = lightmagenta
-channel.food = brown
-channel.warning = magenta
-channel.recovery = lightgreen
-channel.talk = cyan
-channel.talk_visual = cyan
-channel.timed_portal = lightmagenta
-channel.sound = white
-channel.intrinsic_gain = cyan
-channel.mutation = magenta
-channel.monster_spell = yellow
-channel.monster_enchant = magenta
-channel.monster_warning = lightcyan
-channel.friend_spell = lightgreen
-channel.friend_enchant = green
-channel.friend_action = blue
-channel.monster_damage = default
-channel.monster_target = default
-channel.banishment = lightmagenta
-channel.rotten_meat = brown
-channel.equipment = lightcyan
-channel.floor = lightblue
-channel.multiturn = blue
-channel.examine = lightblue
-channel.examine_filter = lightgrey
-channel.diagnostic = lightblue
-channel.error = red
-channel.tutorial = lightmagenta
-channel.orb = lightmagenta
-channel.hell_effect = magenta
-channel.dgl_message = lightcyan
-
-## 3l - Inscriptions
-# autoinscribe += (bad|dangerous)_item.*scroll:!r
-show_god_gift = unident
-
-## 3m - Macro-Related Options
-# macros += (M|K|K1|K2|K3) trigger_key command_sequence
-
-# Confirmation Prompts
-macros += K3 q Y
-macros += K3 e N
-
-# Resting
-macros += M v 5
-
-# Wizard Mode Commands
-macros += M \{-222} &~
-macros += M \{-52} &,
-macros += M \{-51} &_
-macros += M \{-50} &.
-macros += M \{-49} &o?
-macros += M \{-48} &o)
-macros += M \{-47} &o!
-macros += M \{-46} &@
-macros += M \{-44} &o$
-macros += M \{-43} &o%
-macros += M \{-42} &^
-macros += M \{-39} &o(
-macros += M \{-37} &o:manual\{13}
-macros += M \{-35} &o=
-macros += M \{-5} &o[
-macros += M \{-4} &o|
-macros += M \{-3} &]
-macros += M \{1} &a
-macros += M \{3} &C
-macros += M \{8} &H
-macros += M \{20} &t
-
-# F1 == Wizard Command Keybind
-macros += K \{-1073741882} &
-
-# F2-F12 == Ability Slots
-macros += M \{-1073741883} aa
-macros += M \{-1073741884} ab
-macros += M \{-1073741885} ac
-macros += M \{-1073741886} ad
-macros += M \{-1073741887} ae
-macros += M \{-1073741888} af
-macros += M \{-1073741889} ag
-macros += M \{-1073741890} ah
-macros += M \{-1073741891} ai
-macros += M \{-1073741892} aj
-macros += M \{-1073741893} ak
-
-# 1-4 == Default Spell Order
-macros += M 1 Za
-macros += M 2 Zb
-macros += M 3 Zc
-macros += M 4 Zd
-macros += M 5 Ze
-macros += M 6 Zf
-macros += M 7 Zg
-macros += M 8 Zh
-macros += M 9 Zi
-
-# q/w/e == Fireball/LRD/Shatter
-macros += M q Zx
-macros += M w Zy
-macros += M e Zz
-
-flush.failure = true
-flush.command = false
-flush.message = false
-# additional_macro_file = path/to/file.name
-
-## 3n - Tiles Options
-tile_show_items = $X%?!/()["=+:}\
-#    )  Weapons     (  Missiles    [  Armour
-#    /  Wands       %  Food        ?  Scrolls
-#    "  Amulets     =  Rings       !  Potions
-#    +  Manuals     :  Books       |  Staves
-#    \  Rods        0  Orbs        }  Misc. items
-#    X  Corpses     $  Gold
-tile_skip_title = false
-tile_menu_icons = true
-tile_player_col       = #ffff80
-tile_monster_col      = red
-tile_neutral_col      = brown
-tile_peaceful_col     = green
-tile_friendly_col     = lightblue
-tile_plant_col        = #004000
-tile_item_col         = lightcyan
-tile_unseen_col       = #040404
-tile_floor_col        = #202020
-tile_wall_col         = #404040
-tile_mapped_floor_col = #202060
-tile_mapped_wall_col  = #4040c0
-tile_door_col         = #806040
-tile_downstairs_col   = #4000ff
-tile_upstairs_col     = #c0ff00
-tile_branchstairs_col = #ff4000
-tile_portal_col       = yellow
-tile_feature_col      = #a08060
-tile_trap_col         = lightred
-tile_water_col        = #104080
-tile_deep_water_col   = #082040
-tile_lava_col         = #802008
-tile_excluded_col     = #c00000
-tile_excl_centre_col  = #ff0000
-tile_window_col       = #80c080
-tile_update_rate = 400
-tile_runrest_rate = 600
-tile_key_repeat_delay = 1000
-tile_tooltip_ms = 1000
-tile_tag_pref = enemy
-tile_window_width = 0
-tile_window_height = 0
-tile_map_pixels = 0
-tile_cell_pixels = 48
-tile_filter_scaling = true
-tile_force_overlay = true
-tile_full_screen = true
-# tile_font_crt_file  = VeraMono.ttf
-# tile_font_stat_file = VeraMono.ttf
-# tile_font_msg_file  = VeraMono.ttf
-# tile_font_tip_file  = VeraMono.ttf
-# tile_font_lbl_file  = Vera.ttf
-# tile_font_crt_family  = monospace
-# tile_font_stat_family = monospace
-# tile_font_msg_family  = monospace
-# tile_font_lbl_family  = monospace
-tile_font_crt_size  = 16
-tile_font_stat_size = 18
-tile_font_msg_size  = 14
-tile_font_tip_size  = 13
-tile_font_lbl_size  = 16
-tile_font_ft_light = true
-tile_show_minihealthbar = true
-tile_show_minimagicbar = true
-tile_show_demon_tier = true
-tile_water_anim = true
-tile_misc_anim = true
-tile_show_player_species = false
-tile_layout_priority = minimap, inventory, gold_turn, ability, spell, monster
-### WEBTILES ONLY ###
-# tile_realtime_anim = false
-# tile_display_mode = (tiles | glyphs | hybrid)
-# tile_level_map_hide_messages = true
-# tile_level_map_hide_sidebar = false
-# tile_player_tile = (normal | playermons | mons:<monster> | tile:<monster-tile>)
-# tile_weapon_offsets = (<x>,<y> | reset)
-# tile_shield_offsets = (<x>,<y> | reset)
-# tile_web_mouse_control = true
-
-## 4 - Character Dump
-arena_dump_msgs = true
-arena_dump_msgs_all = true
-dump_on_save = true
-## 4b - Items & Kills
-# kill_map =
-dump_kill_places = single
-dump_item_origins = artefacts, runes, books
-dump_item_origin_price = -1
-dump_message_count = 25
-dump_order  = header,hiscore,stats,misc,inventory,
-dump_order += skills,spells,overview,mutations,messages,screenshot,
-dump_order += monlist,kills,notes,skill_gains,action_counts,
-dump_order += turns_by_place,kills_by_place,vaults
-dump_book_spells = true
-## 4c - Notes
-user_note_prefix = manualNote: 
-note_items += rod,book,acquirement
-# note_monsters +=
-note_hp_percent = 2
-# note_skill_levels = 1,5,10,15,27
-note_all_skill_levels = true
-# note_skill_max = true
-note_xom_effects = true
-# note_messages +=
-# note_chat_messages = true
-# note_dgl_messages = true
-
-### 5 - Miscellaneous
-## 5a - All OS
-mouse_input = true
-wiz_mode = no
-explore_mode = no
-# char_set = default
-## 5b - DOS and Windows
-dos_use_background_intensity = true
-
-### 6 - Lua Code
-
-# lua_file = lua/functions.lua
+# include                 = 052_monster_glyphs.txt
+# include                 = 060_monster_glyphs.txt
+# include                 = 071_monster_glyphs.txt
+# include                 = 080_monster_glyphs.txt
+# include                 = 0.9_monster_glyphs.txt
+# include                 = 0.12_monster_glyphs.txt
+# include                 = 0.13_monster_glyphs.txt
+# include                 = 0.14_monster_glyphs.txt

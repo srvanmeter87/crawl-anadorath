@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.org/crawl/crawl.svg?branch=master)](https://travis-ci.org/crawl/crawl)
+[![Build Status](https://travis-ci.org/srvanmeter87/crawl.svg?branch=master)](https://travis-ci.org/srvanmeter87/crawl)
 
 # Dungeon Crawl Stone Soup
 
