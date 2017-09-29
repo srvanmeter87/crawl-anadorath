@@ -720,7 +720,7 @@ static const char* scroll_type_name(int scrolltype)
 #if TAG_MAJOR_VERSION == 34
     case SCR_CURSE_WEAPON:       return "curse weapon";
     case SCR_CURSE_ARMOUR:       return "curse armour";
-    case SCR_CURSE_JEWELLERY:    return "curse jewellery";
+    /* case SCR_CURSE_JEWELLERY:    return "curse jewellery"; */
 #endif
     case SCR_IMMOLATION:         return "immolation";
     case SCR_BLINKING:           return "blinking";
@@ -3266,8 +3266,8 @@ bool is_bad_item(const item_def &item, bool temp)
         case SCR_CURSE_WEAPON:
             if (you.species == SP_FELID)
                 return false;
-        case SCR_CURSE_JEWELLERY:
-            return !have_passive(passive_t::want_curses);
+        /* case SCR_CURSE_JEWELLERY:
+            return !have_passive(passive_t::want_curses); */
 #endif
         case SCR_NOISE:
             return true;

@@ -2913,7 +2913,7 @@ static bool _is_cancellable_scroll(scroll_type scroll)
            || scroll == SCR_REMOVE_CURSE
 #if TAG_MAJOR_VERSION == 34
            || scroll == SCR_CURSE_ARMOUR
-           || scroll == SCR_CURSE_JEWELLERY
+           /* || scroll == SCR_CURSE_JEWELLERY */
 #endif
            || scroll == SCR_BRAND_WEAPON
            || scroll == SCR_ENCHANT_WEAPON
@@ -3043,8 +3043,8 @@ string cannot_read_item_reason(const item_def &item)
         case SCR_CURSE_ARMOUR:
             return _no_items_reason(OSEL_UNCURSED_WORN_ARMOUR);
 
-        case SCR_CURSE_JEWELLERY:
-            return _no_items_reason(OSEL_UNCURSED_WORN_JEWELLERY);
+        /* case SCR_CURSE_JEWELLERY:
+            return _no_items_reason(OSEL_UNCURSED_WORN_JEWELLERY); */
 #endif
 
         default:
@@ -3393,7 +3393,7 @@ void read_scroll(item_def& scroll)
 #if TAG_MAJOR_VERSION == 34
     // Should always be identified by Ashenzari.
     case SCR_CURSE_ARMOUR:
-    case SCR_CURSE_JEWELLERY:
+    /* case SCR_CURSE_JEWELLERY: */
     {
         const bool armour = which_scroll == SCR_CURSE_ARMOUR;
         cancel_scroll = !curse_item(armour, pre_succ_msg);

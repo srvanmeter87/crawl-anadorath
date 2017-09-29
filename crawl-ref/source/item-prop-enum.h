@@ -419,9 +419,9 @@ enum scroll_type
     SCR_VULNERABILITY,
     SCR_SILENCE,
     SCR_AMNESIA,
-#if TAG_MAJOR_VERSION == 34
+/* #if TAG_MAJOR_VERSION == 34
     SCR_CURSE_JEWELLERY,
-#endif
+#endif */
     SCR_BRAND_ARMOUR,
     NUM_SCROLLS
 };

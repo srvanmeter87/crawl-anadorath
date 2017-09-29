@@ -610,7 +610,7 @@ unsigned int item_value(item_def item, bool ident)
 #if TAG_MAJOR_VERSION == 34
             case SCR_CURSE_ARMOUR:
             case SCR_CURSE_WEAPON:
-            case SCR_CURSE_JEWELLERY:
+            /* case SCR_CURSE_JEWELLERY: */
 #endif
                 valued += 20;
                 break;
@@ -863,7 +863,7 @@ bool is_worthless_consumable(const item_def &item)
 #if TAG_MAJOR_VERSION == 34
         case SCR_CURSE_ARMOUR:
         case SCR_CURSE_WEAPON:
-        case SCR_CURSE_JEWELLERY:
+        /* case SCR_CURSE_JEWELLERY: */
 #endif
         case SCR_NOISE:
         case SCR_RANDOM_USELESSNESS:
