@@ -1427,7 +1427,7 @@ static void _generate_scroll_item(item_def& item, int force_type,
         do
         {
             // total weight:    789  if depth_mod < 4
-            //                  918  otherwise
+            //                  938  otherwise
             //                 -112  in sprint
             item.sub_type = random_choose_weighted(
                 200, SCR_IDENTIFY,
@@ -1449,6 +1449,7 @@ static void _generate_scroll_item(item_def& item, int force_type,
                  22, SCR_RANDOM_USELESSNESS,
                  // Higher-level scrolls.
                  27, (depth_mod < 4 ? NUM_SCROLLS : SCR_VULNERABILITY),
+                 20, (depth_mod < 4 ? NUM_SCROLLS : SCR_BRAND_AMMUNITION),
                  17, (depth_mod < 4 ? NUM_SCROLLS : SCR_SUMMONING),
                  15, (depth_mod < 4 ? NUM_SCROLLS : SCR_ACQUIREMENT),
                  15, (depth_mod < 4 ? NUM_SCROLLS : SCR_SILENCE),

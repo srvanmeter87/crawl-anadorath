@@ -734,6 +734,7 @@ static const char* scroll_type_name(int scrolltype)
     case SCR_SILENCE:            return "silence";
     case SCR_AMNESIA:            return "amnesia";
     case SCR_BRAND_ARMOUR:       return "brand armour";
+    case SCR_BRAND_AMMUNITION:   return "brand ammunition";
     default:                     return "bugginess";
     }
 }

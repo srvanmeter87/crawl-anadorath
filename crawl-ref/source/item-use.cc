@@ -2209,13 +2209,13 @@ static void _rebrand_armour(item_def& arm)
     {
         if (armtype == ARM_ROBE)
         {
-            new_ego = random_choose_weighted(1, SPARM_ARCHMAGI,
-                                             1, SPARM_FLYING,
-                                             2, SPARM_RESISTANCE,
-                                             2, SPARM_COLD_RESISTANCE,
-                                             2, SPARM_FIRE_RESISTANCE,
+            new_ego = random_choose_weighted(8, SPARM_MAGIC_RESISTANCE,
                                              4, SPARM_POSITIVE_ENERGY,
-                                             8, SPARM_MAGIC_RESISTANCE);
+                                             2, SPARM_FIRE_RESISTANCE,
+                                             2, SPARM_COLD_RESISTANCE,
+                                             2, SPARM_RESISTANCE,
+                                             1, SPARM_ARCHMAGI,
+                                             1, SPARM_FLYING);
         }
         else if (armtype == ARM_LEATHER_ARMOUR
                  || armtype == ARM_RING_MAIL
@@ -2379,6 +2379,90 @@ static void _rebrand_weapon(item_def& wpn)
     convert2bad(wpn);
 }
 
+static void _rebrand_ammunition(item_def& msl)
+{
+    int msltype = msl.sub_type;
+    const special_missile_type old_brand = get_ammo_brand(msl);
+    special_missile_type new_brand = old_brand;
+
+    // now try and find an appropriate brand
+    while (old_brand == new_brand || god_hates_brand(new_brand))
+    {
+        if (msltype == MI_ARROW)
+        {
+            new_brand = random_choose_weighted(
+                                    20, SPMSL_FLAME,
+                                    20, SPMSL_FROST,
+                                    15, SPMSL_POISONED,
+                                    15, SPMSL_SILVER,
+                                    15, SPMSL_STEEL,
+                                     6, SPMSL_CHAOS,
+                                     6, SPMSL_DISPERSAL,
+                                     3, SPMSL_EXPLODING);
+        }
+        else if (msltype == MI_BOLT)
+        {
+            new_brand = random_choose_weighted(
+                                    24, SPMSL_FLAME,
+                                    24, SPMSL_FROST,
+                                    18, SPMSL_SILVER,
+                                    18, SPMSL_STEEL,
+                                     7, SPMSL_PENETRATION,
+                                     7, SPMSL_DISPERSAL,
+                                     2, SPMSL_CHAOS);
+        }
+        else if (msltype == MI_JAVELIN)
+        {
+            new_brand = random_choose_weighted(
+                                    15, SPMSL_FLAME,
+                                    15, SPMSL_FROST,
+                                    15, SPMSL_POISONED,
+                                    12, SPMSL_SILVER,
+                                    12, SPMSL_STEEL,
+                                     9, SPMSL_PENETRATION,
+                                     7, SPMSL_EXPLODING,
+                                     7, SPMSL_RETURNING,
+                                     5, SPMSL_DISPERSAL,
+                                     3, SPMSL_CHAOS);
+        }
+        else if (msltype == MI_NEEDLE)
+        {
+            new_brand = random_choose_weighted(
+                                    30, SPMSL_POISONED,
+                                    25, SPMSL_CURARE,
+                                    15, SPMSL_CONFUSION,
+                                    15, SPMSL_PARALYSIS,
+                                    15, SPMSL_FRENZY);
+        }
+        else if (msltype == MI_SLING_BULLET)
+        {
+            new_brand = random_choose_weighted(
+                                    24, SPMSL_FLAME,
+                                    24, SPMSL_FROST,
+                                    18, SPMSL_SILVER,
+                                    18, SPMSL_STEEL,
+                                     8, SPMSL_CHAOS,
+                                     8, SPMSL_DISPERSAL);
+        }
+        else if (msltype == MI_TOMAHAWK)
+        {
+            new_brand = random_choose_weighted(
+                                    18, SPMSL_POISONED,
+                                    15, SPMSL_FLAME,
+                                    15, SPMSL_FROST,
+                                     9, SPMSL_SILVER,
+                                     9, SPMSL_STEEL,
+                                     8, SPMSL_EXPLODING,
+                                     8, SPMSL_RETURNING,
+                                     8, SPMSL_DISPERSAL,
+                                     6, SPMSL_CHAOS,
+                                     4, SPMSL_PENETRATION);
+        }
+    }
+
+    set_item_ego_type(msl, OBJ_MISSILES, new_brand);
+}
+
 static string _item_name(item_def &item)
 {
     return item.name(in_inventory(item) ? DESC_YOUR : DESC_THE);
@@ -2416,7 +2500,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s exudes dexterity!",itname.c_str());
         break;
     case SPARM_FIRE_RESISTANCE:
-        flash_colour = LIGHTRED;
+        flash_colour = RED;
         mprf("%s feels cool to the touch!",itname.c_str());
         break;
     case SPARM_FLYING:
@@ -2428,11 +2512,11 @@ static void _brand_armour(item_def &arm)
         mprf("%s exudes intelligence!",itname.c_str());
         break;
     case SPARM_INVISIBILITY:
-        flash_colour = WHITE;
+        flash_colour = LIGHTGREY;
         mprf("%s shimmers in and out of sight!",itname.c_str());
         break;
     case SPARM_MAGIC_RESISTANCE:
-        flash_colour = MAGENTA;
+        flash_colour = CYAN;
         mprf("%s projects a faint barrier against magic!",itname.c_str());
         break;
     case SPARM_POISON_RESISTANCE:
@@ -2444,7 +2528,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s dimly glows.",itname.c_str());
         break;
     case SPARM_POSITIVE_ENERGY:
-        flash_colour = MAGENTA;
+        flash_colour = LIGHTMAGENTA;
         mprf("%s emits smiles!",itname.c_str());
         break;
     case SPARM_PROTECTION:
@@ -2460,7 +2544,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s feels repulsive!",itname.c_str());
         break;
     case SPARM_RESISTANCE:
-        flash_colour = LIGHTCYAN;
+        flash_colour = CYAN;
         mprf("%s resists temperature!",itname.c_str());
         break;
     case SPARM_RUNNING:
@@ -2472,7 +2556,7 @@ static void _brand_armour(item_def &arm)
         mprf("%s expands your vision!",itname.c_str());
         break;
     case SPARM_SPIRIT_SHIELD:
-        flash_colour = MAGENTA;
+        flash_colour = BLUE;
         mprf("%s synchronizes with magic!",itname.c_str());
         break;
     case SPARM_STEALTH:
@@ -2585,6 +2669,91 @@ static void _brand_weapon(item_def &wpn)
     return;
 }
 
+static void _brand_ammunition(item_def &msl)
+{
+    you.wield_change = true;
+
+    const string itname = _item_name(msl);
+
+    _rebrand_ammunition(msl);
+
+    bool success = true;
+    colour_t flash_colour = BLACK;
+
+    switch (get_ammo_brand(msl))
+    {
+    case SPMSL_CHAOS:
+        flash_colour = random_colour();
+        mprf("%s erupts in a glittering mayhem of colour.",itname.c_str());
+        break;
+    case SPMSL_CONFUSION:
+        flash_colour = YELLOW;
+        mprf("%s gains a dusting of a befuddling drug.",itname.c_str());
+        break;
+    case SPMSL_CURARE:
+        flash_colour = GREEN;
+        mprf("%s drips with highly lethal poison.",itname.c_str());
+        break;
+    case SPMSL_DISPERSAL:
+        flash_colour = MAGENTA;
+        mprf("%s shimmers intangibly.",itname.c_str());
+        break;
+    case SPMSL_EXPLODING:
+        flash_colour = YELLOW;
+        mprf("%s flickers like a fuse.",itname.c_str());
+        break;
+    case SPMSL_FLAME:
+        flash_colour = RED;
+        mprf("%s is engulfed in flames!",itname.c_str());
+        break;
+    case SPMSL_FRENZY:
+        flash_colour = MAGENTA;
+        mprf("%s fills with an enraging drug.",itname.c_str());
+        break;
+    case SPMSL_FROST:
+        flash_colour = BLUE;
+        mprf("%s is covered with a thin layer of ice!",itname.c_str());
+        break;
+    case SPMSL_PARALYSIS:
+        flash_colour = BROWN;
+        mprf("%s looks stunning.",itname.c_str());
+        break;
+    case SPMSL_PENETRATION:
+        flash_colour = CYAN;
+        mprf("%s sharpens into a penetrating point!",itname.c_str());
+        break;
+    case SPMSL_POISONED:
+        flash_colour = LIGHTGREEN;
+        mprf("%s drips with poison.",itname.c_str());
+        break;
+    case SPMSL_RETURNING:
+        flash_colour = BROWN;
+        mprf("%s feels perfect in your hand.",itname.c_str());
+        break;
+    case SPMSL_SILVER:
+        flash_colour = LIGHTGREY;
+        mprf("%s shines like silver!",itname.c_str());
+        break;
+    case SPMSL_STEEL:
+        flash_colour = DARKGREY;
+        mprf("%s feels extremely heavy.",itname.c_str());
+        break;
+    default:
+        success = false;
+        break;
+    }
+
+    if (success)
+    {
+        item_set_appearance(msl);
+        set_ident_flags(msl, ISFLAG_KNOW_TYPE);
+        mprf_nocap("%s", msl.name(DESC_INVENTORY_EQUIP).c_str());
+        you.redraw_quiver = true;
+        flash_view_delay(UA_PLAYER, flash_colour, 300);
+    }
+    return;
+}
+
 static item_def* _choose_target_item_for_scroll(bool scroll_known, object_selector selector,
                                                 const char* prompt)
 {
@@ -2649,6 +2818,18 @@ static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
         return !alreadyknown;
 
     _brand_armour(*armour);
+    return true;
+}
+
+static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
+{
+    item_def* ammunition = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_AMMUNITION,
+                                                          "Brand which item?");
+    
+    if (!ammunition)
+        return !alreadyknown;
+    
+    _brand_ammunition(*ammunition);
     return true;
 }
 
@@ -2918,7 +3099,8 @@ static bool _is_cancellable_scroll(scroll_type scroll)
            || scroll == SCR_BRAND_WEAPON
            || scroll == SCR_ENCHANT_WEAPON
            || scroll == SCR_MAGIC_MAPPING
-           || scroll == SCR_BRAND_ARMOUR;
+           || scroll == SCR_BRAND_ARMOUR
+           || scroll == SCR_BRAND_AMMUNITION;
 }
 
 /**
@@ -3029,6 +3211,9 @@ string cannot_read_item_reason(const item_def &item)
 
         case SCR_ENCHANT_WEAPON:
             return _no_items_reason(OSEL_ENCHANTABLE_WEAPON, true);
+
+        case SCR_BRAND_AMMUNITION:
+            return _no_items_reason(OSEL_BRANDABLE_AMMUNITION, true);
 
         case SCR_IDENTIFY:
             return _no_items_reason(OSEL_UNIDENT, true);
@@ -3389,7 +3574,15 @@ void read_scroll(item_def& scroll)
         cancel_scroll =
             !_handle_brand_armour(alreadyknown, pre_succ_msg);
         break;
-
+    case SCR_BRAND_AMMUNITION:
+        if (!alreadyknown)
+        {
+            mpr(pre_succ_msg);
+            mpr("It is a scroll of brand ammunition.");
+        }
+        cancel_scroll =
+            !_handle_brand_ammunition(alreadyknown, pre_succ_msg);
+        break;
 #if TAG_MAJOR_VERSION == 34
     // Should always be identified by Ashenzari.
     case SCR_CURSE_ARMOUR:

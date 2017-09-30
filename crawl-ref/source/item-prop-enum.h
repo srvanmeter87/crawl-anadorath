@@ -412,9 +412,9 @@ enum scroll_type
 #endif
     SCR_BRAND_WEAPON,
     SCR_RECHARGING,
-#if TAG_MAJOR_VERSION == 34
+/* #if TAG_MAJOR_VERSION == 34
     SCR_ENCHANT_WEAPON_III,
-#endif
+#endif */
     SCR_HOLY_WORD,
     SCR_VULNERABILITY,
     SCR_SILENCE,
@@ -423,6 +423,7 @@ enum scroll_type
     SCR_CURSE_JEWELLERY,
 #endif */
     SCR_BRAND_ARMOUR,
+    SCR_BRAND_AMMUNITION,
     NUM_SCROLLS
 };
 

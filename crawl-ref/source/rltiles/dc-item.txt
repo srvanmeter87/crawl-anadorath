@@ -635,7 +635,7 @@ i-acquirement SCR_ACQUIREMENT
 i-enchant-weapon SCR_ENCHANT_WEAPON_II
 i-brand-weapon SCR_BRAND_WEAPON
 i-recharging SCR_RECHARGING
-i-enchant-weapon SCR_ENCHANT_WEAPON_III
+# i-enchant-weapon SCR_ENCHANT_WEAPON_III
 %back scroll-red
 i-holy_word SCR_HOLY_WORD
 i-vulnerability SCR_VULNERABILITY
@@ -647,7 +647,9 @@ i-amnesia SCR_AMNESIA
 # #### Remove curse foo when TAG_MAJOR_VERSION > 34
 # i-curse-jewellery SCR_CURSE_JEWELLERY
 %back scroll-purple
-i-brand-armour SCR_BRAND_ARMOUR SCR_ID_LAST
+i-brand-armour SCR_BRAND_ARMOUR
+%back scroll-green
+i-brand-ammunition SCR_BRAND_AMMUNITION SCR_ID_LAST
 %back none
 
 ##################OBJ_JEWELLERY

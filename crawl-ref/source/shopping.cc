@@ -578,6 +578,10 @@ unsigned int item_value(item_def item, bool ident)
                 valued += 200;
                 break;
 
+            case SCR_BRAND_AMMUNITION:
+                valued += 120;
+                break;
+
             case SCR_RECHARGING:
             case SCR_SUMMONING:
                 valued += 95;

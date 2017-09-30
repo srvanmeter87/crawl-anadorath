@@ -45,6 +45,7 @@ enum object_selector
                                         // leakage.
     OSEL_DIVINE_RECHARGE         = -21,
     OSEL_BRANDABLE_ARMOUR        = -22,
+    OSEL_BRANDABLE_AMMUNITION    = -23,
 };
 
 /// Behaviour flags for prompt_invent_item().
