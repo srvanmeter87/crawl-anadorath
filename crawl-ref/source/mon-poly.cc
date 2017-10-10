@@ -204,21 +204,21 @@ void change_monster_type(monster* mons, monster_type targetc)
     bool could_see     = you.can_see(*mons);
     bool slimified = _jiyva_slime_target(targetc);
 
-    // Quietly remove the old monster's invisibility before transforming
-    // it. If we don't do this, it'll stay invisible even after losing
-    // the invisibility enchantment below.
+    /*  Quietly remove the old monster's invisibility before transforming
+        it. If we don't do this, it'll stay invisible even after losing
+        the invisibility enchantment below. */
     mons->del_ench(ENCH_INVIS, false, false);
 
-    // Remove replacement tile, since it probably doesn't work for the
-    // new monster.
+    /*  Remove replacement tile, since it probably doesn't work for the
+        new monster. */
     mons->props.erase("monster_tile_name");
     mons->props.erase("monster_tile");
 
-    // Even if the monster transforms from one type that can behold the
-    // player into a different type which can also behold the player,
-    // the polymorph disrupts the beholding process. Do this before
-    // changing mons->type, since unbeholding can only happen while
-    // the monster is still a siren/merfolk avatar.
+    /*  Even if the monster transforms from one type that can behold the
+        player into a different type which can also behold the player,
+        the polymorph disrupts the beholding process. Do this before
+        changing mons->type, since unbeholding can only happen while
+        the monster is still a siren/merfolk avatar. */
     you.remove_beholder(*mons);
     you.remove_fearmonger(mons);
 

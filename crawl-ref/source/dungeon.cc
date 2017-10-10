@@ -4861,14 +4861,14 @@ monster* dgn_place_monster(mons_spec &mspec, coord_def where,
     if (mspec.props.exists("dbname"))
         mons->props["dbname"].get_string() = mspec.props["dbname"].get_string();
 
-    // These are applied earlier to prevent issues with renamed monsters
-    // and "<monster> comes into view" (see delay.cc:_monster_warning).
-    //mons->flags |= mspec.extra_monster_flags;
+    /*  These are applied earlier to prevent issues with renamed monsters
+        and "<monster> comes into view" (see delay.cc:_monster_warning).
+        mons->flags |= mspec.extra_monster_flags;
 
-    // Monsters with gods set by the spec aren't god gifts
-    // unless they have the "god_gift" tag. place_monster(),
-    // by default, marks any monsters with gods as god gifts,
-    // so unmark them here.
+        Monsters with gods set by the spec aren't god gifts
+        unless they have the "god_gift" tag. place_monster(),
+        by default, marks any monsters with gods as god gifts,
+        so unmark them here. */
     if (mspec.god != GOD_NO_GOD && !mspec.god_gift)
         mons->flags &= ~MF_GOD_GIFT;
 

@@ -90,8 +90,12 @@ static string _describe_favour(god_type which_god)
     if (player_under_penance())
     {
         const int penance = you.penance[which_god];
-        return (penance >= 50) ? "Godly wrath is upon you!" :
+        return (penance >= 80) ? "Terrible godly wrath is upon you!" :
+               (penance >= 50) ? "Godly wrath is upon you!" :
+               (penance >= 40) ? "Your transgressions are precluding godly wrath!" :
+               (penance >= 30) ? "You've transgressed terribly! Be penitent!" :
                (penance >= 20) ? "You've transgressed heavily! Be penitent!" :
+               (penance >= 10) ? "You are under great penance." :
                (penance >=  5) ? "You are under penance."
                                : "You should show more discipline.";
     }
@@ -103,21 +107,31 @@ static string _describe_favour(god_type which_god)
     const string godname = god_name(which_god);
     switch (god_favour_rank(which_god))
     {
-        case 7:  return "A prized avatar of " + godname;
+        case 7:
+
+            if (you_worship(GOD_ANADORATH))
+                 return "A true elemental of " + godname + ".";
+            else
+                 return "A prized avatar of " + godname + ".";
+
         case 6:  return "A favoured servant of " + godname + ".";
         case 5:
 
-            if (you_worship(GOD_DITHMENOS))
-                return "A glorious shadow in the eyes of " + godname + ".";
+            if (you_worship(GOD_ANADORATH))
+                 return "A fiery wind in the eyes of " + godname + ".";
+            else if (you_worship(GOD_DITHMENOS))
+                 return "A glorious shadow in the eyes of " + godname + ".";
             else
-                return "A shining star in the eyes of " + godname + ".";
+                 return "A shining star in the eyes of " + godname + ".";
 
         case 4:
 
-            if (you_worship(GOD_DITHMENOS))
-                return "A rising shadow in the eyes of " + godname + ".";
+            if (you_worship(GOD_ANADORATH))
+                 return "An icy ember in the eyes of " + godname + ".";
+            else if (you_worship(GOD_DITHMENOS))
+                 return "A rising shadow in the eyes of " + godname + ".";
             else
-                return "A rising star in the eyes of " + godname + ".";
+                 return "A rising star in the eyes of " + godname + ".";
 
         case 3:  return uppercase_first(godname) + " is pleased with you.";
         case 2:  return uppercase_first(godname) + " is aware of your devotion.";
@@ -240,7 +254,7 @@ static const char *divine_title[][8] =
 
     // Anadorath -- elemental chaos
     {"Eroded Pebble",       "Breezy Stone",          "Radiating Icicle",         "Fiery Blizzard",
-        "Frostbitten Blaze",      "Englaciated Firestorm",      "Earthen Fury",       "Chaos Elemental"},
+        "Frostbitten Blaze",      "Glacial Firestorm",      "Earthen Fury",       "True Elemental"},
 };
 COMPILE_CHECK(ARRAYSZ(divine_title) == NUM_GODS);
 
@@ -922,13 +936,17 @@ static void _describe_god_powers(god_type which_god)
             cprintf("%s %s you from primal elements. (AC+%d%s%s%s)\n",
                     uppercase_first(god_name(which_god)).c_str(),
                     piety >= piety_breakpoint(5) ? "greatly protects" :
-                    piety >= piety_breakpoint(1) ? "slightly protects" : "may one day protect",
+                    piety >= piety_breakpoint(1) ? "slightly protects"
+                                                 : "may one day protect",
                     anadorath_ac_boost(piety),
                     piety >= piety_breakpoint(5) ? " rC++" :
-                    piety >= piety_breakpoint(1) ? " rC+" : "",
+                    piety >= piety_breakpoint(1) ? " rC+"
+                                                 : "",
                     piety >= piety_breakpoint(5) ? " rF++" :
-                    piety >= piety_breakpoint(1) ? " rF+" : "",
-                    piety >= piety_breakpoint(5) ? " rElec+" : "");
+                    piety >= piety_breakpoint(1) ? " rF+"
+                                                 : "",
+                    piety >= piety_breakpoint(5) ? " rElec+"
+                                                 : "");
             
             if (have_passive(passive_t::elemental_neutrality))
             {
@@ -944,8 +962,8 @@ static void _describe_god_powers(god_type which_god)
             cprintf("%s's boon%s.\n",
                     uppercase_first(god_name(which_god)).c_str(),
                     piety >= piety_breakpoint(5) ? " allies you with primal elementals" :
-                    piety >= piety_breakpoint(2) ? " neutralises primal elementals" :
-                                                   " would make primal elementals cease hostility");
+                    piety >= piety_breakpoint(2) ? " neutralises primal elementals"
+                                                 : " would make primal elementals cease hostility");
             break;
         }
             

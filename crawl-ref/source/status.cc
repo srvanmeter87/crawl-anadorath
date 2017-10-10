@@ -1049,7 +1049,7 @@ static void _describe_missiles(status_info* inf)
 
     if (level > 1)
     {
-        bool perm = false;
+        bool perm = have_passive(passive_t::elemental_protection);
         inf->light_colour = perm ? WHITE : LIGHTMAGENTA;
         inf->light_text   = "DMsl";
         inf->short_text   = "deflect missiles";
@@ -1061,8 +1061,7 @@ static void _describe_missiles(status_info* inf)
                     || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
                     || you.scan_artefacts(ARTP_RMSL)
                     || have_passive(passive_t::upgraded_storm_shield)
-                    || have_passive(passive_t::elemental_shield)
-                    || have_passive(passive_t::elemental_protection);
+                    || have_passive(passive_t::elemental_shield);
         inf->light_colour = perm ? WHITE : LIGHTBLUE;
         inf->light_text   = "RMsl";
         inf->short_text   = "repel missiles";

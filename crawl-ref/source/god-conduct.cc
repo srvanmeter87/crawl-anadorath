@@ -492,7 +492,7 @@ static peeve_map divine_peeves[] =
             } },
             { DID_HOLY, {
                 "you use holy magic or items", true,
-                1, 1, " forgives your inadvertent use of non-elemental magic, just this once.",
+                1, 2, " forgives your inadvertent use of non-elemental magic, just this once.",
                 " is not amused by your usage of non-elemental magic."
             } },
             { DID_KILL_AIRY, {
@@ -515,11 +515,11 @@ static peeve_map divine_peeves[] =
                 1, 1, " forgives your accidental killing of a being of ice, just this once.",
                 " is not amused by your slaughtering of icy beings."
             } },
-            { DID_KILL_WIZARD, {
-                "you kill spellcasters", true,
+            /* { DID_KILL_WIZARD, {
+                "you kill spellcasters", false,
                 1, 1, " reluctantly forgives your accidental killing of a spellcaster, just this once.",
                 " does not tolerate you killing magic users!"
-            } },
+            } }, */
         },
 };
 
@@ -1041,32 +1041,32 @@ static like_map divine_likes[] =
         {
             { DID_CHANNEL, {
                 "you channel ambient energy", false,
-                -6, 10, 0, " is amused by your channeling ambient energy."
+                -9, 10, 0, " is amused by your channeling ambient energy."
             } },
             { DID_CHAOS, {
                 "you cause chaos in the dungeon", false,
-                -8, 10, 0, " is amused by your chaotic whims."
+                -9, 10, 0, " is amused by your chaotic whims."
             } },
             { DID_DELIBERATE_MUTATING, {
                 "you deliberately mutate yourself", true,
-                -3, 10, 0, " is highly amused by your deliberate mutating."
+                2, 10, 0, " is highly amused by your deliberate mutating."
             } },
             { DID_EXPLORATION, EXPLORE_RESPONSE },
             { DID_AIR, {
-                "you use the element of air", true,
-                -6, 10, 0, " is amused by your using the element of air."
+                "you use the element of air", false,
+                -8, 10, 0, " is amused by your using the element of air."
             } },
             { DID_EARTH, {
-                "you use the element of earth", true,
-                -6, 10, 0, " is amused by your using the element of earth."
+                "you use the element of earth", false,
+                -8, 10, 0, " is amused by your using the element of earth."
             } },
             { DID_FIRE, {
-                "you use the element of fire", true,
-                -6, 10, 0, " is amused by your using the element of fire."
+                "you use the element of fire", false,
+                -8, 10, 0, " is amused by your using the element of fire."
             } },
             { DID_ICE, {
-                "you use the element of ice", true,
-                -6, 10, 0, " is amused by your using the element of ice."
+                "you use the element of ice", false,
+                -8, 10, 0, " is amused by your using the element of ice."
             } },
         },
 };

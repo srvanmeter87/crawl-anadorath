@@ -5728,15 +5728,15 @@ void player::shield_block_succeeded(actor *foe)
 
 int player::missile_deflection() const
 {
-    if (attribute[ATTR_DEFLECT_MISSILES])
+    if (attribute[ATTR_DEFLECT_MISSILES]
+        || have_passive(passive_t::elemental_protection))
         return 2;
 
     if (get_mutation_level(MUT_DISTORTION_FIELD) == 3
         || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
         || scan_artefacts(ARTP_RMSL, true)
         || have_passive(passive_t::upgraded_storm_shield)
-        || have_passive(passive_t::elemental_shield)
-        || have_passive(passive_t::elemental_protection))
+        || have_passive(passive_t::elemental_shield))
     {
         return 1;
     }

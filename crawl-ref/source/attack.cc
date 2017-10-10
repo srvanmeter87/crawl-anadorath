@@ -768,10 +768,10 @@ struct chaos_attack_type
     function<bool(const actor& def)> valid;
 };
 
-// Chaos melee attacks randomly choose a brand from here, with brands that
-// definitely won't affect the target being invalid. Chaos itself should
-// always be a valid option, triggering a more unpredictable chaos_effect
-// instead of a normal attack brand when selected.
+/*  Chaos melee attacks randomly choose a brand from here, with brands that
+    definitely won't affect the target being invalid. Chaos itself should
+    always be a valid option, triggering a more unpredictable chaos_effect
+    instead of a normal attack brand when selected. */
 static const vector<chaos_attack_type> chaos_types = {
     { AF_FIRE,      SPWPN_FLAMING,       10,
       [](const actor &d) { return !d.is_fiery(); } },
@@ -1080,7 +1080,7 @@ string attack::def_name(description_level_type desc)
 
 /* Returns the attacking weapon's name
  *
- * Sets upthe appropriate descriptive level and obtains the name of a weapon
+ * Sets up the appropriate descriptive level and obtains the name of a weapon
  * based on if the attacker is a player or non-player (non-players use a
  * plain name and a manually entered pronoun)
  */
@@ -1178,8 +1178,8 @@ int attack::get_weapon_plus()
     return weapon->plus;
 }
 
-// Slaying and weapon enchantment. Apply this for slaying even if not
-// using a weapon to attack.
+/*  Slaying and weapon enchantment. Apply this for slaying even if not
+    using a weapon to attack. */
 int attack::player_apply_slaying_bonuses(int damage, bool aux)
 {
     int damage_plus = 0;
