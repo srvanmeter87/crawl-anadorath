@@ -3023,7 +3023,7 @@ w:50
 
 @The_monster@ says, "You stick out like a sore thumb. Or at least, a shining one."
 
-@The_monster@ says, "Won't need this ring of poison resistance, then, will I?"
+@The_monster@ says, "Won't need this ring of positive energy, then, will I?"
 
 @The_monster@ says, "Can you turn the glow down a bit? I can't see you to hit you."
 
@@ -3538,8 +3538,6 @@ w:50
 
 @The_monster@ says, "Don't you get tired of all these old geezers telling you what to do?"
 
-@The_monster@ says, "Heaven on Earth? Sounds overrated."
-
 @The_monster@ says, "No way as a way? Sounds like nonsense."
 %%%%
 No God Donald
@@ -3755,7 +3753,7 @@ You hear a distant wail of despair.
 %%%%
 Dowan_Duvessa_dies_bytwin
 
-@The_monster@ screams in horror.
+@Duvessa_Dowan_dies_bytwin@
 %%%%
 Dowan_Duvessa_dies_invisible_bytwin
 
@@ -5438,7 +5436,7 @@ _Nessos_rare_
 
 @The_monster@ says, "Even if you were a mare, I'd kill you!"
 
-@The_monster@ shouts, "I'm half man! Half horse! And all stone-cold KILLER!"
+@The_monster@ shouts, "I'm half human! Half horse! And all stone-cold KILLER!"
 
 w:1
 @The_monster@ says, "Hold still for a moment, will you? I've got a trick shot I want to try here."
