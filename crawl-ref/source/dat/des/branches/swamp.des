@@ -43,7 +43,7 @@ end
 
 # This is basically the dummy balancer.
 NAME:   swamp_mist
-TAGS:   swamp_entry
+TAGS:   swamp_entry transparent
 KFEAT:  O = enter_swamp
 MARKER: O = lua:fog_machine { \
              pow_min = 8, pow_max = 12, delay = 25, \
@@ -54,7 +54,7 @@ ENDMAP
 
 # Scenery, no threat.
 NAME:   swamp_mist_pool
-TAGS:   swamp_entry no_pool_fixup
+TAGS:   swamp_entry no_pool_fixup transparent
 KFEAT:  O = enter_swamp
 MARKER: O = lua:fog_machine { \
              pow_min = 8, pow_max = 12, delay = 25, \
@@ -97,7 +97,7 @@ tTTWW'WWTTt
 ENDMAP
 
 NAME:   minmay_swamp_entry_wisps
-TAGS:   swamp_entry
+TAGS:   swamp_entry transparent
 WEIGHT: 2
 MONS:   insubstantial wisp / nothing
 KFEAT:  O = enter_swamp
@@ -111,7 +111,7 @@ MAP
 ENDMAP
 
 NAME:   minmay_swamp_entry_reptiles
-TAGS:   swamp_entry
+TAGS:   swamp_entry transparent
 WEIGHT: 5
 MONS:   swamp drake / komodo dragon / hydra / swamp dragon
 MONS:   crocodile / iguana
@@ -145,7 +145,7 @@ ttTTTtt
 ENDMAP
 
 NAME:   minmay_swamp_entry_eels
-TAGS:   swamp_entry
+TAGS:   swamp_entry transparent
 WEIGHT: 2
 KMONS:  w = electric eel / nothing w:40
 KFEAT:  w = w / W
@@ -166,27 +166,78 @@ MAP
 ENDMAP
 
 NAME: nicolae_swamp_entry_splash_gauntlet
-TAGS: swamp_entry
+TAGS: swamp_entry patrolling transparent
 KFEAT: O = enter_swamp
 MARKER: O = lua:fog_machine { pow_min = 8, pow_max = 12, delay = 25, \
    size = 2, walk_dist = 1, spread_rate = 33 }
-NSUBST: A = ttttw / w, B = ttttw / w, C = ttttw / w, D = ttttw / w
-NSUBST: E = T / ., F = T / ., G = T / ., H = T / ., I = T / ., J = T / .
-SUBST: T = tt.
-KMONS: 1 = swamp worm
+SUBST: D = twww
+NSUBST: E = tt. / ., F = tt. / ., H = tt. / ., J = tt. / ., K = tt. / .
+NSUBST: L = tt. / .
+KMONS: 1 = swamp worm / bog body / nothing
 KMONS: 2 = electric eel
 KFEAT: 12 = w
 MAP
     ......tttttttt
   ...ttttttttttttttttt
- ..tttw1wAAAw1wCCCw1wtt
-@.T...E.F.G.H.I.J...2tt
-@.T...E.F.G.H.I.J..Owtt
- ..tttw1wBBBww1DDDw1wtt
+ ..tttw1wDDDw1wDDDw1wtt
+@.T...E.F.H.J.K.L...2tt
+@.T...E.F.H.J.K.L..Owtt
+ ..tttw1wDDDww1DDDw1wtt
   ...ttttttttttttttttt
     ......tttttttt
 ENDMAP
 
+NAME:    skrybe_swamp_entry_bodies
+TAGS:    swamp_entry no_pool_fixup transparent
+KMONS:   1 = patrolling bog body
+KFEAT:   1 = W
+KFEAT:   O = enter_swamp
+NSUBST:  n = 1:1 / 1=W1 / *:W
+NSUBST:  W = 4:t / *:W
+MARKER:  O = lua:fog_machine { \
+             pow_min = 8, pow_max = 12, delay = 25, \
+             size = 2, walk_dist = 1, spread_rate= 33 }
+MAP
+ .....
+..WWW..
+.WWnWW.
+.WnOnW.
+.WWnWW.
+..WWW..
+ .....
+ENDMAP
+
+NAME:   palyth_hydra_swamp_entry
+TAGS:   swamp_entry no_monster_gen no_pool_fixup
+MONS:   hydra
+MONS:   iguana / komodo dragon / crocodile / tyrant leech
+KMONS:  s = swamp worm / nothing w:70
+KFEAT:  s = w / W
+NSUBST: - = 2:1 / 2:2 / .
+KFEAT:  O = enter_swamp
+KFEAT:  T = .
+MARKER: T = lua:fog_machine { \
+             pow_min = 8, pow_max = 12, delay = 25, \
+             size = 2, walk_dist = 1, spread_rate= 33 }
+MAP
+ ttttttt@@tt
+ twwWWWW...tt
+ twwssWsWstt
+ttwsssWsWtt
+ ttwsWs---tt
+  tttt---tt
+ ttT....ttttt
+ttt..ttttWsOt
+ tt..tttWsWtt
+tt--ttt---ttt
+ t--ssww---t
+ tWWWWsww.Ttt
+ ttWWssw..tt
+  t..Ttt...t
+  tt.----..tt
+   ttt...ttt
+     ttttt
+ENDMAP
 ###############################################################################
 # Swamp non-entry and non-ending vaults
 ###############################################################################
@@ -570,7 +621,7 @@ dgn.delayed_decay_extra(_G, 'p', 'orc corpse', 'hand axe / broad axe, ' ..
    'leather armour / pair of gloves')
 }}
 KITEM: w = mundane quarterstaff
-KITEM: s = meat ration / bread ration
+KITEM: s = ration
 KFEAT: 'o = W
 CLEAR:  _
 MAP
@@ -917,29 +968,27 @@ ENDMAP
 NAME:    hangedman_swamp_wriggling
 TAGS:    no_pool_fixup no_monster_gen patrolling transparent
 DEPTH:   Swamp, !Swamp:$
-KMONS:   0 = swamp worm
-MONS:    tyrant leech, worm
-KFEAT:   0 = shallow_water
+KMONS:   1 = swamp worm / tyrant leech w:5 / nothing w:5
+KMONS:   2 = tyrant leech
+KFEAT:   12 = shallow_water
 SHUFFLE: })
 SUBST:   } = }>, ) = <)>, } = }:20 >, ) = ):25 <>, 4 = 23
 MAP
       @tttttt
      WttwWwwtt
- ...tttW2..w0tt
- tw0tt4wWt.Wwtt
-ttW.tt}3)tW.0tt
-t0.WtW4wtt.Wtt
-tww..2Wwtt0Wt
-tt0wWwwtt....
+ ...tttW2..w1tt
+ tw1tt.wWt.Wwtt
+ttW.tt}.)tW.1tt
+t1.WtW.wtt.Wtt
+tww..2Wwtt1Wt
+tt1wWwwtt....
  ttttttt@
 ENDMAP
 
 NAME:    hangedman_swamp_ravenous
 TAGS:    no_pool_fixup no_monster_gen patrolling transparent
 DEPTH:   Swamp, !Swamp:$
-MONS:    bog body
-MONS:    necrophage
-MONS:    ghoul
+MONS:    bog body, necrophage, ghoul
 SUBST:   jl = t
 KFEAT:   % = shallow_water / .
 SHUFFLE: jJ / lL, })
@@ -1002,20 +1051,26 @@ KMONS:   1 = green draconian
 KMONS:   a = death drake
 KMONS:   A = tentacled monstrosity / green death
 # No burning down the trees or making them look burnt.
-KMONS:   b = green draconian stormcaller w:15 / yellow draconian stormcaller w:1 / \
-             white draconian stormcaller w:1 / purple draconian stormcaller w:1
-KMONS:   B = green draconian stormcaller w:15 / yellow draconian stormcaller w:1 / \
-             white draconian stormcaller w:1 / purple draconian stormcaller w:1
+KMONS:   b = green draconian stormcaller w:15 \
+             / yellow draconian stormcaller w:1 \
+             / white draconian stormcaller w:1 \
+             / purple draconian stormcaller w:1
+KMONS:   B = green draconian stormcaller w:15 \
+             / yellow draconian stormcaller w:1 \
+             / white draconian stormcaller w:1 \
+             / purple draconian stormcaller w:1
 KMONS:   % = ugly thing / orange demon
-KMONS:   *d = swamp dragon w:8 / seven-headed hydra w:5 / eight-headed hydra w:5
+KMONS:   *d = swamp dragon w:8 / seven-headed hydra w:5 \
+              / eight-headed hydra w:5
 KMONS:   | = large abomination / tentacled monstrosity w:5
 SHUFFLE: AB%| / abd*
 : end
 SUBST:   < : <:1 .:9
 NSUBST:  < = 1:{ / 1:}
 SHUFFLE: {} / {[ / {[ / }] / }]
-MARKER:  A = lua:fog_machine { cloud_type = "translocational energy", pow_max = 2, \
-                 delay_min = 100, delay_max = 150, size = 1, walk_dist = 1 }
+MARKER:  A = lua:fog_machine { cloud_type = "translocational energy", \
+                               pow_max = 2, delay_min = 100, delay_max = 150, \
+                               size = 1, walk_dist = 1 }
 MAP
          xxxxx
         @xWxWxxxx
@@ -1558,7 +1613,7 @@ ENDMAP
 NAME:  cheibrodos_swamp_pet_leeches
 TAGS:  no_item_gen no_monster_gen
 DEPTH: Swamp, !Swamp:$
-MONS:  vampire ; potion of blood . long sword . robe, tyrant leech
+MONS:  vampire ; long sword . robe, tyrant leech
 KPROP: e' = no_tele_into
 KPROP: .21 = bloody / w:30 nothing
 KPROP: e = bloody
@@ -1614,7 +1669,7 @@ SUBST: ghi = .
 KMONS: D = patrolling spriggan rider
 KMONS: SGHI = spriggan / nothing
 KMONS: F = spriggan druid
-KITEM: f = royal jelly q:3 / bread ration / fruit
+KITEM: f = ration / nothing w:8
 MAP
        ttttt
   ttttttgggt
@@ -1816,7 +1871,7 @@ KMONS: . = plant w:5 / fungus w:5 / nothing w:100
 KMONS: - = plant / fungus / nothing w:80
 KITEM: h^m = % / * w:5
 KITEM: o = * / | w:5
-KITEM: f = fruit
+KITEM: f = ration / nothing
 KITEM: b = Fen Folio ident:type
 KFEAT: ^, = .
 CLEAR: _
