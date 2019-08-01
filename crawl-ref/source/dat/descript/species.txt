@@ -55,8 +55,8 @@ They have low health, but their stone bodies are incredibly tough.
 %%%%
 Gnoll
 
-Gnolls are canine-like humanoids. They are quick to learn any skill, but are
-unable to alter their poor physical attributes.
+Gnolls are canine-like humanoids. They have incredible proficiency and
+excellent physical attributes, but must learn all skills at once.
 %%%%
 Halfling
 
@@ -115,8 +115,8 @@ but almost no armour fits them.
 %%%%
 Ogre
 
-Large and strong, Ogres are mostly seen as brutes. They are extremely robust,
-and have an excellent grasp of magic.
+Large, strong, and extremely robust, Ogres are competent at all forms of melee.
+They are not merely brutes, as they are comfortable with spellcasting.
 %%%%
 Spriggan
 
@@ -135,6 +135,6 @@ stabbers and casters.
 %%%%
 Vine Stalker
 
-Frail symbionts, Vine Stalkers cannot regain health from devices or potions.
+Frail symbionts, Vine Stalkers cannot regain health from potions.
 Their magical reserves absorb damage, and they pack a magic-restoring bite.
 %%%%

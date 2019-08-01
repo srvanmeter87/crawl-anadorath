@@ -39,9 +39,9 @@ Dithmenos
 
 Dithmenos the Shadowed desires all to be darkness. Followers of Dithmenos gain
 a strange and otherwordly affinity to the shadows of their environment. This
-god despises fire, which long ago freed mortals from the tyranny of shadow; its
-use is forbidden by worshippers. Dithmenos favours those who would instead
-destroy sources of fire.
+god despises the physical world and constantly seeks to encroach on it.
+Dithmenos therefore rewards those who wield death and destruction while
+gradually consuming them with darkness.
 %%%%
 Elyvilon
 
@@ -163,7 +163,7 @@ Sif Muna
 Sif Muna the Loreminder is a contemplative but powerful deity, served by those
 who seek magical knowledge. The Loreminder appreciates followers who triumph
 over their foes and especially the training of spellcasting skills in order to
-do so. The faithful can expect to recieve a supply of spellbooks taken directly
+do so. The faithful can expect to receive a supply of spellbooks taken directly
 from Sif Muna's legendary library.
 %%%%
 the Shining One
@@ -178,10 +178,10 @@ to Elyvilon or Zin while keeping some piety.
 Trog
 
 Trog is an ancient god of anger and violence. Followers are expected to kill in
-Trog's name, and especially to slay wizards and burn their spellbooks. In
-return, worshippers of Trog gain the ability to go berserk at will in combat,
-and will be granted assistance in the form of powerful weapons and mighty
-allies. Followers are absolutely forbidden the use of spell magic.
+Trog's name, and especially to slay wizards. In return, worshippers of Trog
+gain the ability to go berserk at will in combat, and will be granted
+assistance in the form of powerful weapons and mighty allies. Followers are
+absolutely forbidden the use of spell magic.
 %%%%
 Uskayaw
 
@@ -264,11 +264,10 @@ Dithmenos powers
 Followers of Dithmenos are constantly surrounded in an aura of shadow, the
 extent of which is reflective of their level of devotion. Dithmenos grants
 followers the ability to instantly step into the shadow of nearby creatures,
-provided the shadow is still enough to do so. Dithmenos protects followers by
-occasionally shrouding those struck by attacks in dark smoke. Sufficiently
-pious followers of Dithmenos will find their own shadow will begin to attack on
-its own, and eventually gain the ability to assume the form of a shadow
-themself.
+and protects followers by occasionally shrouding those struck by attacks in
+dark smoke. Sufficiently pious followers of Dithmenos will find their own
+shadow will begin to attack on its own, and eventually gain the ability to
+assume the form of a shadow themself.
 %%%%
 Elyvilon powers
 
@@ -324,22 +323,10 @@ and armour; and mutate followers to better reflect Jiyva's image.
 %%%%
 Wu Jian powers
 
-Disciples of the Council learn to perform three martial techniques, shown
-below. They will also be taught to move at unfathomable speeds for short
-distances, and become able to summon a storm of golden clouds to increase their
-precision and damage for as long as they keep using martial attacks.
-
-  .......       ...<lightred>@</lightred>... (*) <lightred>Whirlwind</lightred>: Move between two tiles adjacent to
-  ...<lightred>@</lightred>O..  -->  ....O.. an enemy to strike them.
-  .......       .......
-
-  ..x....       ..x.... (**) <lightred>Wall Jump</lightred>: Move into a wall to vault towards
-  ..x<lightred>@</lightred>O..  -->  ..x.O<lightred>@</lightred>. enemies, striking all enemies adjacent to the landing
-  ..x....       ..x.... spot. May distract any witnessing foes.
-
-  .......       ....... (***) <lightred>Lunge</lightred>: Move directly towards an enemy to deal
-  ..<lightred>@</lightred>.O..  -->  ...<lightred>@</lightred>O.. extra damage, and even more if they are distracted.
-  .......       .......
+Disciples of the Council learn to perform three martial techniques while moving
+around in combat. They will also be taught to move at unfathomable speeds for
+short distances, and become able to summon a storm of golden clouds to increase
+their precision and damage for as long as they keep using martial attacks.
 %%%%
 Kikubaaqudgha powers
 
@@ -356,11 +343,11 @@ Followers of Lugonu gain powers to depart the Abyss at will, to bend space
 around themselves, and to banish monsters to the Abyss. Later they will be able
 to corrupt the ordered world, opening a gate for creatures of the Abyss to pass
 through, and to gate themselves directly into this realm of chaos. Lugonu will
-eventually offer to corrupt a follower's weapon, imbuing it with the distorting
-energies of the Abyss, and will protect the follower from the normally harmful
-effects of unwielding such a weapon. Lugonu expects followers to spread
-unceasing chaos in the overworld, and as such does not grant piety to
-worshippers while they remain in the Abyss itself.
+protect followers from the normally harmful effects of weapons imbued with the
+distorting energies of the Abyss, and eventually will offer to corrupt a
+follower's weapon in that way. Lugonu expects followers to spread unceasing
+chaos in the overworld, and as such does not grant piety to worshippers while
+they remain in the Abyss itself.
 %%%%
 Makhleb powers
 
@@ -372,10 +359,11 @@ grant followers renewed health in return for killing beings of all kinds.
 Nemelex Xobeh powers
 
 The Trickster's followers gain various ways to influence fate when playing
-their cards. The effects of the cards will be more powerful with higher piety.
-Later, followers will gain powerful abilities to manipulate the cards, allowing
-them to choose one of three drawn cards, to gain the effects of multiple cards
-at once, and finally to stack decks and re-order their contents.
+their cards. The effects of the cards will be more powerful with higher piety
+and with greater Invocations skill. Later, followers will gain powerful
+abilities to manipulate the cards, allowing them to choose one of three drawn
+cards, to gain the effects of multiple cards at once, and finally to stack
+decks and re-order their contents.
 %%%%
 Okawaru powers
 
@@ -397,13 +385,14 @@ its normal limits.
 Qazlal powers
 
 Followers of Qazlal are protected from all clouds. As a follower of Qazlal
-gains divine favour, they are slowly surrounded by a loud storm, causing
-elemental clouds to appear near them, blocking attacks, and (for the
-particularly devout) deflecting incoming projectiles. Qazlal allows followers
-to incite nature against their foes, causing a localised natural disturbance
-or, for particularly devout followers, a more widespread disaster.
-Followers of Qazlal eventually gain temporary resistances after taking damage,
-and can give life to clouds, turning them into allied elementals.
+gains divine favour, they are slowly surrounded by a loud storm. In addition to
+generating noise, the storm causes elemental clouds to appear near followers,
+blocks attacks, and (for the particularly devout) deflects incoming
+projectiles. Qazlal allows followers to incite nature against their foes,
+causing a localised natural disturbance or, for particularly devout followers,
+a more widespread disaster. Followers of Qazlal eventually gain temporary
+resistances after taking damage, and can give life to clouds, turning them into
+allied elementals.
 %%%%
 Ru powers
 
@@ -412,8 +401,9 @@ accepting these sacrifices, followers will gradually gain an aura of immense
 power. This aura will initially cause foes that attempt to harm them to falter
 and become stricken with maladies. After making further sacrifices, followers
 will be able to draw on this power to restore their health and magic, or to
-make a lightning-fast explosive leap. Exceptional sacrificiants can unleash
-their power in a massive strike against all their foes.
+make a lightning-fast explosive leap. Exceptional sacrificants can unleash
+their power in a massive strike against all their foes. Each of the powers of
+Ru's sacrificants increases in strength with more piety from more sacrifices.
 %%%%
 Sif Muna powers
 
@@ -681,4 +671,18 @@ Zin wrath
 Those under Zin's wrath will find their beneficial mutations stripped away,
 their bellies emptied, their enemies alerted, and their senses confounded by the
 axioms of Law; confusion, fainting and complete paralysis will be their lot.
+%%%%
+Wu Jian extra
+
+  .......       ....... (.) <lightred>Lunge</lightred>: Move directly towards an enemy to deal
+  ..<lightred>@</lightred>.O..  -->  ...<lightred>@</lightred>O.. extra damage.
+  .......       .......
+
+  .......       ...<lightred>@</lightred>... (*) <lightred>Whirlwind</lightred>: Move between two tiles adjacent to
+  ...<lightred>@</lightred>O..  -->  ....O.. an enemy to strike them lightly. The dizzying
+  .......       ....... motion pins monsters in place for one action.
+
+  ..#....       ..#.... (**) <lightred>Wall Jump</lightred>: Vault off a nearby wall and
+  ..#<lightred>@</lightred>O..  -->  ..#.O<lightred>@</lightred>. strike enemies adjacent to the landing spot. Vaulting
+  ..#....       ..#.... takes two turns. Activated via the (a)bility menu.
 %%%%
