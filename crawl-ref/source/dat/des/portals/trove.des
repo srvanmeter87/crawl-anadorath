@@ -18,7 +18,7 @@ trove = {}
 function trove.get_trove_item(e, value, base_item)
   -- This function should return a table with the following values:
   --  quantity=0 (number of items, 1 unless consumables)
-  --  base_type="armour" (armour, weapon, potion, scroll, jewellery, book, or miscellaneous)
+  --  base_type="armour" (armour, weapon, potion, scroll, jewellery, or miscellaneous)
   --  sub_type="robe" (short sword, etc)
   --  ego_type="resistance" (or false)
   --  plus1=4 (or false)
@@ -64,7 +64,7 @@ function trove.get_trove_item(e, value, base_item)
                           "ring of dexterity", "ring of slaying",
                           "amulet of reflection"}
     local bt = shop_item.base_type
-    if bt == "armour" or bt == "weapon" or bt == "jewellery" or bt == "book" then
+    if bt == "armour" or bt == "weapon" or bt == "jewellery" then
       if shop_item.identified() then
         item.quantity = shop_item.quantity
         item.base_type = shop_item.base_type
@@ -82,8 +82,6 @@ function trove.get_trove_item(e, value, base_item)
           if util.contains(jwith_pluses, item.sub_type) then
             item.plus1 = shop_plus1
           end
-        elseif item.base_type == "book" and string.find(item.sub_type, "manual") then
-            item.plus1 = shop_plus1
         else
           item.plus1 = false
         end
@@ -222,15 +220,16 @@ function trove.setup_features(e)
     e.kfeat("< = exit_trove")
 end
 
--- "any scroll good_item" still gets you 'scroll of noise' etc
--- so let's limit it to the enchant/recharge scrolls, tloc scrolls, identify scrolls,
--- mapping scrolls with a low chance of silence, vulnerability or acquirement (lowest)
+-- "any scroll good_item" still gets you 'scroll of noise' etc so let's
+-- limit it to the enchant scrolls, tloc scrolls, identify scrolls, mapping
+-- scrolls with a low chance of silence, vulnerability or acquirement (lowest)
 function trove.good_scroll (e)
     e.item([[scroll of enchant weapon / scroll of brand weapon w:3 /
              scroll of enchant armour / scroll of identify w:20 /
-             scroll of magic mapping w:5 / scroll of blinking / scroll of silence w:2 /
-             scroll of recharging / scroll of acquirement w:1 / scroll of teleportation w:20 /
-             scroll of vulnerability w:2 / scroll of holy word w:8 / scroll of fog w:8]])
+             scroll of magic mapping w:5 / scroll of blinking /
+             scroll of silence w:2 / scroll of acquirement w:1 /
+             scroll of teleportation w:20 / scroll of vulnerability w:2 /
+             scroll of holy word w:8 / scroll of fog w:8]])
 end
 
 function trove.place_fog(e, type, strength)
@@ -913,12 +912,13 @@ ORIENT: encompass
 TAGS:   no_item_gen no_monster_gen allow_dup
 ITEM:   any misc
 ITEM:   acquire wand w:15 / any misc w:3 / acquire magical staff w:2
-ITEM:   scroll of recharging / scroll of recharging q:3 w:5
+ITEM:   manual of evocations
 : trove.setup_features(_G)
 MAP
-  xxxxx
-  xfffx
+   xxx
+   xfx
  xxx+xxx
+ xd'''dx
  xd'''dx
  xd'''dx
  xd'''dx
@@ -961,46 +961,6 @@ x.<.xxx+xxx+xxx+xxxxxx
 xxxxx xdx xfx xfx
       xdx xfx xfx
       xxx xxx xxx
-ENDMAP
-
-# 20 items, but you have to dig for them.  Wand is included.
-NAME:    trove_dig
-TAGS:    no_item_gen no_monster_gen allow_dup
-WEIGHT:  5
-ORIENT:  encompass
-ITEM:    acquire armour / any useful armour good_item / any armour w:2
-ITEM:    acquire weapon / any useful weapon good_item / any weapon w:2
-ITEM:    acquire jewellery / any useful jewellery good_item / any jewellery w:2
-ITEM:    any useful armour good_item / any useful weapon good_item / \
-         any useful jewellery good_item
-: trove.good_scroll(_G)
-KITEM:   h = wand of digging ident:all, wand of digging ident:all
-SHUFFLE: defg
-: trove.setup_features(_G)
-MAP
-  vvvvv
-vvv...vvv
-vem.<.mfv
-vvv...vvv
-vem...mfv
-vvv...vvv
-vem...mfv
-vvv...vvv
-vem...mfv
-vvv...vvv
-vem...mfv
-vvv.h.vvv
-vdm...mgv
-vvv...vvv
-vdm...mgv
-vvv...vvv
-vdm...mgv
-vvv...vvv
-vdm...mgv
-vvv...vvv
-vdm.A.mgv
-vvv...vvv
-  vvvvv
 ENDMAP
 
 # 16 pieces of armour
