@@ -1705,5 +1705,3 @@ will all lead to the same destination after placement. Note that it's not valid
 to have multiple glyphs with the same destination marker. Any randomization of
 destinations can be done through normal SUBST/NSUBST/SHUFFLE operations before
 the MARKER statements.
-destinations can be done through normal SUBST/NSUBST/SHUFFLE operations before
-the MARKER statements.
