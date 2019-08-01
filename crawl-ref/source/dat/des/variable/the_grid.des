@@ -101,6 +101,7 @@
 {{
 function the_grid_main_setup(e,no_doors)
   e.tags('uniq_thegrid')
+  e.tags('transparent')
   if no_doors then
     e.subst('" : x...')
   else
@@ -435,8 +436,8 @@ MAP
  ..xCCCCCxxAAAAAxxBBBBBx..
   .xxCCCxxAAAAAAAxxBBBxx.
   ..xCCCxxAAAAAAAxxBBBx..
-   .xxCx+AAAAAAAAA+xBxx.
-   ..xCxxAAAAAAAAAxxBx..
+   .xxCxxAAAAAAAAAxxBxx.
+   ..xCx+AAAAAAAAA+xBx..
     .xx.xxxxxxxxxxx.xx.
     ..x..xxxxxxxxx..xx.
      .xx.xxxxxxxxx.xx..
@@ -1590,8 +1591,8 @@ xxxxxxxxxxxxxxxccxtttttttttxaaaaaaaaxx.xxbbbbbbbbxuuuuuuuuuxddxxxxxxxxxxxxxxx
 xxxxxxxxxxxxxccccxtttttttttxaaaaaaxxxy.yxxxbbbbbbxuuuuuuuuuxddddxxxxxxxxxxxxx
 xxxxxxxxxxxccccccxtttttttttxaaaaxxxy.....yxxxbbbbxuuuuuuuuuxddddddxxxxxxxxxxx
 xxxxxxxxxccccccccxtttttttttxaaxxxy...{.}...yxxxbbxuuuuuuuuuxddddddddxxxxxxxxx
-xxxxx..ccccccccccxttttttttt"xxxy...z.....z...yxxx.uuuuuuuuuxdddddddddd""xxxxx
-xxxxx.xxxccccccccxtttttttttxxy...y....[....y...yxxuuuuuuuuuxddddddddxxx"xxxxx
+xxxxx..ccccccccccxttttttttt"xxxy...z.....z...yxxx.uuuuuuuuuxdddddddddd..xxxxx
+xxxxx.xxxccccccccxtttttttttxxy...y....[....y...yxxuuuuuuuuuxddddddddxxx.xxxxx
 xxxxxeexxxxccccccxtttttttttxxx"xxxxy.....yxxxx.xxxuuuuuuuuuxddddddxxxxffxxxxx
 xxxxxeeeexxxxccccxtttttttttxMMMMMxxxxy.yxxxxNNNNNxuuuuuuuuuxddddxxxxffffxxxxx
 xxxxxeeeeeexxxxccxtttttttttxMMMMMxxxxxxxxxxxNNNNNxuuuuuuuuuxddxxxxffffffxxxxx
@@ -3026,17 +3027,6 @@ MAP
   0
 .....
 .....
-ENDMAP
-
-# Remember, the 9s can usually escape without the door opening
-NAME: minmay_the_grid_square_5x5_megaminivault
-TAGS: the_grid_square_5x5 unrand
-MAP
-.....
-.=nn.
-.n9nn
-.nn|9
-..n9|
 ENDMAP
 
 NAME: minmay_the_grid_square_5x5_moneybag
