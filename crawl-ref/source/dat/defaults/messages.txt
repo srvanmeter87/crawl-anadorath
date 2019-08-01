@@ -32,11 +32,9 @@ msc += $danger:rotting away
 
 # Less urgent, but still significant messages
 #
-msc += $warning:ticking.*clock
-msc += $warning:dying ticks
 msc += $warning:distant snort
-msc += $warning:odd grinding sound
-msc += $warning:creaking of ancient gears
+msc += $warning:beating.*drum
+msc += $warning:drumbeats cease
 msc += $warning:floor suddenly vibrates
 msc += $warning:a sudden draft
 msc += $warning:coins.*counted
@@ -64,9 +62,9 @@ msc += $warning:settles down
 msc += lightcyan:LOW MAGIC WARNING
 msc += $warning:fails to return
 msc += $warning:no longer ripe
-msc += $warning:This .* contains the .* runes? of Zot.
-msc += $warning:They guard the .* runes? of Zot.
-msc += $warning:Beware, you cannot shaft yourself on this level.
+msc += $warning:This .* contains the .* runes? of Zot
+msc += $warning:They guard the .* runes? of Zot
+msc += $warning:Beware\, you cannot shaft yourself on this level
 
 # Unimportant messages and combat clutter
 #
@@ -93,7 +91,7 @@ msc += mute:Uskayaw will no longer force your foes to share their pain\.
 
 force_more_message += You have reached level
 force_more_message += Your scales start
-force_more_message += You fall through a shaft
+force_more_message += You (fall|are sucked) into a shaft
 force_more_message += You fall into the water!
 force_more_message += You fall into the lava!
 force_more_message += You focus on prolonging your flight
@@ -106,7 +104,7 @@ force_more_message += You don't have the energy to cast that spell
 force_more_message += This is a scroll of acquirement
 
 ## Reduce chance of draining because flight or form runs out:
-force_more_message += Careful!
+force_more_message += ^Careful!
 
 # Announcements of timed portal vaults:
 force_more_message += interdimensional caravan
@@ -117,7 +115,7 @@ force_more_message += hiss of flowing sand
 force_more_message += sound of rushing water
 force_more_message += oppressive heat about you
 force_more_message += crackle of arcane power
-force_more_message += distant wind
+force_more_message += hear a distant wind
 
 # Religion
 force_more_message += press .* to convert to Beogh
@@ -128,7 +126,7 @@ force_more_message += You have lost your religion
 force_more_message += is wielding.*distortion
 # dancing weapons require special handling...
 force_more_message += there is a.*distortion
-force_more_message += of distortion comes into view.
+force_more_message += of distortion comes into view
 
 # Banishment
 force_more_message += You are cast into the Abyss
@@ -156,13 +154,15 @@ force_more_message += You pick up the .* rune and feel its power
 force_more_message += The lock glows eerily
 force_more_message += Heavy smoke blows from the lock
 force_more_message += The gate opens wide
-force_more_message += With a loud hiss the gate opens wide
+force_more_message += With a soft hiss the gate opens wide
 
 # God gifts
 force_more_message += grants you (a gift|ammunition|armour|a weapon)
 force_more_message += offers you knowledge of
 force_more_message += believes you are ready to make a new sacrifice
 force_more_message += may now remember your ancestor
+force_more_message += deals you some cards
+force_more_message += finds you have enough cards
 
 # Show passwall message while still in the starting position
 force_more_message += You finish merging with the rock
@@ -178,7 +178,6 @@ force_more_message += It is a scroll of brand weapon
 force_more_message += It is a scroll of enchant armour
 force_more_message += It is a scroll of enchant weapon
 force_more_message += It is a scroll of identify
-force_more_message += It is a scroll of recharging
 force_more_message += You feel more experienced
 force_more_message += A flood of memories washes over you
 force_more_message += There's only one card left
