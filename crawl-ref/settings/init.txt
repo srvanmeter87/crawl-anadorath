@@ -238,8 +238,8 @@ trap_item_brand = reverse
 level_map_cursor_step = 5
 
 ## 3e - Viewport Display
-view_max_width = 81
-view_max_height = 71
+view_max_width = 80
+view_max_height = 70
 view_lock_x = true
 view_lock_y = true
 view_lock = true
@@ -743,8 +743,8 @@ tile_runrest_rate = 600
 tile_key_repeat_delay = 1000
 tile_tooltip_ms = 1000
 tile_tag_pref = enemy
-tile_window_width = 0
-tile_window_height = 0
+tile_window_width = -30
+tile_window_height = -30
 tile_map_pixels = 0
 tile_cell_pixels = 48
 tile_filter_scaling = true
