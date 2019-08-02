@@ -1,12 +1,13 @@
 #pragma once
 
+#include "cleansing-flame-source-type.h"
 #include "enchant-type.h"
 #include "holy-word-source-type.h"
 #include "spell-type.h"
 #include "spl-cast.h"
 #include "torment-source-type.h"
 
-spret_type cast_healing(int pow, int max_pow, bool fail);
+spret cast_healing(int pow, bool fail);
 bool heal_monster(monster& patient, int amount);
 
 /// List of monster enchantments which can be dispelled.
@@ -63,7 +64,8 @@ bool cast_imprison(int pow, monster* mons, int source);
 
 bool cast_smiting(int pow, monster* mons);
 
-string unpacifiable_reason(const monster &mon);
+string unpacifiable_reason(const monster& mon);
+string unpacifiable_reason(const monster_info& mi);
 
 struct bolt;
 
@@ -78,9 +80,10 @@ void torment(actor *attacker, torment_source_type taux, const coord_def& where);
 void torment_cell(coord_def where, actor *attacker, torment_source_type taux);
 void torment_player(actor *attacker, torment_source_type taux);
 
-void setup_cleansing_flame_beam(bolt &beam, int pow, int caster,
+void setup_cleansing_flame_beam(bolt &beam, int pow,
+                                cleansing_flame_source caster,
                                 coord_def where, actor *attacker = nullptr);
-void cleansing_flame(int pow, int caster, coord_def where,
+void cleansing_flame(int pow, cleansing_flame_source caster, coord_def where,
                      actor *attacker = nullptr);
 
-spret_type cast_random_effects(int pow, bolt& beam, bool fail);
+spret cast_random_effects(int pow, bolt& beam, bool fail);

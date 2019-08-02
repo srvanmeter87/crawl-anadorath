@@ -47,7 +47,7 @@ struct spell_desc
     spell_type id;
     const char  *title;
     spschools_type disciplines;
-    unsigned int flags;       // bitfield
+    spell_flags flags;       // bitfield
     unsigned int level;
 
     // Usually in the range 0..200 (0 means uncapped).
@@ -110,11 +110,11 @@ void init_spell_descs()
         ASSERTM(data.min_range <= data.max_range,
                 "spell '%s' has min_range larger than max_range", data.title);
 
-        ASSERTM(!(data.flags & SPFLAG_TARGETING_MASK)
+        ASSERTM(!(data.flags & spflag::targeting_mask)
                 || (data.min_range >= 0 && data.max_range > 0),
                 "targeted/directed spell '%s' has invalid range", data.title);
 
-        ASSERTM(!(data.flags & SPFLAG_MONSTER && is_player_spell(data.id)),
+        ASSERTM(!(data.flags & spflag::monster && is_player_spell(data.id)),
                 "spell '%s' is declared as a monster spell but is a player spell", data.title);
 
         spell_list[data.id] = i;
@@ -155,17 +155,17 @@ spell_type spell_by_name(string name, bool partial_match)
     return sp == NUM_SPELLS ? SPELL_NO_SPELL : sp;
 }
 
-spschool_flag_type school_by_name(string name)
+spschool school_by_name(string name)
 {
-    spschool_flag_type short_match, long_match;
+    spschool short_match, long_match;
     int                short_matches, long_matches;
 
-    short_match   = long_match   = SPTYP_NONE;
+    short_match   = long_match   = spschool::none;
     short_matches = long_matches = 0;
 
     lowercase(name);
 
-    for (int i = 0; i <= SPTYP_RANDOM; i++)
+    for (int i = 0; i <= (int)spschool::random; i++)
     {
         const auto type = spschools_type::exponent(i);
 
@@ -193,7 +193,7 @@ spschool_flag_type school_by_name(string name)
     }
 
     if (short_matches != 1 && long_matches != 1)
-        return SPTYP_NONE;
+        return spschool::none;
 
     if (short_matches == 1 && long_matches != 1)
         return short_match;
@@ -203,7 +203,7 @@ spschool_flag_type school_by_name(string name)
     if (short_match == long_match)
         return short_match;
 
-    return SPTYP_NONE;
+    return spschool::none;
 }
 
 int get_spell_slot_by_letter(char letter)
@@ -251,18 +251,18 @@ spell_type get_spell_by_letter(char letter)
 
 bool add_spell_to_memory(spell_type spell)
 {
-    int i;
-    int j = -1;
+    int slot_i;
+    int letter_j = -1;
     string sname = spell_title(spell);
     lowercase(sname);
     // first we find a slot in our head:
-    for (i = 0; i < MAX_KNOWN_SPELLS; i++)
+    for (slot_i = 0; slot_i < MAX_KNOWN_SPELLS; slot_i++)
     {
-        if (you.spells[i] == SPELL_NO_SPELL)
+        if (you.spells[slot_i] == SPELL_NO_SPELL)
             break;
     }
 
-    you.spells[i] = spell;
+    you.spells[slot_i] = spell;
 
     // now we find an available label:
     // first check to see whether we've chosen an automatic label:
@@ -279,54 +279,54 @@ bool add_spell_to_memory(spell_type spell)
                 overwrite = false;
             else if (isaalpha(ch))
             {
-                const int slot = letter_to_index(ch);
-                const int existing = you.spell_letter_table[slot];
-                if (existing == -1)
+                const int new_letter = letter_to_index(ch);
+                const int existing_slot = you.spell_letter_table[new_letter];
+                if (existing_slot == -1)
                 {
-                    j = slot;
+                    letter_j = new_letter;
                     break;
                 }
                 else if (overwrite)
                 {
                     const string ename = lowercase_string(
-                            spell_title(static_cast<spell_type>(existing)));
+                            spell_title(get_spell_by_letter(ch)));
                     // Don't overwrite a spell matched by the same rule.
                     if (!entry.first.matches(ename))
                     {
-                        j = slot;
+                        letter_j = new_letter;
                         break;
                     }
                 }
                 // Otherwise continue on to the next letter in this rule.
             }
         }
-        if (j != -1)
+        if (letter_j != -1)
             break;
     }
     // If we didn't find a label above, choose the first available one.
-    if (j == -1)
-        for (j = 0; j < 52; j++)
+    if (letter_j == -1)
+        for (letter_j = 0; letter_j < 52; letter_j++)
         {
-            if (you.spell_letter_table[j] == -1)
+            if (you.spell_letter_table[letter_j] == -1)
                 break;
         }
 
     if (you.num_turns)
-        mprf("Spell assigned to '%c'.", index_to_letter(j));
+        mprf("Spell assigned to '%c'.", index_to_letter(letter_j));
 
     // Swapping with an existing spell.
-    if (you.spell_letter_table[j] != -1)
+    if (you.spell_letter_table[letter_j] != -1)
     {
         // Find a spot for the spell being moved. Assumes there will be one.
-        for (int free = 0; free < 52; free++)
-            if (you.spell_letter_table[free] == -1)
+        for (int free_letter = 0; free_letter < 52; free_letter++)
+            if (you.spell_letter_table[free_letter] == -1)
             {
-                you.spell_letter_table[free] = you.spell_letter_table[j];
+                you.spell_letter_table[free_letter] = you.spell_letter_table[letter_j];
                 break;
             }
     }
 
-    you.spell_letter_table[j] = i;
+    you.spell_letter_table[letter_j] = slot_i;
 
     you.spell_no++;
 
@@ -357,15 +357,6 @@ static void _remove_spell_attributes(spell_type spell)
                                  : "your spell is no longer protecting you");
         }
         break;
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_DELAYED_FIREBALL:
-        if (you.attribute[ATTR_DELAYED_FIREBALL])
-        {
-            you.attribute[ATTR_DELAYED_FIREBALL] = 0;
-            mprf(MSGCH_DURATION, "Your charged fireball dissipates.");
-        }
-        break;
-#endif
     default:
         break;
     }
@@ -443,12 +434,12 @@ bool spell_is_direct_explosion(spell_type spell)
 
 bool spell_harms_target(spell_type spell)
 {
-    const unsigned int flags = _seekspell(spell)->flags;
+    const spell_flags flags = _seekspell(spell)->flags;
 
-    if (flags & (SPFLAG_HELPFUL | SPFLAG_NEUTRAL))
+    if (flags & (spflag::helpful | spflag::neutral))
         return false;
 
-    if (flags & SPFLAG_TARGETING_MASK)
+    if (flags & spflag::targeting_mask)
         return true;
 
     return false;
@@ -456,12 +447,12 @@ bool spell_harms_target(spell_type spell)
 
 bool spell_harms_area(spell_type spell)
 {
-    const unsigned int flags = _seekspell(spell)->flags;
+    const spell_flags flags = _seekspell(spell)->flags;
 
-    if (flags & (SPFLAG_HELPFUL | SPFLAG_NEUTRAL))
+    if (flags & (spflag::helpful | spflag::neutral))
         return false;
 
-    if (flags & SPFLAG_AREA)
+    if (flags & spflag::area)
         return true;
 
     return false;
@@ -500,7 +491,7 @@ int spell_levels_required(spell_type which_spell)
     return levels;
 }
 
-unsigned int get_spell_flags(spell_type which_spell)
+spell_flags get_spell_flags(spell_type which_spell)
 {
     return _seekspell(which_spell)->flags;
 }
@@ -526,7 +517,7 @@ tileidx_t get_spell_tile(spell_type which_spell)
     return _seekspell(which_spell)->tile;
 }
 
-bool spell_typematch(spell_type which_spell, spschool_flag_type which_disc)
+bool spell_typematch(spell_type which_spell, spschool which_disc)
 {
     return bool(get_spell_disciplines(which_spell) & which_disc);
 }
@@ -783,118 +774,120 @@ bool spell_direction(dist &spelld, bolt &pbolt, direction_chooser_args *args)
     return true;
 }
 
-const char* spelltype_short_name(spschool_flag_type which_spelltype)
+const char* spelltype_short_name(spschool which_spelltype)
 {
     switch (which_spelltype)
     {
-    case SPTYP_CONJURATION:
+    case spschool::conjuration:
         return "Conj";
-    case SPTYP_HEXES:
+    case spschool::hexes:
         return "Hex";
-    case SPTYP_CHARMS:
+    case spschool::charms:
         return "Chrm";
-    case SPTYP_FIRE:
+    case spschool::fire:
         return "Fire";
-    case SPTYP_ICE:
+    case spschool::ice:
         return "Ice";
-    case SPTYP_TRANSMUTATION:
+    case spschool::transmutation:
         return "Tmut";
-    case SPTYP_NECROMANCY:
+    case spschool::necromancy:
         return "Necr";
-    case SPTYP_SUMMONING:
+    case spschool::summoning:
         return "Summ";
-    case SPTYP_TRANSLOCATION:
+    case spschool::translocation:
         return "Tloc";
-    case SPTYP_POISON:
+    case spschool::poison:
         return "Pois";
-    case SPTYP_EARTH:
+    case spschool::earth:
         return "Erth";
-    case SPTYP_AIR:
+    case spschool::air:
         return "Air";
-    case SPTYP_RANDOM:
+    case spschool::random:
         return "Rndm";
     default:
         return "Bug";
     }
 }
 
-const char* spelltype_long_name(spschool_flag_type which_spelltype)
+const char* spelltype_long_name(spschool which_spelltype)
 {
     switch (which_spelltype)
     {
-    case SPTYP_CONJURATION:
+    case spschool::conjuration:
         return "Conjuration";
-    case SPTYP_HEXES:
+    case spschool::hexes:
         return "Hexes";
-    case SPTYP_CHARMS:
+    case spschool::charms:
         return "Charms";
-    case SPTYP_FIRE:
+    case spschool::fire:
         return "Fire";
-    case SPTYP_ICE:
+    case spschool::ice:
         return "Ice";
-    case SPTYP_TRANSMUTATION:
+    case spschool::transmutation:
         return "Transmutation";
-    case SPTYP_NECROMANCY:
+    case spschool::necromancy:
         return "Necromancy";
-    case SPTYP_SUMMONING:
+    case spschool::summoning:
         return "Summoning";
-    case SPTYP_TRANSLOCATION:
+    case spschool::translocation:
         return "Translocation";
-    case SPTYP_POISON:
+    case spschool::poison:
         return "Poison";
-    case SPTYP_EARTH:
+    case spschool::earth:
         return "Earth";
-    case SPTYP_AIR:
+    case spschool::air:
         return "Air";
-    case SPTYP_RANDOM:
+    case spschool::random:
         return "Random";
     default:
         return "Bug";
     }
 }
 
-skill_type spell_type2skill(spschool_flag_type spelltype)
+skill_type spell_type2skill(spschool spelltype)
 {
     switch (spelltype)
     {
-    case SPTYP_CONJURATION:    return SK_CONJURATIONS;
-    case SPTYP_HEXES:          return SK_HEXES;
-    case SPTYP_CHARMS:         return SK_CHARMS;
-    case SPTYP_FIRE:           return SK_FIRE_MAGIC;
-    case SPTYP_ICE:            return SK_ICE_MAGIC;
-    case SPTYP_TRANSMUTATION:  return SK_TRANSMUTATIONS;
-    case SPTYP_NECROMANCY:     return SK_NECROMANCY;
-    case SPTYP_SUMMONING:      return SK_SUMMONINGS;
-    case SPTYP_TRANSLOCATION:  return SK_TRANSLOCATIONS;
-    case SPTYP_POISON:         return SK_POISON_MAGIC;
-    case SPTYP_EARTH:          return SK_EARTH_MAGIC;
-    case SPTYP_AIR:            return SK_AIR_MAGIC;
+    case spschool::conjuration:    return SK_CONJURATIONS;
+    case spschool::hexes:          return SK_HEXES;
+    case spschool::charms:         return SK_CHARMS;
+    case spschool::fire:           return SK_FIRE_MAGIC;
+    case spschool::ice:            return SK_ICE_MAGIC;
+    case spschool::transmutation:  return SK_TRANSMUTATIONS;
+    case spschool::necromancy:     return SK_NECROMANCY;
+    case spschool::summoning:      return SK_SUMMONINGS;
+    case spschool::translocation:  return SK_TRANSLOCATIONS;
+    case spschool::poison:         return SK_POISON_MAGIC;
+    case spschool::earth:          return SK_EARTH_MAGIC;
+    case spschool::air:            return SK_AIR_MAGIC;
 
     default:
-        dprf("spell_type2skill: called with spelltype %u", spelltype);
+        dprf("spell_type2skill: called with unmapped spell school %u"
+             " (name '%s')", static_cast<unsigned int>(spelltype),
+             spelltype_long_name(spelltype));
         return SK_NONE;
     }
 }
 
-spschool_flag_type skill2spell_type(skill_type spell_skill)
+spschool skill2spell_type(skill_type spell_skill)
 {
     switch (spell_skill)
     {
-    case SK_CONJURATIONS:    return SPTYP_CONJURATION;
-    case SK_HEXES:           return SPTYP_HEXES;
-    case SK_CHARMS:          return SPTYP_CHARMS;
-    case SK_FIRE_MAGIC:      return SPTYP_FIRE;
-    case SK_ICE_MAGIC:       return SPTYP_ICE;
-    case SK_TRANSMUTATIONS:  return SPTYP_TRANSMUTATION;
-    case SK_NECROMANCY:      return SPTYP_NECROMANCY;
-    case SK_SUMMONINGS:      return SPTYP_SUMMONING;
-    case SK_TRANSLOCATIONS:  return SPTYP_TRANSLOCATION;
-    case SK_POISON_MAGIC:    return SPTYP_POISON;
-    case SK_EARTH_MAGIC:     return SPTYP_EARTH;
-    case SK_AIR_MAGIC:       return SPTYP_AIR;
+    case SK_CONJURATIONS:    return spschool::conjuration;
+    case SK_HEXES:           return spschool::hexes;
+    case SK_CHARMS:          return spschool::charms;
+    case SK_FIRE_MAGIC:      return spschool::fire;
+    case SK_ICE_MAGIC:       return spschool::ice;
+    case SK_TRANSMUTATIONS:  return spschool::transmutation;
+    case SK_NECROMANCY:      return spschool::necromancy;
+    case SK_SUMMONINGS:      return spschool::summoning;
+    case SK_TRANSLOCATIONS:  return spschool::translocation;
+    case SK_POISON_MAGIC:    return spschool::poison;
+    case SK_EARTH_MAGIC:     return spschool::earth;
+    case SK_AIR_MAGIC:       return spschool::air;
 
     default:
-        return SPTYP_NONE;
+        return spschool::none;
     }
 }
 
@@ -964,7 +957,8 @@ int spell_range(spell_type spell, int pow, bool allow_bonus)
         && vehumet_supports_spell(spell)
         && have_passive(passive_t::spells_range)
         && maxrange > 1
-        && spell != SPELL_GLACIATE)
+        && spell != SPELL_GLACIATE
+        && spell != SPELL_THUNDERBOLT) // lightning rod only
     {
         maxrange++;
         minrange++;
@@ -1206,12 +1200,7 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
             return "you must stand on solid ground to cast this.";
         }
         break;
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_DELAYED_FIREBALL:
-        if (temp && you.attribute[ATTR_DELAYED_FIREBALL])
-            return "you are already charged.";
-        break;
-#endif
+
     case SPELL_BORGNJORS_REVIVIFICATION:
         if (temp && you.hp == you.hp_max)
             return "you cannot be healed further.";
@@ -1231,7 +1220,7 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
             return "you're too dead.";
         break;
     case SPELL_NECROMUTATION:
-        // only prohibted to actual undead, not lichformed players
+        // only prohibited to actual undead, not lichformed players
         if (you.undead_state(false))
             return "you're too dead.";
         break;
@@ -1243,13 +1232,6 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
             return "the film of ice won't work on stone.";
         if (temp && you.duration[DUR_FIRE_SHIELD])
             return "your ring of flames would instantly melt the ice.";
-        break;
-
-    case SPELL_CIGOTUVIS_EMBRACE:
-        if (temp && you.form == transformation::statue)
-            return "the corpses won't embrace your stony flesh.";
-        if (temp && you.duration[DUR_ICY_ARMOUR])
-            return "the corpses won't embrace your icy flesh.";
         break;
 
     case SPELL_SUBLIMATION_OF_BLOOD:
@@ -1294,11 +1276,10 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
 
     case SPELL_ANIMATE_DEAD:
     case SPELL_ANIMATE_SKELETON:
-    case SPELL_TWISTED_RESURRECTION:
-    case SPELL_CONTROL_UNDEAD:
     case SPELL_DEATH_CHANNEL:
     case SPELL_SIMULACRUM:
     case SPELL_INFESTATION:
+    case SPELL_STICKS_TO_SNAKES:
         if (you.get_mutation_level(MUT_NO_LOVE))
             return "you cannot coerce anything to obey you.";
         break;
@@ -1309,19 +1290,24 @@ string spell_uselessness_reason(spell_type spell, bool temp, bool prevent,
     case SPELL_POISONOUS_CLOUD:
     case SPELL_FREEZING_CLOUD:
     case SPELL_MEPHITIC_CLOUD:
-        if (env.level_state & LSTATE_STILL_WINDS)
+        if (temp && env.level_state & LSTATE_STILL_WINDS)
             return "the air is too still for clouds to form.";
         break;
 
     case SPELL_GOLUBRIAS_PASSAGE:
-        if (orb_limits_translocation())
+        if (orb_limits_translocation(temp))
             return "the Orb prevents this spell from working.";
+        else if (temp && player_in_branch(BRANCH_GAUNTLET))
+        {
+            return "a magic seal in the Gauntlet prevents this spell "
+                "from working.";
+        }
 
     default:
         break;
     }
 
-    if (get_spell_disciplines(spell) & SPTYP_SUMMONING
+    if (get_spell_disciplines(spell) & spschool::summoning
         && spell != SPELL_AURA_OF_ABJURATION
         && you.get_mutation_level(MUT_NO_LOVE))
     {
@@ -1366,9 +1352,10 @@ bool spell_no_hostile_in_range(spell_type spell)
 {
     const int range = calc_spell_range(spell, 0);
     const int minRange = get_dist_to_nearest_monster();
+
     switch (spell)
     {
-    // These don't target monsters.
+    // These don't target monsters or can target features.
     case SPELL_APPORTATION:
     case SPELL_CONJURE_FLAME:
     case SPELL_PASSWALL:
@@ -1376,10 +1363,8 @@ bool spell_no_hostile_in_range(spell_type spell)
     case SPELL_LRD:
     case SPELL_FULMINANT_PRISM:
     case SPELL_SUMMON_LIGHTNING_SPIRE:
-
-    // Shock and Lightning Bolt are no longer here, as the code below can
-    // account for possible bounces.
-
+    // This can always potentially hit out-of-LOS, although this is conditional
+    // on spell-power.
     case SPELL_FIRE_STORM:
         return false;
 
@@ -1422,7 +1407,7 @@ bool spell_no_hostile_in_range(spell_type spell)
     }
 
     case SPELL_IGNITE_POISON:
-        return cast_ignite_poison(&you, -1, false, true) == SPRET_ABORT;
+        return cast_ignite_poison(&you, -1, false, true) == spret::abort;
 
     default:
         break;
@@ -1431,18 +1416,21 @@ bool spell_no_hostile_in_range(spell_type spell)
     if (minRange < 0 || range < 0)
         return false;
 
+    const spell_flags flags = get_spell_flags(spell);
+
     // The healing spells.
-    if (testbits(get_spell_flags(spell), SPFLAG_HELPFUL))
+    if (testbits(flags, spflag::helpful))
         return false;
 
-    const bool neutral = testbits(get_spell_flags(spell), SPFLAG_NEUTRAL);
+    const bool neutral = testbits(flags, spflag::neutral);
 
     bolt beam;
     beam.flavour = BEAM_VISUAL;
     beam.origin_spell = spell;
 
     zap_type zap = spell_to_zap(spell);
-    if (spell == SPELL_RANDOM_BOLT) // don't let it think that there are no susceptible monsters in range
+    // Don't let it think that there are no susceptible monsters in range
+    if (spell == SPELL_RANDOM_BOLT)
         zap = ZAP_DEBUGGING_RAY;
 
     if (zap != NUM_ZAPS)
@@ -1470,12 +1458,39 @@ bool spell_no_hostile_in_range(spell_type spell)
 #ifdef DEBUG_DIAGNOSTICS
         beam.quiet_debug = true;
 #endif
+
+        const bool smite = testbits(flags, spflag::target);
+
         for (radius_iterator ri(you.pos(), range, C_SQUARE, LOS_DEFAULT);
              ri; ++ri)
         {
             tempbeam = beam;
             tempbeam.target = *ri;
-            tempbeam.fire();
+
+            // For smite-targeted spells that aren't LOS-range.
+            if (smite)
+            {
+                // XXX These are basic checks that might be applicable to
+                // non-smiting spells as well. For those, the loop currently
+                // relies mostly on results from the temp beam firing, but it
+                // may be valid to exclude solid and non-reachable targets for
+                // all spells. -gammafunk
+                if (cell_is_solid(*ri) || !you.see_cell_no_trans(*ri))
+                    continue;
+
+                // XXX Currently Vile Clutch is the only smite-targeted area
+                // spell that isn't LOS-range. Spell explosion radii are not
+                // stored anywhere, defaulting to 1 for non-smite-targeting
+                // spells through bolt::refine_for_explosions() or being set in
+                // setup functions for the smite targeted explosions. It would
+                // be good to move basic explosion radius info into spell_desc
+                // or possibly zap_data. -gammafunk
+                tempbeam.ex_size = tempbeam.is_explosion ? 1 : 0;
+                tempbeam.explode();
+            }
+            else
+                tempbeam.fire();
+
             if (tempbeam.foe_info.count > 0
                 || neutral && tempbeam.friend_info.count > 0)
             {
@@ -1513,15 +1528,15 @@ static const mutation_type arcana_sacrifice_map[] = {
  * Are some subset of the given schools unusable by the player?
  * (Due to Sacrifice Arcana)
  *
- * @param schools   A bitfield containing a union of spschool_flag_types.
+ * @param schools   A bitfield containing a union of spschools.
  * @return          Whether the player is unable use any of the given schools.
  */
 bool cannot_use_schools(spschools_type schools)
 {
-    COMPILE_CHECK(ARRAYSZ(arcana_sacrifice_map) == SPTYP_LAST_EXPONENT + 1);
+    COMPILE_CHECK(ARRAYSZ(arcana_sacrifice_map) == SPSCHOOL_LAST_EXPONENT + 1);
 
     // iter over every school
-    for (int i = 0; i <= SPTYP_LAST_EXPONENT; i++)
+    for (int i = 0; i <= SPSCHOOL_LAST_EXPONENT; i++)
     {
         // skip schools not in the provided set
         const auto school = spschools_type::exponent(i);
@@ -1547,7 +1562,7 @@ bool cannot_use_schools(spschools_type schools)
  */
 skill_type arcane_mutation_to_skill(mutation_type mutation)
 {
-    for (int exp = 0; exp <= SPTYP_LAST_EXPONENT; exp++)
+    for (int exp = 0; exp <= SPSCHOOL_LAST_EXPONENT; exp++)
         if (arcana_sacrifice_map[exp] == mutation)
             return spell_type2skill(spschools_type::exponent(exp));
     return SK_NONE;

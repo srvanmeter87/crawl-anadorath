@@ -34,6 +34,9 @@ enum mutation_type
 #endif
     MUT_CAMOUFLAGE,
 
+#if TAG_MAJOR_VERSION > 34
+    MUT_ACID_RESISTANCE,
+#endif
     MUT_ACUTE_VISION,
     MUT_AGILE,
     MUT_BERSERK,
@@ -212,6 +215,9 @@ enum mutation_type
     MUT_HOP,
     MUT_NO_REGENERATION,
     MUT_STRONG_NOSE,
+#if TAG_MAJOR_VERSION == 34
+    MUT_ACID_RESISTANCE,
+#endif
     MUT_NO_BOWS,
     MUT_NO_SHORT_BLADES,
     MUT_NO_SLINGS,

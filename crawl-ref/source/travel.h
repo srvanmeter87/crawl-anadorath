@@ -449,6 +449,7 @@ public:
     void set_level_excludes();
 
     void add_waypoint(int x = -1, int y = -1);
+    void set_waypoint(int waynum, int x, int y);
     void delete_waypoint();
     uint8_t is_waypoint(const level_pos &lp) const;
     void list_waypoints() const;
@@ -644,3 +645,5 @@ void clear_level_target();
 
 void clear_travel_trail();
 int travel_trail_index(const coord_def& gc);
+
+bool stairs_destination_is_excluded(const stair_info &si);

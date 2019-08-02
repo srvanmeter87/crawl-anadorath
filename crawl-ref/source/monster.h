@@ -6,6 +6,7 @@
 #include "beh-type.h"
 #include "enchant-type.h"
 #include "mon-ench.h"
+#include "mon-poly.h"
 #include "montravel-target-type.h"
 #include "potion-type.h"
 #include "seen-context-type.h"
@@ -31,6 +32,8 @@ const int KRAKEN_TENTACLE_RANGE = 3;
 #define DOOM_HOUND_HOWLED_KEY "doom_hound_howled"
 
 #define DROPPER_MID_KEY "dropper_mid"
+
+#define MAP_KEY "map"
 
 typedef map<enchant_type, mon_enchant> mon_enchant_list;
 
@@ -101,7 +104,7 @@ public:
     unique_ptr<ghost_demon> ghost;     // Ghost information.
 
     seen_context_type seen_context;    // Non-standard context for
-                                       // AI_SEE_MONSTER
+                                       // activity_interrupt::see_monster
 
     int damage_friendly;               // Damage taken, x2 you, x1 pets, x0 else.
     int damage_total;
@@ -200,7 +203,6 @@ public:
     bool gain_exp(int exp, int max_levels_to_gain = 2);
 
     void react_to_damage(const actor *oppressor, int damage, beam_type flavour);
-    void maybe_degrade_bone_armour();
 
     void add_enchantment_effect(const mon_enchant &me, bool quiet = false);
     void remove_enchantment_effect(const mon_enchant &me, bool quiet = false);
@@ -241,6 +243,8 @@ public:
     void uglything_mutate(colour_t force_colour = COLOUR_UNDEF);
     void destroy_inventory();
     void load_ghost_spells();
+    brand_type ghost_brand() const;
+    bool has_ghost_brand() const;
 
     actor *get_foe() const;
 
@@ -309,7 +313,8 @@ public:
     bool      drop_item(mon_inv_type eslot, bool msg);
     bool      unequip(item_def &item, bool msg, bool force = false);
     void      steal_item_from_player();
-    item_def* take_item(int steal_what, mon_inv_type mslot);
+    item_def* take_item(int steal_what, mon_inv_type mslot,
+                        bool is_stolen = false);
     item_def* disarm();
 
     bool      can_use_missile(const item_def &item) const;
@@ -327,6 +332,7 @@ public:
     // will return "Arbolt the orc priest".
     string full_name(description_level_type type) const;
     string pronoun(pronoun_type pro, bool force_visible = false) const override;
+    bool pronoun_plurality(bool force_visible = false) const;
     string conj_verb(const string &verb) const override;
     string hand_name(bool plural, bool *can_plural = nullptr) const override;
     string foot_name(bool plural, bool *can_plural = nullptr) const override;
@@ -335,7 +341,8 @@ public:
     bool fumbles_attack() override;
 
     int  skill(skill_type skill, int scale = 1,
-               bool real = false, bool drained = true) const override;
+               bool real = false, bool drained = true,
+               bool temp = true) const override;
 
     void attacking(actor *other, bool ranged) override;
     bool can_go_frenzy() const;
@@ -351,7 +358,8 @@ public:
     bool is_stationary() const override;
     bool malmutate(const string &/*reason*/) override;
     void corrupt();
-    bool polymorph(int pow) override;
+    bool polymorph(int pow, bool allow_immobile = true) override;
+    bool polymorph(poly_power_type power = PPT_SAME);
     void banish(actor *agent, const string &who = "", const int power = 0,
                 bool force = false) override;
     void expose_to_element(beam_type element, int strength = 0,
@@ -381,7 +389,7 @@ public:
     int res_negative_energy(bool intrinsic_only = false) const override;
     bool res_torment() const override;
     int res_acid(bool calc_unid = true) const override;
-    bool res_wind() const override;
+    bool res_tornado() const override;
     bool res_petrify(bool /*temp*/ = true) const override;
     int res_constrict() const override;
     int res_magic(bool calc_unid = true) const override;
@@ -443,7 +451,8 @@ public:
 
     bool has_attack_flavour(int flavour) const;
     bool has_damage_type(int dam_type);
-    int constriction_damage() const override;
+    int constriction_damage(bool direct) const override;
+    bool constriction_does_damage(bool direct) const override;
 
     bool can_throw_large_rocks() const override;
     bool can_speak();
@@ -453,7 +462,7 @@ public:
     int armour_class(bool calc_unid = true) const override;
     int gdr_perc() const override { return 0; }
     int base_evasion() const;
-    int evasion(ev_ignore_type evit = EV_IGNORE_NONE,
+    int evasion(ev_ignore_type evit = ev_ignore::none,
                 const actor* /*attacker*/ = nullptr) const override;
 
     bool poison(actor *agent, int amount = 1, bool force = false) override;
@@ -528,7 +537,7 @@ public:
     int action_energy(energy_use_type et) const;
 
     bool do_shaft() override;
-    bool has_spell_of_type(spschool_flag_type discipline) const;
+    bool has_spell_of_type(spschool discipline) const;
 
     void bind_melee_flags();
     void bind_spell_flags();
@@ -551,8 +560,7 @@ public:
     bool is_jumpy() const;
 
     int  spell_hd(spell_type spell = SPELL_NO_SPELL) const;
-    void align_avatars(bool force_friendly = false);
-    void remove_avatars();
+    void remove_summons(bool check_attitude = false);
     void note_spell_cast(spell_type spell);
 
     bool clear_far_engulf() override;
@@ -579,10 +587,10 @@ private:
     bool pickup_misc(item_def &item, bool msg, bool force);
     bool pickup_missile(item_def &item, bool msg, bool force);
 
-    void equip(item_def &item, bool msg);
-    void equip_weapon(item_def &item, bool msg);
-    void equip_armour(item_def &item, bool msg);
-    void equip_jewellery(item_def &item, bool msg);
+    void equip_message(item_def &item);
+    void equip_weapon_message(item_def &item);
+    void equip_armour_message(item_def &item);
+    void equip_jewellery_message(item_def &item);
     void unequip_weapon(item_def &item, bool msg);
     void unequip_armour(item_def &item, bool msg);
     void unequip_jewellery(item_def &item, bool msg);
