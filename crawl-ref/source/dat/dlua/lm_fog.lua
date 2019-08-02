@@ -64,7 +64,7 @@
 --
 ------------------------------------------------------------------------------
 
-require('dlua/lm_trig.lua')
+crawl_require('dlua/lm_trig.lua')
 
 FogMachine       = util.subclass(Triggerable)
 FogMachine.CLASS = "FogMachine"
@@ -114,6 +114,7 @@ function FogMachine:new(pars)
   m.buildup_turns      = 0
 
   local tick_pars = {}
+  -- this allows params <= 0, but that value here is min'd to 1 in lm_trig.lua
   tick_pars.delay_min = pars.delay_min or pars.delay or 1
   tick_pars.delay_max = pars.delay_max or pars.delay
   tick_pars.type      = "turn"

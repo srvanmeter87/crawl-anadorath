@@ -88,15 +88,23 @@ local function make_tagged_room(options,chosen)
   -- Temporarily prevent map getting mirrored / rotated during resolution because it'll seriously
   -- screw with our attempts to understand and position the vault later; and hardwire transparency because lack of it can fail a whole layout
   -- TODO: Store these tags on the room first so we can actually support them down the line ...
-  dgn.tags(mapdef, "no_vmirror no_hmirror no_rotate transparent");
+  local old_tags = dgn.tags(mapdef)
+  dgn.tags(mapdef, "no_vmirror no_hmirror no_rotate transparent")
   -- Resolve the map so we can find its width / height
   local map, vplace = dgn.resolve_map(mapdef,false)
   local room,room_width,room_height
 
     -- If we can't find a map then we're probably not going to find one
-  if map == nil then return nil end
+  if map == nil then
+    dgn.tags(mapdef, nil)
+    dgn.tags(mapdef, old_tags)
+    return nil
+  end
   -- Allow map to be flipped and rotated again, otherwise we'll struggle later when we want to rotate it into the correct orientation
   dgn.tags_remove(map, "no_vmirror no_hmirror no_rotate")
+  -- restore the original tags to mapdef, since this state is persistent
+  dgn.tags(mapdef, nil)
+  dgn.tags(mapdef, old_tags .. " transparent")
 
   local room_width,room_height = dgn.mapsize(map)
   local veto = false
@@ -144,16 +152,38 @@ local function pick_room(e, options)
 
   -- Filters out generators that have reached their max
   local function weight_callback(generator)
-    if generator.max_rooms ~= nil and generator.placed_count ~= nil and generator.placed_count >= generator.max_rooms then
+    if generator.max_rooms ~= nil
+        and generator.placed_count ~= nil
+        and generator.placed_count >= generator.max_rooms then
       return 0
     end
     return generator.weight
   end
-  -- Pick generator from weighted table
-  local chosen = util.random_weighted_from(weight_callback,options.room_type_weights)
-  local room
+
+  local chosen
+  -- Roll the chance to pick a ghost vault room if we haven't done so.
+  if not options.did_ghost_chance then
+    if crawl.x_chance_in_y(_GHOST_CHANCE_PERCENT, 100) then
+      -- Find the ghost vault generator, if this somehow doesn't exist, we will
+      -- fall back to the usual set of generators.
+      for i, r in ipairs(options.room_type_weights) do
+        if r.generator == "tagged" and r.tag == "vaults_ghost" then
+          chosen = r
+        end
+      end
+    end
+    options.did_ghost_chance = true
+  end
+
+  -- We aren't choosing a ghost vault, so pick a generator from the weighted
+  -- table.
+  if chosen == nil then
+    chosen = util.random_weighted_from(weight_callback,
+                                       options.room_type_weights)
+  end
 
   -- Main generator loop
+  local room
   local veto,tries,maxTries = false,0,50
   while tries < maxTries and (room == nil or veto) do
     tries = tries + 1

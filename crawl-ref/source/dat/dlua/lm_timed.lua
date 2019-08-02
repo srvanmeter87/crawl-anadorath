@@ -3,8 +3,8 @@
 -- Lua timed map feature markers.
 ------------------------------------------------------------------------------
 
-require('dlua/lm_tmsg.lua')
-require('dlua/lm_1way.lua')
+crawl_require('dlua/lm_tmsg.lua')
+crawl_require('dlua/lm_1way.lua')
 
 TimedMarker = util.subclass(OneWayStair)
 TimedMarker.CLASS = "TimedMarker"
@@ -108,6 +108,7 @@ function TimedMarker:event(marker, ev)
 
   if ev:type() == dgn.dgn_event_type('entered_level') then
     self:start()
+    self.msg:event(self, marker, ev)
   elseif ev:type() == dgn.dgn_event_type('player_los') then
     self:start_short(marker)
   elseif ev:type() == self.ticktype then
