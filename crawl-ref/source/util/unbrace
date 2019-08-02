@@ -85,7 +85,7 @@ sub rebrace($$$)
 
 for my $f (@files)
 {
-    open F, "<", $f or die "Can't read $f\n";
+    open F, "<", $f or (print(STDERR "Can't read $f\n"), next);
     my $old = $_ = <F>;
     close F;
 
@@ -175,4 +175,8 @@ for my $f (@files)
     }
 }
 
-exit 1 if ($dry_run and $any_bad);
+if ($dry_run and $any_bad) {
+    print "Found unnecessary braces/brackets in the above files.\n";
+    print "Re-run this command (without -n) to automatically remove them.\n";
+    exit 1;
+}
