@@ -68,6 +68,7 @@ mangrove3
 ## doors
 %sdir dngn/doors
 closed_door DNGN_CLOSED_DOOR
+# Note that gates must come immediately after their non-gated counterpart tile.
 gate_closed_left DNGN_GATE_CLOSED_LEFT
 gate_closed_middle DNGN_GATE_CLOSED_MIDDLE
 gate_closed_right DNGN_GATE_CLOSED_RIGHT
@@ -95,6 +96,36 @@ gate_sealed_right DNGN_GATE_SEALED_RIGHT
 vgate_sealed_up DNGN_VGATE_SEALED_UP
 vgate_sealed_middle DNGN_VGATE_SEALED_MIDDLE
 vgate_sealed_down DNGN_VGATE_SEALED_DOWN
+
+# Clear doors.
+closed_clear_door DNGN_CLOSED_CLEAR_DOOR
+gate_closed_clear_left DNGN_GATE_CLOSED_CLEAR_LEFT
+gate_closed_clear_middle DNGN_GATE_CLOSED_CLEAR_MIDDLE
+gate_closed_clear_right DNGN_GATE_CLOSED_CLEAR_RIGHT
+vgate_closed_clear_up DNGN_VGATE_CLOSED_CLEAR_UP
+vgate_closed_clear_middle DNGN_VGATE_CLOSED_CLEAR_MIDDLE
+vgate_closed_clear_down DNGN_VGATE_CLOSED_CLEAR_DOWN
+open_clear_door DNGN_OPEN_CLEAR_DOOR
+gate_open_clear_left DNGN_GATE_OPEN_CLEAR_LEFT
+gate_open_clear_middle DNGN_GATE_OPEN_CLEAR_MIDDLE
+gate_open_clear_right DNGN_GATE_OPEN_CLEAR_RIGHT
+vgate_open_clear_up DNGN_VGATE_OPEN_CLEAR_UP
+vgate_open_clear_middle DNGN_VGATE_OPEN_CLEAR_MIDDLE
+vgate_open_clear_down DNGN_VGATE_OPEN_CLEAR_DOWN
+runed_clear_door DNGN_RUNED_CLEAR_DOOR
+gate_runed_clear_left DNGN_GATE_RUNED_CLEAR_LEFT
+gate_runed_clear_middle DNGN_GATE_RUNED_CLEAR_MIDDLE
+gate_runed_clear_right DNGN_GATE_RUNED_CLEAR_RIGHT
+vgate_runed_clear_up DNGN_VGATE_RUNED_CLEAR_UP
+vgate_runed_clear_middle DNGN_VGATE_RUNED_CLEAR_MIDDLE
+vgate_runed_clear_down DNGN_VGATE_RUNED_CLEAR_DOWN
+sealed_clear_door DNGN_SEALED_CLEAR_DOOR
+gate_sealed_clear_left DNGN_GATE_SEALED_CLEAR_LEFT
+gate_sealed_clear_middle DNGN_GATE_SEALED_CLEAR_MIDDLE
+gate_sealed_clear_right DNGN_GATE_SEALED_CLEAR_RIGHT
+vgate_sealed_clear_up DNGN_VGATE_SEALED_CLEAR_UP
+vgate_sealed_clear_middle DNGN_VGATE_SEALED_CLEAR_MIDDLE
+vgate_sealed_clear_down DNGN_VGATE_SEALED_CLEAR_DOWN
 
 # Crypt doors
 closed_door_crypt DNGN_CLOSED_DOOR_CRYPT
@@ -157,11 +188,16 @@ statue_imp
 %syn DNGN_STATUE_IMP
 statue_orb
 statue_cerebov
+%syn DNGN_STATUE_CEREBOV
 statue_demonic_bust
 %syn DNGN_STATUE_DEMONIC_BUST
 statue_twins
 statue_orb_guardian
 statue_sword
+statue_axe
+%syn DNGN_STATUE_AXE
+statue_polearm
+%syn DNGN_STATUE_POLEARM
 %weight 1
 statue_sigmund
 statue_ancient_hero
@@ -190,7 +226,7 @@ gravestone_writing1
 gravestone_writing2
 gravestone_ornate DNGN_GRAVESTONE_ORNATE
 
-## an icy teleporter
+# Remove this entry when TAG_MAJOR_VERSION == 34 is false.
 teleporter_ice_cave DNGN_TELEPORTER_ICE_CAVE
 
 ## golden statues for the holy Pan level
@@ -232,6 +268,7 @@ blade DNGN_TRAP_BLADE
 net DNGN_TRAP_NET
 alarm DNGN_TRAP_ALARM
 shaft DNGN_TRAP_SHAFT
+dispersal DNGN_TRAP_DISPERSAL
 teleport DNGN_TRAP_TELEPORT
 teleport_permanent DNGN_TRAP_TELEPORT_PERMANENT
 zot DNGN_TRAP_ZOT
@@ -387,8 +424,8 @@ ossuary_portal DNGN_PORTAL_OSSUARY
 ossuary_gone DNGN_PORTAL_OSSUARY_GONE
 bailey_portal DNGN_PORTAL_BAILEY
 bailey_gone DNGN_PORTAL_BAILEY_GONE
-lab_portal DNGN_PORTAL_LABYRINTH
-lab_gone DNGN_PORTAL_LABYRINTH_GONE
+gauntlet_portal DNGN_PORTAL_GAUNTLET
+gauntlet_gone DNGN_PORTAL_GAUNTLET_GONE
 trove_portal DNGN_PORTAL_TROVE
 trove_gone DNGN_PORTAL_TROVE_GONE
 bazaar_portal DNGN_PORTAL_BAZAAR
@@ -492,8 +529,9 @@ dry_fountain DNGN_DRY_FOUNTAIN
 %repeat DNGN_DRY_FOUNTAIN DNGN_DRY_FOUNTAIN_WHITE
 %resetcol
 
-# Remove teleporter line when TAG_MAJOR_VERSION > 34
+# Remove this entry when TAG_MAJOR_VERSION == 34 is false.
 teleporter DNGN_TELEPORTER
+
 transporter DNGN_TRANSPORTER
 transporter_landing_site DNGN_TRANSPORTER_LANDING
 
@@ -632,6 +670,7 @@ effect/heataura2
 halo_friendly HALO_FRIENDLY
 halo_gd_neutral HALO_GD_NEUTRAL
 halo_neutral HALO_NEUTRAL
+halo_summoner HALO_SUMMONER
 ray RAY
 ray_multi RAY_MULTI
 ray_out_of_range RAY_OUT_OF_RANGE
@@ -653,6 +692,21 @@ kraken_corner_NW KRAKEN_OVERLAY_NW
 kraken_corner_NE KRAKEN_OVERLAY_NE
 kraken_corner_SE KRAKEN_OVERLAY_SE
 kraken_corner_SW KRAKEN_OVERLAY_SW
+%sdir mon/tentacles/kraken_zombie_corners
+kraken_zombie_corner_NW KRAKEN_ZOMBIE_OVERLAY_NW
+kraken_zombie_corner_NE KRAKEN_ZOMBIE_OVERLAY_NE
+kraken_zombie_corner_SE KRAKEN_ZOMBIE_OVERLAY_SE
+kraken_zombie_corner_SW KRAKEN_ZOMBIE_OVERLAY_SW
+%sdir mon/tentacles/kraken_simulacrum_corners
+kraken_simulacrum_corner_NW KRAKEN_SIMULACRUM_OVERLAY_NW
+kraken_simulacrum_corner_NE KRAKEN_SIMULACRUM_OVERLAY_NE
+kraken_simulacrum_corner_SE KRAKEN_SIMULACRUM_OVERLAY_SE
+kraken_simulacrum_corner_SW KRAKEN_SIMULACRUM_OVERLAY_SW
+%sdir mon/tentacles/kraken_spectral_corners
+kraken_spectral_corner_NW KRAKEN_SPECTRAL_OVERLAY_NW
+kraken_spectral_corner_NE KRAKEN_SPECTRAL_OVERLAY_NE
+kraken_spectral_corner_SE KRAKEN_SPECTRAL_OVERLAY_SE
+kraken_spectral_corner_SW KRAKEN_SPECTRAL_OVERLAY_SW
 %sdir mon/tentacles/eldritch_corners
 eldritch_corner_NW ELDRITCH_OVERLAY_NW
 eldritch_corner_NE ELDRITCH_OVERLAY_NE
