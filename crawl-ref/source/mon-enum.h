@@ -15,7 +15,6 @@ enum corpse_effect_type
     CE_NOCORPSE,
     CE_CLEAN,
     CE_NOXIOUS,
-    CE_MUTAGEN,
 };
 
 // TODO: Unify this and a player_equivalent (if applicable)
@@ -98,7 +97,9 @@ enum attack_flavour
 #endif
     AF_ROT,
     AF_VAMPIRIC,
+#if TAG_MAJOR_VERSION == 34
     AF_KLOWN,
+#endif
     AF_DISTORT,
     AF_RAGE,
     AF_STICKY_FLAME,
@@ -151,8 +152,8 @@ enum mon_summon_type
     MON_SUMM_WRATH,   // Divine wrath
     MON_SUMM_AID,     // Divine aid
     MON_SUMM_SCROLL,  // Scroll of summoning
-    MON_SUMM_SHADOW,  // Shadow trap
 #if TAG_MAJOR_VERSION == 34
+    MON_SUMM_SHADOW,  // Shadow trap
     MON_SUMM_LANTERN, // Lantern of shadows
 #endif
 };
@@ -215,10 +216,10 @@ enum mon_resist_flags
 #if TAG_MAJOR_VERSION == 34
     MR_OLD_RES_ACID      = 1 << 25,
 #else
-    // unused            = 1 << 25,
+    // unused 1 << 25,
 #endif
     MR_RES_STICKY_FLAME  = 1 << 26,
-    MR_RES_WIND          = 1 << 27,
+    MR_RES_TORNADO       = 1 << 27,
     MR_RES_STEAM         = 1 << 28,
 
     // vulnerabilities

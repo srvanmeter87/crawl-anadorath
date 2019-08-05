@@ -935,6 +935,7 @@ void los_terrain_changed(const coord_def& p)
 
 void los_changed()
 {
+    mons_reset_just_seen();
     invalidate_los();
     _handle_los_change();
 }

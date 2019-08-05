@@ -104,7 +104,6 @@ static map<enchant_type, monster_info_flags> trivial_ench_mb_mappings = {
     { ENCH_DEFLECT_MISSILES, MB_DEFLECT_MSL },
     { ENCH_RESISTANCE,      MB_RESISTANCE },
     { ENCH_HEXED,           MB_HEXED },
-    { ENCH_BONE_ARMOUR,     MB_BONE_ARMOUR },
     { ENCH_BRILLIANCE_AURA, MB_BRILLIANCE_AURA },
     { ENCH_EMPOWERED_SPELLS, MB_EMPOWERED_SPELLS },
     { ENCH_GOZAG_INCITE,    MB_GOZAG_INCITED },
@@ -114,7 +113,8 @@ static map<enchant_type, monster_info_flags> trivial_ench_mb_mappings = {
     { ENCH_INFESTATION,     MB_INFESTATION },
     { ENCH_STILL_WINDS,     MB_STILL_WINDS },
     { ENCH_SLOWLY_DYING,    MB_SLOWLY_DYING },
-    { ENCH_DISTRACTED_ACROBATICS,     MB_DISTRACTED },
+    { ENCH_WHIRLWIND_PINNED, MB_PINNED },
+    { ENCH_VILE_CLUTCH, MB_VILE_CLUTCH},
 };
 
 static monster_info_flags ench_to_mb(const monster& mons, enchant_type ench)
@@ -182,7 +182,6 @@ static bool _blocked_ray(const coord_def &where,
 static bool _is_public_key(string key)
 {
     if (key == "helpless"
-     || key == "wand_known"
      || key == "feat_type"
      || key == "glyph"
      || key == "dbname"
@@ -359,7 +358,6 @@ monster_info::monster_info(monster_type p_type, monster_type p_base_type)
 
     fire_blocker = DNGN_UNSEEN;
 
-    i_ghost.acting_part = MONS_0;
     if (mons_is_pghost(type))
     {
         i_ghost.species = SP_HUMAN;
@@ -545,7 +543,7 @@ monster_info::monster_info(const monster* m, int milev)
     mintel = mons_intel(*m);
     hd = m->get_hit_dice();
     ac = m->armour_class(false);
-    ev = m->evasion(EV_IGNORE_UNIDED);
+    ev = m->evasion(ev_ignore::unided);
     base_ev = m->base_evasion();
     mr = m->res_magic(false);
     can_see_invis = m->can_see_invisible(false);
@@ -639,7 +637,7 @@ monster_info::monster_info(const monster* m, int milev)
 
     if (mons_is_pghost(type))
     {
-        ASSERT(m->ghost.get());
+        ASSERT(m->ghost);
         ghost_demon& ghost = *m->ghost;
         i_ghost.species = ghost.species;
         if (species_is_draconian(i_ghost.species) && ghost.xl < 7)
@@ -652,16 +650,20 @@ monster_info::monster_info(const monster* m, int milev)
         i_ghost.ac = quantise(ghost.ac, 5);
         i_ghost.damage = ghost.damage;
         props[KNOWN_MAX_HP_KEY] = (int)ghost.max_hp;
-
-        // describe abnormal (branded) ghost weapons
-        if (ghost.brand != SPWPN_NORMAL)
-            props[SPECIAL_WEAPON_KEY] = ghost_brand_name(ghost.brand);
+        if (m->props.exists(MIRRORED_GHOST_KEY))
+            props[MIRRORED_GHOST_KEY] = m->props[MIRRORED_GHOST_KEY];
     }
+    if (m->has_ghost_brand())
+        props[SPECIAL_WEAPON_KEY] = m->ghost_brand();
 
     // book loading for player ghost and vault monsters
     spells.clear();
-    if (m->props.exists(CUSTOM_SPELLS_KEY) || mons_is_pghost(type))
+    if (m->props.exists(CUSTOM_SPELLS_KEY) || mons_is_pghost(type)
+        || type == MONS_PANDEMONIUM_LORD)
+    {
         spells = m->spells;
+    }
+
     if (m->is_priest())
         props["priest"] = true;
     else if (m->is_actual_spellcaster())
@@ -687,10 +689,6 @@ monster_info::monster_info(const monster* m, int milev)
         else if (i == MSLOT_MISCELLANY)
             ok = false;
         else if (attitude == ATT_FRIENDLY)
-            ok = true;
-        else if (i == MSLOT_WAND)
-            ok = props.exists("wand_known") && props["wand_known"];
-        else if (m->props.exists("ash_id") && item_type_known(mitm[m->inv[i]]))
             ok = true;
         else if (i == MSLOT_ALT_WEAPON)
             ok = wields_two_weapons();
@@ -719,29 +717,29 @@ monster_info::monster_info(const monster* m, int milev)
     constrictor_name = "";
     constricting_name.clear();
 
-    // name of what this monster is constricted by, if any
-    if (m->is_constricted())
+    // Name of what this monster is directly constricted by, if any
+    if (m->is_directly_constricted())
     {
         const actor * const constrictor = actor_by_mid(m->constricted_by);
-        if (constrictor)
-        {
-            constrictor_name = (m->held == HELD_MONSTER ? "held by "
-                                                        : "constricted by ")
-                               + constrictor->name(_article_for(constrictor),
-                                                   true);
-        }
+        ASSERT(constrictor);
+        constrictor_name = (constrictor->constriction_does_damage(true) ?
+                            "constricted by " : "held by ")
+                           + constrictor->name(_article_for(constrictor),
+                                               true);
     }
 
-    // names of what this monster is constricting, if any
+    // Names of what this monster is directly constricting, if any
     if (m->constricting)
     {
-        const char *gerund = m->constriction_damage() ? "constricting "
-                                                      : "holding ";
+        const char *participle =
+            m->constriction_does_damage(true) ? "constricting " : "holding ";
         for (const auto &entry : *m->constricting)
         {
-            if (const actor* const constrictee = actor_by_mid(entry.first))
+            const actor* const constrictee = actor_by_mid(entry.first);
+
+            if (constrictee && constrictee->is_directly_constricted())
             {
-                constricting_name.push_back(gerund
+                constricting_name.push_back(participle
                                             + constrictee->name(
                                                   _article_for(constrictee),
                                                   true));
@@ -749,7 +747,7 @@ monster_info::monster_info(const monster* m, int milev)
         }
     }
 
-    if (mons_has_known_ranged_attack(*m))
+    if (mons_has_ranged_attack(*m))
         mb.set(MB_RANGED_ATTACK);
 
     // this must be last because it provides this structure to Lua code
@@ -819,7 +817,7 @@ static string _mutant_beast_facet(int facet)
 
 string monster_info::db_name() const
 {
-    if (type == MONS_DANCING_WEAPON && inv[MSLOT_WEAPON].get())
+    if (type == MONS_DANCING_WEAPON && inv[MSLOT_WEAPON])
     {
         iflags_t ignore_flags = ISFLAG_KNOW_CURSE | ISFLAG_KNOW_PLUSES;
         bool     use_inscrip  = false;
@@ -887,14 +885,13 @@ string monster_info::_core_name() const
 
         case MONS_DANCING_WEAPON:
         case MONS_SPECTRAL_WEAPON:
-            if (inv[MSLOT_WEAPON].get())
+            if (inv[MSLOT_WEAPON])
             {
-                iflags_t ignore_flags = ISFLAG_KNOW_CURSE | ISFLAG_KNOW_PLUSES;
-                bool     use_inscrip  = true;
                 const item_def& item = *inv[MSLOT_WEAPON];
-                s = type==MONS_SPECTRAL_WEAPON ? "spectral " : "";
-                s += (item.name(DESC_PLAIN, false, false, use_inscrip, false,
-                                ignore_flags));
+
+                s = type == MONS_SPECTRAL_WEAPON ? "spectral " : "";
+                s += item.name(DESC_PLAIN, false, false, true, false,
+                               ISFLAG_KNOW_CURSE);
             }
             break;
 
@@ -1100,10 +1097,15 @@ bool monster_info::less_than_wrapper(const monster_info& m1,
 bool monster_info::less_than(const monster_info& m1, const monster_info& m2,
                              bool zombified, bool fullname)
 {
-    if (mons_is_hepliaklqana_ancestor(m1.type))
-        return true;
-    else if (mons_is_hepliaklqana_ancestor(m2.type))
+    // This awkward ordering (checking m2 before m1) is required to satisfy
+    // std::sort's contract. Specifically, if m1 and m2 are both ancestors
+    // (e.g. through phantom mirror), we want them to compare equal. To signify
+    // "equal", we must say that neither is less than the other, rather than
+    // saying that both are less than each other.
+    if (mons_is_hepliaklqana_ancestor(m2.type))
         return false;
+    else if (mons_is_hepliaklqana_ancestor(m1.type))
+        return true;
 
     if (m1.attitude < m2.attitude)
         return true;
@@ -1208,6 +1210,8 @@ static string _verbose_info0(const monster_info& mi)
         return "webbed";
     if (mi.is(MB_PETRIFIED))
         return "petrified";
+    if (mi.is(MB_PINNED))
+        return "pinned";
     if (mi.is(MB_PETRIFYING))
         return "petrifying";
     if (mi.is(MB_MAD))
@@ -1403,6 +1407,8 @@ vector<string> monster_info::attributes() const
         v.emplace_back("frenzied and insane");
     if (is(MB_CONFUSED))
         v.emplace_back("confused");
+    if (is(MB_PINNED))
+        v.emplace_back("pinned by a whirlwind");
     if (is(MB_INVISIBLE))
         v.emplace_back("slightly transparent");
     if (is(MB_CHARMED))
@@ -1474,7 +1480,7 @@ vector<string> monster_info::attributes() const
     if (is(MB_TOXIC_RADIANCE))
         v.emplace_back("radiating toxic energy");
     if (is(MB_GRASPING_ROOTS))
-        v.emplace_back("movement impaired by roots");
+        v.emplace_back("constricted by roots");
     if (is(MB_FIRE_VULN))
         v.emplace_back("more vulnerable to fire");
     if (is(MB_TORNADO))
@@ -1509,8 +1515,6 @@ vector<string> monster_info::attributes() const
         v.emplace_back("unusually resistant");
     if (is(MB_HEXED))
         v.emplace_back("control wrested from you");
-    if (is(MB_BONE_ARMOUR))
-        v.emplace_back("corpse armoured");
     if (is(MB_BRILLIANCE_AURA))
         v.emplace_back("aura of brilliance");
     if (is(MB_EMPOWERED_SPELLS))
@@ -1536,6 +1540,8 @@ vector<string> monster_info::attributes() const
         v.emplace_back("infested");
     if (is(MB_STILL_WINDS))
         v.emplace_back("stilling the winds");
+    if (is(MB_VILE_CLUTCH))
+        v.emplace_back("constricted by zombie hands");
     return v;
 }
 
@@ -1545,7 +1551,11 @@ string monster_info::wounds_description_sentence() const
     if (wounds.empty())
         return "";
     else
-        return string(pronoun(PRONOUN_SUBJECTIVE)) + " is " + wounds + ".";
+    {
+        return string(pronoun(PRONOUN_SUBJECTIVE)) + " "
+               + conjugate_verb("are", pronoun_plurality())
+               + " " + wounds + ".";
+    }
 }
 
 string monster_info::wounds_description(bool use_colour) const
@@ -1729,15 +1739,11 @@ bool monster_info::has_spells() const
 
     const vector<mon_spellbook_type> books = get_spellbooks(*this);
 
-    // Random pan lords don't display their spells.
-    if (books.size() == 0 || books[0] == MST_NO_SPELLS
-        || type == MONS_PANDEMONIUM_LORD)
-    {
+    if (books.size() == 0 || books[0] == MST_NO_SPELLS)
         return false;
-    }
 
-    // Ghosts have a special book but may not have any spells anyways.
-    if (books[0] == MST_GHOST)
+    // Ghosts / pan lords may have custom spell lists, so check spells directly
+    if (books[0] == MST_GHOST || type == MONS_PANDEMONIUM_LORD)
         return spells.size() > 0;
 
     return true;
@@ -1838,4 +1844,12 @@ const char *monster_info::pronoun(pronoun_type variant) const
                                variant);
     }
     return mons_pronoun(type, variant, true);
+}
+
+const bool monster_info::pronoun_plurality() const
+{
+    if (props.exists(MON_GENDER_KEY))
+        return props[MON_GENDER_KEY].get_int() == GENDER_NEUTRAL;
+
+    return mons_class_gender(type) == GENDER_NEUTRAL;
 }

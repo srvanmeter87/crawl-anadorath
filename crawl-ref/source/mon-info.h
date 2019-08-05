@@ -153,8 +153,8 @@ enum monster_info_flags
 #endif
     MB_RESISTANCE,
     MB_HEXED,
-    MB_BONE_ARMOUR,
 #if TAG_MAJOR_VERSION == 34
+    MB_BONE_ARMOUR,
     MB_CHANT_FIRE_STORM,
     MB_CHANT_WORD_OF_ENTROPY,
 #endif
@@ -172,7 +172,9 @@ enum monster_info_flags
     MB_NO_REWARD,
     MB_STILL_WINDS,
     MB_SLOWLY_DYING,
-    MB_DISTRACTED_ACROBATICS,
+    MB_PINNED,
+    MB_VILE_CLUTCH,
+    MB_HIGHLIGHTED_SUMMONER,
     NUM_MB_FLAGS
 };
 
@@ -244,7 +246,7 @@ struct monster_info : public monster_info_base
     {
         for (unsigned i = 0; i <= MSLOT_LAST_VISIBLE_SLOT; ++i)
         {
-            if (mi.inv[i].get())
+            if (mi.inv[i])
                 inv[i].reset(new item_def(*mi.inv[i]));
         }
     }
@@ -275,7 +277,6 @@ struct monster_info : public monster_info_base
         short xl_rank;
         short damage;
         short ac;
-        monster_type acting_part;
     } i_ghost;
 
     inline bool is(unsigned mbflag) const
@@ -304,6 +305,7 @@ struct monster_info : public monster_info_base
     vector<string> attributes() const;
 
     const char *pronoun(pronoun_type variant) const;
+    const bool pronoun_plurality() const;
 
     string wounds_description_sentence() const;
     string wounds_description(bool colour = false) const;

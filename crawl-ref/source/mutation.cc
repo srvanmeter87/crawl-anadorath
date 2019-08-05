@@ -38,6 +38,7 @@
 #include "player-equip.h" // lose_permafly_source
 #include "player-stats.h"
 #include "religion.h"
+#include "scroller.h"
 #include "skills.h"
 #include "state.h"
 #include "stringutil.h"
@@ -45,6 +46,8 @@
 #include "unicode.h"
 #include "viewchar.h"
 #include "xom.h"
+
+using namespace ui;
 
 static bool _delete_single_mutation_level(mutation_type mutat, const string &reason, bool transient);
 
@@ -310,8 +313,11 @@ mutation_activity_type mutation_activity_level(mutation_type mut)
                 return mutation_activity_type::FULL;
             if (mut == MUT_UNBREATHING && drag == MONS_IRON_DRAGON)
                 return mutation_activity_type::FULL;
-            if (mut == MUT_ACIDIC_BITE && drag == MONS_GOLDEN_DRAGON)
+            if ((mut == MUT_ACIDIC_BITE || mut == MUT_ACID_RESISTANCE)
+                && drag == MONS_GOLDEN_DRAGON)
+            {
                 return mutation_activity_type::FULL;
+            }
             if (mut == MUT_STINGER && drag == MONS_SWAMP_DRAGON)
                 return mutation_activity_type::FULL;
         }
@@ -346,7 +352,6 @@ mutation_activity_type mutation_activity_level(mutation_type mut)
         case MUT_SLOW:
         case MUT_IRIDESCENT_SCALES:
             return mutation_activity_type::INACTIVE;
-        case MUT_LARGE_BONE_PLATES:
 #if TAG_MAJOR_VERSION == 34
         case MUT_ROUGH_BLACK_SCALES:
 #endif
@@ -373,15 +378,13 @@ mutation_activity_type mutation_activity_level(mutation_type mut)
     {
         return mutation_activity_type::INACTIVE;
     }
-
-    if (you_worship(GOD_DITHMENOS) && mut == MUT_IGNITE_BLOOD)
-        return mutation_activity_type::INACTIVE;
-
+#if TAG_MAJOR_VERSION == 34
     if ((you_worship(GOD_PAKELLAS) || player_under_penance(GOD_PAKELLAS))
          && (mut == MUT_MANA_LINK || mut == MUT_MANA_REGENERATION))
     {
         return mutation_activity_type::INACTIVE;
     }
+#endif
 
     if (!form_can_bleed(you.form) && mut == MUT_SANGUINE_ARMOUR)
         return mutation_activity_type::INACTIVE;
@@ -542,9 +545,6 @@ void validate_mutations(bool debug_msg)
                 mutation_name(mut), you.mutation[mut],
                 you.innate_mutation[mut], you.temp_mutation[mut]);
         }
-        ASSERT(you.mutation[mut] >= 0);
-        ASSERT(you.innate_mutation[mut] >= 0);
-        ASSERT(you.temp_mutation[mut] >= 0);
         ASSERT(you.get_base_mutation_level(mut) == you.mutation[mut]);
         ASSERT(you.mutation[i] >= you.innate_mutation[mut] + you.temp_mutation[mut]);
         total_temp += you.temp_mutation[mut];
@@ -590,28 +590,22 @@ void validate_mutations(bool debug_msg)
         ASSERT(you.attribute[ATTR_TEMP_MUT_XP] > 0);
 }
 
-string describe_mutations(bool center_title)
+string describe_mutations(bool drop_title)
 {
 #ifdef DEBUG
     validate_mutations(true);
 #endif
     string result;
-    const char *mut_title = "Innate Abilities, Weirdness & Mutations";
 
     _num_full_suppressed = _num_part_suppressed = 0;
     _num_transient = 0;
 
-    if (center_title)
+    if (!drop_title)
     {
-        int offset = 39 - strwidth(mut_title) / 2;
-        if (offset < 0) offset = 0;
-
-        result += string(offset, ' ');
+        result += "<white>";
+        result += "Innate Abilities, Weirdness & Mutations";
+        result += "</white>\n\n";
     }
-
-    result += "<white>";
-    result += mut_title;
-    result += "</white>\n\n";
 
     result += "<lightblue>";
     const string old_result = result;
@@ -651,11 +645,12 @@ string describe_mutations(bool center_title)
 
     if (you.species == SP_VAMPIRE)
     {
-        if (you.hunger_state <= HS_STARVING)
-            result += "<green>You do not heal naturally.</green>\n";
-        else if (you.hunger_state < HS_SATIATED)
-            result += "<green>You heal slowly.</green>\n";
-        else if (you.hunger_state >= HS_FULL)
+        if (!you.vampire_alive)
+        {
+            result += "<green>You do not regenerate when monsters are visible.</green>\n";
+            result += "<green>You are frail without blood (-20% HP).</green>\n";
+        }
+        else
             result += "<green>Your natural rate of healing is unusually fast.</green>\n";
     }
 
@@ -761,76 +756,63 @@ string describe_mutations(bool center_title)
     return result;
 }
 
-static const string _vampire_Ascreen_footer = (
+static formatted_string _vampire_Ascreen_footer(bool first_page)
+{
+    const char *text = first_page ? "<w>Mutations</w>|Blood properties"
+                                  : "Mutations|<w>Blood properties</w>";
+    const string fmt = make_stringf("[<w>!</w>/<w>^</w>"
 #ifdef USE_TILE_LOCAL
-    "<w>Right-click</w> or press '<w>!</w>'"
-#else
-    "Press '<w>!</w>'"
+            "|<w>Right-click</w>"
 #endif
-    " to toggle between mutations and properties depending on your blood\n"
-    "level.\n");
+            "]: %s", text);
+    return formatted_string::parse_string(fmt);
+}
 
-static void _display_vampire_attributes()
+static int _vampire_bloodlessness()
+{
+    return you.vampire_alive ? 1 : 2;
+}
+
+static string _display_vampire_attributes()
 {
     ASSERT(you.species == SP_VAMPIRE);
 
     string result;
 
-    const int lines = 12;
-    string column[lines][5] =
+    const int lines = 11;
+    string column[lines][3] =
     {
-        {"                     ", "<green>Full</green>       ", "Satiated   ", "<yellow>Thirsty</yellow>    ", "<lightred>Bloodless</lightred>"},
-                                 //Full       Satiated      Thirsty         Bloodless
-        {"Metabolism           ", "fast       ", "normal     ", "slow       ", "none  "},
+        {"                     ", "<green>Alive</green>      ", "<lightred>Bloodless</lightred>"},
+                                 //Full       Bloodless
+        {"Regeneration         ", "fast       ", "none with monsters in sight"},
 
-        {"Regeneration         ", "fast       ", "normal     ", "slow       ", "none  "},
+        {"HP Modifier          ", "none       ", "-20%"},
 
-        {"Stealth boost        ", "none       ", "none       ", "minor      ", "major "},
-
-        {"Hunger costs         ", "full       ", "full       ", "halved     ", "none  "},
+        {"Stealth boost        ", "none       ", "major "},
 
         {"\n<w>Resistances</w>\n"
-         "Poison resistance    ", "           ", "           ", "+          ", "immune"},
+         "Poison resistance    ", "           ", "immune"},
 
-        {"Cold resistance      ", "           ", "           ", "+          ", "++    "},
+        {"Cold resistance      ", "           ", "++    "},
 
-        {"Negative resistance  ", "           ", " +         ", "++         ", "+++   "},
+        {"Negative resistance  ", "           ", "+++   "},
 
-        {"Rotting resistance   ", "           ", "           ", "+          ", "+     "},
+        {"Rotting resistance   ", "           ", "+     "},
 
-        {"Torment resistance   ", "           ", "           ", "           ", "+     "},
+        {"Torment resistance   ", "           ", "+     "},
 
         {"\n<w>Transformations</w>\n"
-         "Bat form             ", "no         ", "yes        ", "yes        ", "yes   "},
+         "Bat form             ", "no         ", "yes   "},
 
         {"Other forms and \n"
-         "berserk              ", "yes        ", "yes        ", "no         ", "no    "}
+         "berserk              ", "yes        ", "no    "}
     };
 
-    int current = 0;
-    switch (you.hunger_state)
-    {
-    case HS_ENGORGED:
-    case HS_VERY_FULL:
-    case HS_FULL:
-        current = 1;
-        break;
-    case HS_SATIATED:
-        current = 2;
-        break;
-    case HS_HUNGRY:
-    case HS_VERY_HUNGRY:
-    case HS_NEAR_STARVING:
-        current = 3;
-        break;
-    case HS_STARVING:
-    case HS_FAINTING:
-        current = 4;
-    }
+    int current = _vampire_bloodlessness();
 
     for (int y = 0; y < lines; y++)  // lines   (properties)
     {
-        for (int x = 0; x < 5; x++)  // columns (hunger states)
+        for (int x = 0; x < 3; x++)  // columns (hunger states)
         {
             if (y > 0 && x == current)
                 result += "<w>";
@@ -841,18 +823,8 @@ static void _display_vampire_attributes()
         result += "\n";
     }
 
-    result += "\n";
-    result += _vampire_Ascreen_footer;
-
-    formatted_scroller attrib_menu;
-    attrib_menu.add_text(result);
-
-    attrib_menu.show();
-    if (attrib_menu.getkey() == '!'
-        || attrib_menu.getkey() == CK_MOUSE_CMD)
-    {
-        display_mutations();
-    }
+    trim_string_right(result);
+    return result;
 }
 
 void display_mutations()
@@ -866,33 +838,86 @@ void display_mutations()
         extra += "<darkgrey>(())</darkgrey>: Completely suppressed.\n";
     if (_num_transient)
         extra += "<magenta>[]</magenta>   : Transient mutations.";
-    if (you.species == SP_VAMPIRE)
-    {
-        if (!extra.empty())
-            extra += "\n";
-
-        extra += _vampire_Ascreen_footer;
-    }
 
     if (!extra.empty())
     {
         mutation_s += "\n\n\n\n";
         mutation_s += extra;
     }
+    trim_string_right(mutation_s);
 
-    formatted_scroller mutation_menu;
-    mutation_menu.add_text(mutation_s);
+    auto vbox = make_shared<Box>(Widget::VERT);
 
-    mouse_control mc(MOUSE_MODE_MORE);
+    const char *title_text = "Innate Abilities, Weirdness & Mutations";
+    auto title = make_shared<Text>(formatted_string(title_text, WHITE));
+    title->align_self = Widget::CENTER;
+    vbox->add_child(move(title));
 
-    mutation_menu.show();
+    auto switcher = make_shared<Switcher>();
 
-    if (you.species == SP_VAMPIRE
-        && (mutation_menu.getkey() == '!'
-            || mutation_menu.getkey() == CK_MOUSE_CMD))
+    const string vamp_s = you.species == SP_VAMPIRE ?_display_vampire_attributes() : "N/A";
+    const string descs[3] =  { mutation_s, vamp_s };
+    for (int i = 0; i < 2; i++)
     {
-        _display_vampire_attributes();
+        auto scroller = make_shared<Scroller>();
+        auto text = make_shared<Text>(formatted_string::parse_string(
+                descs[static_cast<int>(i)]));
+        text->wrap_text = true;
+        scroller->set_child(text);
+        switcher->add_child(move(scroller));
     }
+
+    switcher->current() = 0;
+    switcher->set_margin_for_sdl({20, 0, 0, 0});
+    switcher->set_margin_for_crt({1, 0, 0, 0});
+    switcher->expand_h = false;
+#ifdef USE_TILE_LOCAL
+    switcher->max_size()[0] = tiles.get_crt_font()->char_width()*80;
+#endif
+    vbox->add_child(switcher);
+
+    auto bottom = make_shared<Text>(_vampire_Ascreen_footer(true));
+    bottom->set_margin_for_sdl({20, 0, 0, 0});
+    bottom->set_margin_for_crt({1, 0, 0, 0});
+    if (you.species == SP_VAMPIRE)
+        vbox->add_child(bottom);
+
+    auto popup = make_shared<ui::Popup>(vbox);
+
+    bool done = false;
+    int lastch;
+    popup->on(Widget::slots.event, [&](wm_event ev) {
+        if (ev.type != WME_KEYDOWN)
+            return false;
+        lastch = ev.key.keysym.sym;
+        if (you.species == SP_VAMPIRE && (lastch == '!' || lastch == CK_MOUSE_CMD || lastch == '^'))
+        {
+            int c = 1 - switcher->current();
+            switcher->current() = c;
+#ifdef USE_TILE_WEB
+            tiles.json_open_object();
+            tiles.json_write_int("pane", c);
+            tiles.ui_state_change("mutations", 0);
+#endif
+            bottom->set_text(_vampire_Ascreen_footer(c));
+        } else
+            done = !vbox->on_event(ev);
+        return true;
+    });
+
+#ifdef USE_TILE_WEB
+    tiles.json_open_object();
+    tiles.json_write_string("mutations", mutation_s);
+    if (you.species == SP_VAMPIRE)
+        tiles.json_write_int("vampire", _vampire_bloodlessness());
+    tiles.push_ui_layout("mutations", 1);
+#endif
+
+    ui::run_layout(move(popup), done);
+
+#ifdef USE_TILE_WEB
+    tiles.pop_ui_layout();
+#endif
 }
 
 static int _calc_mutation_amusement_value(mutation_type which_mutation)
@@ -1213,7 +1238,7 @@ bool physiology_mutation_conflict(mutation_type mutat)
 
     // Only Draconians (and gargoyles) can get wings.
     if (!species_is_draconian(you.species) && you.species != SP_GARGOYLE
-        && you.species != SP_PYROLITH && mutat == MUT_BIG_WINGS)
+        && mutat == MUT_BIG_WINGS)
     {
         return true;
     }
@@ -1258,25 +1283,8 @@ bool physiology_mutation_conflict(mutation_type mutat)
 
     // Already immune.
     if ((you.species == SP_GARGOYLE || you.species == SP_PYROLITH)
-        && mutat == MUT_POISON_RESISTANCE)
+         && mutat == MUT_POISON_RESISTANCE)
         return true;
-
-    // Gnolls can't get any stat-affecting mutations
-    if (you.species == SP_GNOLL)
-    {
-        if (mutat == MUT_STRONG
-            || mutat == MUT_CLEVER
-            || mutat == MUT_AGILE
-            || mutat == MUT_WEAK
-            || mutat == MUT_DOPEY
-            || mutat == MUT_CLUMSY
-            || mutat == MUT_THIN_SKELETAL_STRUCTURE
-            || mutat == MUT_ROUGH_BLACK_SCALES
-            || mutat == MUT_DETERIORATION)
-        {
-            return true;
-        }
-    }
 
     // We can't use is_useless_skill() here, since species that can still wear
     // body armour can sacrifice armour skill with Ru.
@@ -1440,8 +1448,7 @@ bool mutate(mutation_type which_mutation, const string &reason, bool failMsg,
 
         // Zin's protection.
         if (have_passive(passive_t::resist_mutation)
-            && (x_chance_in_y(you.piety, MAX_PIETY)
-                || x_chance_in_y(you.piety, MAX_PIETY + 22)))
+            && x_chance_in_y(you.piety, piety_breakpoint(5)))
         {
             simple_god_message(" protects your body from mutation!");
             return false;
@@ -2767,7 +2774,7 @@ void check_monster_detect()
             if (you.see_cell(*ri2))
             {
                 mon->flags |= MF_SENSED;
-                interrupt_activity(AI_SENSE_MONSTER);
+                interrupt_activity(activity_interrupt::sense_monster);
                 break;
             }
         }

@@ -4,7 +4,6 @@
 
 #include "ability.h"
 #include "adjust.h"
-#include "decks.h"
 #include "dungeon.h"
 #include "end.h"
 #include "files.h"
@@ -23,9 +22,7 @@
 #include "options.h"
 #include "prompt.h"
 #include "religion.h"
-#if TAG_MAJOR_VERSION == 34
-# include "shopping.h" // REMOVED_DEAD_SHOPS_KEY
-#endif
+#include "shopping.h"
 #include "skills.h"
 #include "spl-book.h"
 #include "spl-util.h"
@@ -74,7 +71,7 @@ static void _give_bonus_items()
 static void _autopickup_ammo(missile_type missile)
 {
     if (Options.autopickup_starting_ammo)
-        you.force_autopickup[OBJ_MISSILES][missile] = 1;
+        you.force_autopickup[OBJ_MISSILES][missile] = AP_FORCE_ON;
 }
 
 /**
@@ -222,7 +219,7 @@ static void _give_ammo(weapon_type weapon, int plus)
         if (species_can_throw_large_rocks(you.species))
             newgame_make_item(OBJ_MISSILES, MI_LARGE_ROCK, 4 + plus);
         else if (you.body_size(PSIZE_TORSO) <= SIZE_SMALL)
-            newgame_make_item(OBJ_MISSILES, MI_TOMAHAWK, 8 + 2 * plus);
+            newgame_make_item(OBJ_MISSILES, MI_BOOMERANG, 8 + 2 * plus);
         else
             newgame_make_item(OBJ_MISSILES, MI_JAVELIN, 5 + plus);
         newgame_make_item(OBJ_MISSILES, MI_THROWING_NET, 2);
@@ -260,16 +257,19 @@ static void _give_items_skills(const newgame_def& ng)
         break;
 
     case JOB_CHAOS_KNIGHT:
+    {
         you.religion = GOD_XOM;
         you.piety = 100;
-        you.gift_timeout = max(5, random2(40) + random2(40));
+        int timeout_rnd = random2(40);
+        timeout_rnd += random2(40); // force a sequence point between random2s
+        you.gift_timeout = max(5, timeout_rnd);
 
         if (species_apt(SK_ARMOUR) < species_apt(SK_DODGING))
             you.skills[SK_DODGING]++;
         else
             you.skills[SK_ARMOUR]++;
         break;
-
+    }
     case JOB_ABYSSAL_KNIGHT:
         you.religion = GOD_LUGONU;
         if (!crawl_state.game_is_sprint())
@@ -282,7 +282,6 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_ARMOUR]++;
 
         break;
-    
     case JOB_PRIMALIST:
         you.religion = GOD_ANADORATH;
         you.piety = 20;
@@ -310,31 +309,16 @@ static void _give_items_skills(const newgame_def& ng)
 
     if (job_gets_ranged_weapons(you.char_class))
         _give_ammo(ng.weapon, you.char_class == JOB_HUNTER ? 1 : 0);
-    
-    if (you.species == SP_PYROLITH)
-    {
-        you.skills[SK_AIR_MAGIC]        = 0;
-        you.skills[SK_BOWS]             = 0;
-        you.skills[SK_DODGING]          = 0;
-        you.skills[SK_ICE_MAGIC]        = 0;
-        you.skills[SK_POISON_MAGIC]     = 0;
-        you.skills[SK_SHORT_BLADES]     = 0;
-        you.skills[SK_SLINGS]           = 0;
-        you.skills[SK_STEALTH]          = 0;
-        you.skills[SK_THROWING]         = 0;
-        you.skills[SK_TRANSLOCATIONS]   = 0;
-        you.skills[SK_TRANSMUTATIONS]   = 0;
-    }
 
     if (you.species == SP_FELID)
     {
-        you.skills[SK_THROWING]         = 0;
-        you.skills[SK_SHIELDS]          = 0;
+        you.skills[SK_THROWING] = 0;
+        you.skills[SK_SHIELDS] = 0;
     }
 
     if (!you_worship(GOD_NO_GOD))
     {
-        you.worshipped[you.religion]    = 1;
+        you.worshipped[you.religion] = 1;
         set_god_ability_slots();
         if (!you_worship(GOD_XOM))
             you.piety_max[you.religion] = you.piety;
@@ -348,15 +332,8 @@ static void _give_starting_food()
         return;
 
     object_class_type base_type = OBJ_FOOD;
-    int sub_type = FOOD_BREAD_RATION;
+    int sub_type = FOOD_RATION;
     int quantity = 1;
-    if (you.species == SP_VAMPIRE)
-    {
-        base_type = OBJ_POTIONS;
-        sub_type  = POT_BLOOD;
-    }
-    else if (you.get_mutation_level(MUT_CARNIVOROUS))
-        sub_type = FOOD_MEAT_RATION;
 
     // Give another one for hungry species.
     if (you.get_mutation_level(MUT_FAST_METABOLISM))
@@ -391,13 +368,6 @@ static void _give_basic_knowledge()
 {
     identify_inventory();
 
-    for (const item_def& i : you.inv)
-        if (i.base_type == OBJ_BOOKS)
-            mark_had_book(i);
-
-    // Recognisable by appearance.
-    you.type_ids[OBJ_POTIONS][POT_BLOOD] = true;
-
     // Removed item types are handled in _set_removed_types_as_identified.
 }
 
@@ -410,12 +380,31 @@ static void _setup_generic(const newgame_def& ng);
 // Initialise a game based on the choice stored in ng.
 void setup_game(const newgame_def& ng)
 {
-    crawl_state.type = ng.type;
+    crawl_state.type = ng.type; // by default
+    if (Options.seed_from_rc && ng.type != GAME_TYPE_CUSTOM_SEED)
+    {
+        // rc seed overrides seed from other sources, and forces a normal game
+        // to be a custom seed game. There is currently no special designation
+        // for sprint etc. games that involve a custom seed.
+        // TODO: does this make any sense for hints mode?
+        Options.seed = Options.seed_from_rc;
+        if (ng.type == GAME_TYPE_NORMAL)
+            crawl_state.type = GAME_TYPE_CUSTOM_SEED;
+    }
+    else if (Options.seed && ng.type != GAME_TYPE_CUSTOM_SEED)
+    {
+        // there's a seed lingering in the options, but we shouldn't use it.
+        Options.seed = 0;
+    }
+    else if (!Options.seed && ng.type == GAME_TYPE_CUSTOM_SEED)
+        crawl_state.type = GAME_TYPE_NORMAL;
+
     crawl_state.map  = ng.map;
 
     switch (crawl_state.type)
     {
     case GAME_TYPE_NORMAL:
+    case GAME_TYPE_CUSTOM_SEED:
         _setup_normal_game();
         break;
     case GAME_TYPE_TUTORIAL:
@@ -481,15 +470,31 @@ static void _free_up_slot(char letter)
     }
 }
 
+void initial_dungeon_setup()
+{
+    rng_generator levelgen_rng(BRANCH_DUNGEON);
+
+    initialise_branch_depths();
+    initialise_temples();
+    init_level_connectivity();
+    initialise_item_descriptions();
+}
+
 static void _setup_generic(const newgame_def& ng)
 {
+    reset_rng(); // initialize rng from Options.seed
     _init_player();
+    you.game_seed = crawl_state.seed;
 
 #if TAG_MAJOR_VERSION == 34
     // Avoid the remove_dead_shops() Gozag fixup in new games: see
     // ShoppingList::item_type_identified().
     you.props[REMOVED_DEAD_SHOPS_KEY] = true;
 #endif
+
+    // Needs to happen before we give the player items, so that it's safe to
+    // check whether those items need to be removed from their shopping list.
+    shopping_list.refresh();
 
     you.your_name  = ng.name;
     you.species    = ng.species;
@@ -534,7 +539,11 @@ static void _setup_generic(const newgame_def& ng)
 
     _give_basic_knowledge();
 
-    initialise_item_descriptions();
+    // Must be after _give_basic_knowledge
+    add_held_books_to_library();
+
+    if (you.char_class == JOB_WANDERER)
+        memorise_wanderer_spell();
 
     // A first pass to link the items properly.
     for (int i = 0; i < ENDOFPACK; ++i)
@@ -547,6 +556,9 @@ static void _setup_generic(const newgame_def& ng)
         item.slot = index_to_letter(item.link);
         item_colour(item);  // set correct special and colour
     }
+
+    if (you.equip[EQ_WEAPON] > 0)
+        swap_inv_slots(0, you.equip[EQ_WEAPON], false);
 
     // A second pass to apply the item_slot option.
     for (auto &item : you.inv)
@@ -562,7 +574,7 @@ static void _setup_generic(const newgame_def& ng)
 
     reassess_starting_skills();
     init_skill_order();
-    init_can_train();
+    init_can_currently_train();
     init_train();
     init_training();
 
@@ -579,9 +591,7 @@ static void _setup_generic(const newgame_def& ng)
     set_hp(you.hp_max);
     set_mp(you.max_magic_points);
 
-    initialise_branch_depths();
-    initialise_temples();
-    init_level_connectivity();
+    initial_dungeon_setup();
 
     // Generate the second name of Jiyva
     fix_up_jiyva_name();

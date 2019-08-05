@@ -193,7 +193,7 @@ bool monster::add_ench(const mon_enchant &ench)
         || ench.ench == ENCH_FRIENDLY_BRIBED
         || ench.ench == ENCH_HEXED)
     {
-        align_avatars(true);
+        remove_summons();
     }
     return true;
 }
@@ -325,6 +325,17 @@ void monster::add_enchantment_effect(const mon_enchant &ench, bool quiet)
         mprf(MSGCH_WARN, "A violent storm begins to rage around %s.",
              name(DESC_THE).c_str());
         break;
+
+    case ENCH_VILE_CLUTCH:
+    case ENCH_GRASPING_ROOTS:
+    {
+        actor *source_actor = actor_by_mid(ench.source, true);
+        const string noun = ench.ench == ENCH_VILE_CLUTCH ? "Zombie hands" :
+                                                            "Roots";
+        source_actor->start_constricting(*this);
+        mprf(MSGCH_WARN, "%s grab %s.", noun.c_str(), name(DESC_THE).c_str());
+        break;
+    }
 
     default:
         break;
@@ -621,7 +632,7 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
         if (you.can_see(*this))
         {
             // and fire activity interrupts
-            interrupt_activity(AI_SEE_MONSTER,
+            interrupt_activity(activity_interrupt::see_monster,
                                activity_interrupt_data(this, SC_UNCHARM));
         }
 
@@ -741,7 +752,7 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
         else if (you.see_cell(pos()) && feat_is_watery(grd(pos())))
         {
             mpr("Something invisible bursts forth from the water.");
-            interrupt_activity(AI_FORCE_INTERRUPT);
+            interrupt_activity(activity_interrupt::force);
         }
         break;
 
@@ -861,16 +872,6 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
             mprf("%s toxic aura wanes.", name(DESC_ITS).c_str());
         break;
 
-    case ENCH_GRASPING_ROOTS_SOURCE:
-        if (!quiet && you.see_cell(pos()))
-            mpr("The grasping roots settle back into the ground.");
-
-        // Done here to avoid duplicate messages
-        if (you.duration[DUR_GRASPING_ROOTS])
-            check_grasping_roots(you, true);
-
-        break;
-
     case ENCH_FIRE_VULN:
         if (!quiet)
             simple_monster_message(*this, " is no longer more vulnerable to fire.");
@@ -972,6 +973,25 @@ void monster::remove_enchantment_effect(const mon_enchant &me, bool quiet)
         if (!quiet)
             simple_monster_message(*this, " is no longer infested.");
         break;
+
+    case ENCH_VILE_CLUTCH:
+    case ENCH_GRASPING_ROOTS:
+    {
+        const string noun = me.ench == ENCH_VILE_CLUTCH ? "zombie hands"
+                                                        : "roots";
+        if (is_constricted())
+        {
+            // We handle the end-of-enchantment message here since the method
+            // of constriction is no longer detectable.
+            if (!quiet && you.can_see(*this))
+            {
+                mprf("The %s release their grip on %s.", noun.c_str(),
+                        name(DESC_THE).c_str());
+            }
+            stop_being_constricted(true);
+        }
+        break;
+    }
 
     case ENCH_STILL_WINDS:
         end_still_winds();
@@ -1113,85 +1133,6 @@ bool monster::clear_far_engulf(void)
     if (nonadj)
         del_ench(ENCH_WATER_HOLD);
     return nonadj;
-}
-
-static void _entangle_actor(actor* act)
-{
-    if (act->is_player())
-    {
-        you.duration[DUR_GRASPING_ROOTS] = 10;
-        you.redraw_evasion = true;
-        if (you.duration[DUR_FLIGHT] || you.attribute[ATTR_PERM_FLIGHT])
-        {
-            you.attribute[ATTR_LAST_FLIGHT_STATUS] =
-                you.attribute[ATTR_PERM_FLIGHT];
-            you.duration[DUR_FLIGHT] = 0;
-            you.attribute[ATTR_PERM_FLIGHT] = 0;
-            land_player(true);
-        }
-    }
-    else
-    {
-        monster* mact = act->as_monster();
-        mact->add_ench(mon_enchant(ENCH_GRASPING_ROOTS, 1, nullptr, INFINITE_DURATION));
-    }
-}
-
-// Returns true if there are any affectable hostiles are in range of the effect
-// (whether they were affected or not this round)
-static bool _apply_grasping_roots(monster* mons)
-{
-    if (you.see_cell(mons->pos()) && one_chance_in(12))
-    {
-        mprf(MSGCH_TALK_VISUAL, "%s", random_choose(
-                "Tangled roots snake along the ground.",
-                "The ground creaks as gnarled roots bulge its surface.",
-                "A root reaches out and grasps at passing movement."));
-    }
-
-    bool found_hostile = false;
-    for (actor_near_iterator ai(mons, LOS_NO_TRANS); ai; ++ai)
-    {
-        if (mons_aligned(mons, *ai) || ai->is_insubstantial())
-            continue;
-
-        found_hostile = true;
-
-        // Roots can't reach things over deep water or lava
-        if (!feat_has_solid_floor(grd(ai->pos())))
-            continue;
-
-        // Some messages are suppressed for monsters, to reduce message spam.
-        if (ai->airborne())
-        {
-            if (x_chance_in_y(3, 5))
-                continue;
-
-            if (x_chance_in_y(10, 50 - ai->evasion()))
-            {
-                if (ai->is_player())
-                    mpr("Roots rise up to grasp you, but you nimbly evade.");
-                continue;
-            }
-
-            if (you.can_see(**ai))
-            {
-                mprf("Roots rise up from beneath %s and drag %s %sto the ground.",
-                     ai->name(DESC_THE).c_str(),
-                     ai->pronoun(PRONOUN_OBJECTIVE).c_str(),
-                     ai->is_monster() ? "" : "back ");
-            }
-        }
-        else if (ai->is_player() && !you.duration[DUR_GRASPING_ROOTS])
-        {
-            mprf("Roots grasp at your %s, making movement difficult.",
-                 you.foot_name(true).c_str());
-        }
-
-        _entangle_actor(*ai);
-    }
-
-    return found_hostile;
 }
 
 // Returns true if you resist the merfolk avatar's call.
@@ -1450,7 +1391,6 @@ void monster::apply_enchantment(const mon_enchant &me)
     case ENCH_SAP_MAGIC:
     case ENCH_CORROSION:
     case ENCH_GOLD_LUST:
-    case ENCH_DISTRACTED_ACROBATICS:
     case ENCH_RESISTANCE:
     case ENCH_HEXED:
     case ENCH_BRILLIANCE_AURA:
@@ -1461,6 +1401,9 @@ void monster::apply_enchantment(const mon_enchant &me)
     case ENCH_BLACK_MARK:
     case ENCH_STILL_WINDS:
     case ENCH_RING_OF_THUNDER:
+    case ENCH_WHIRLWIND_PINNED:
+    case ENCH_VILE_CLUTCH:
+    case ENCH_GRASPING_ROOTS:
         decay_enchantment(en);
         break;
 
@@ -1564,30 +1507,6 @@ void monster::apply_enchantment(const mon_enchant &me)
         {
             simple_monster_message(*this, " burns!");
             dprf("sticky flame damage: %d", dam);
-
-            if (mons_genus(type) == MONS_SHEEP)
-            {
-                for (adjacent_iterator ai(pos()); ai; ++ai)
-                {
-                    monster *mon = monster_at(*ai);
-                    if (mon
-                        && (mons_genus(mon->type) == MONS_SHEEP)
-                        && !mon->has_ench(ENCH_STICKY_FLAME)
-                        && coinflip())
-                    {
-                        const int dur = me.degree/2 + 1 + random2(me.degree);
-                        mon->add_ench(mon_enchant(ENCH_STICKY_FLAME, dur,
-                                                  me.agent()));
-                        mon->add_ench(mon_enchant(ENCH_FEAR, dur + random2(20),
-                                                  me.agent()));
-                        if (visible_to(&you))
-                            mprf("%s catches fire!", mon->name(DESC_A).c_str());
-                        behaviour_event(mon, ME_SCARE, me.agent());
-                        xom_is_stimulated(100);
-                    }
-                }
-            }
-
             hurt(me.agent(), dam, BEAM_STICKY_FLAME);
         }
 
@@ -1729,10 +1648,12 @@ void monster::apply_enchantment(const mon_enchant &me)
             maybe_bloodify_square(base_position);
             add_ench(ENCH_SEVERED);
 
-            // Severed tentacles immediately become "hostile" to everyone (or insane)
+            // Severed tentacles immediately become "hostile" to everyone
+            // (or insane)
             attitude = ATT_NEUTRAL;
             mons_att_changed(this);
-            behaviour_event(this, ME_ALERT);
+            if (!crawl_state.game_is_arena())
+                behaviour_event(this, ME_ALERT);
         }
     }
     break;
@@ -1757,7 +1678,8 @@ void monster::apply_enchantment(const mon_enchant &me)
 
             attitude = ATT_HOSTILE;
             mons_att_changed(this);
-            behaviour_event(this, ME_ALERT, &you);
+            if (!crawl_state.game_is_arena())
+                behaviour_event(this, ME_ALERT, &you);
         }
     }
     break;
@@ -1811,6 +1733,19 @@ void monster::apply_enchantment(const mon_enchant &me)
         if (decay_enchantment(en))
         {
             add_ench(ENCH_TORNADO_COOLDOWN);
+            if (you.can_see(*this))
+            {
+                mprf("The winds around %s start to calm down.",
+                     name(DESC_THE).c_str());
+            }
+        }
+        break;
+
+    case ENCH_VORTEX:
+        tornado_damage(this, speed_to_duration(speed), true);
+        if (decay_enchantment(en))
+        {
+            add_ench(ENCH_VORTEX_COOLDOWN);
             if (you.can_see(*this))
             {
                 mprf("The winds around %s start to calm down.",
@@ -1876,8 +1811,9 @@ void monster::apply_enchantment(const mon_enchant &me)
             if (res_water_drowning() <= 0)
             {
                 lose_ench_duration(me, -speed_to_duration(speed));
+                int dur = speed_to_duration(speed); // sequence point for randomness
                 int dam = div_rand_round((50 + stepdown((float)me.duration, 30.0))
-                                          * speed_to_duration(speed),
+                                          * dur,
                             BASELINE_DELAY * 10);
                 if (res_water_drowning() < 0)
                     dam = dam * 3 / 2;
@@ -1914,16 +1850,8 @@ void monster::apply_enchantment(const mon_enchant &me)
         decay_enchantment(en);
         break;
 
-    case ENCH_GRASPING_ROOTS_SOURCE:
-        if (!_apply_grasping_roots(this))
-            decay_enchantment(en);
-        break;
-
-    case ENCH_GRASPING_ROOTS:
-        check_grasping_roots(*this);
-        break;
-
     case ENCH_TORNADO_COOLDOWN:
+    case ENCH_VORTEX_COOLDOWN:
         if (decay_enchantment(en))
         {
             remove_tornado_clouds(mid);
@@ -1982,6 +1910,20 @@ void monster::mark_summoned(int longevity, bool mark_items, int summon_type, boo
             ii->flags |= ISFLAG_SUMMONED;
 }
 
+/* Is the monster temporarily summoned?
+ *
+ * Monsters must have ENCH_ABJ (giving how long they last) to be considered
+ * summons. If they additionally set ENCH_SUMMON, which gives how they were
+ * derived, this must not be from certain spells or "monster summoning types"
+ * we don't consider actual summons. Temporary monsters with
+ * ENCH_FAKE_ABJURATION also aren't summons, and durably summoned monsters
+ * aren't temporary.
+ *
+ * @param[out] duration    The monster's summon duration in aut.
+ * @param[out] summon_type The monster's means of summoning. If negative, this
+ *                         is a mon_summon_type, otherwise it's a spell_type.
+ * @returns True if the monster is a temporary summon, false otherwise.
+ */
 bool monster::is_summoned(int* duration, int* summon_type) const
 {
     const mon_enchant abj = get_ench(ENCH_ABJ);
@@ -2008,19 +1950,16 @@ bool monster::is_summoned(int* duration, int* summon_type) const
     if (summon_type != nullptr)
         *summon_type = summ.degree;
 
+    // Conjured things (fire vortices, ball lightning, IOOD) are not summoned.
     if (mons_is_conjured(type))
         return false;
 
+    // Certain spells or monster summon types that set abjuration but aren't
+    // considered summons.
     switch (summ.degree)
     {
     // Temporarily dancing weapons are really there.
     case SPELL_TUKIMAS_DANCE:
-
-    // A corpse/skeleton which was temporarily animated.
-    case SPELL_ANIMATE_DEAD:
-    case SPELL_ANIMATE_SKELETON:
-
-    // Conjured stuff (fire vortices, ball lightning, IOOD) is handled above.
 
     // Clones aren't really summoned (though their equipment might be).
     case MON_SUMM_CLONE:
@@ -2134,7 +2073,11 @@ static const char *enchant_names[] =
     "control_winds", "wind_aided",
 #endif
     "summon_capped",
-    "toxic_radiance", "grasping_roots_source", "grasping_roots",
+    "toxic_radiance",
+#if TAG_MAJOR_VERSION == 34
+    "grasping_roots_source",
+#endif
+    "grasping_roots",
     "iood_charged", "fire_vuln", "tornado_cooldown", "merfolk_avatar_song",
     "barbs",
 #if TAG_MAJOR_VERSION == 34
@@ -2161,7 +2104,8 @@ static const char *enchant_names[] =
 #endif
     "aura_of_brilliance", "empowered_spells", "gozag_incite", "pain_bond",
     "idealised", "bound_soul", "infestation",
-    "stilling the winds", "thunder_ringed", "distracted by acrobatics",
+    "stilling the winds", "thunder_ringed", "pinned_by_whirlwind",
+    "vortex", "vortex_cooldown", "vile_clutch",
     "buggy",
 };
 
@@ -2356,10 +2300,13 @@ int mon_enchant::calc_duration(const monster* mons,
         cturn = 1200 / _mod_speed(200, mons->speed);
         break;
     case ENCH_SLOWLY_DYING:
+    {
         // This may be a little too direct but the randomization at the end
         // of this function is excessive for toadstools. -cao
+        int dur = speed_to_duration(mons->speed); // uses div_rand_round, so we need a sequence point
         return (2 * FRESHEST_CORPSE + random2(10))
-                  * speed_to_duration(mons->speed);
+                  * dur;
+    }
     case ENCH_SPORE_PRODUCTION:
         // This is used as a simple timer, when the enchantment runs out
         // the monster will create a ballistomycete spore.
@@ -2418,6 +2365,9 @@ int mon_enchant::calc_duration(const monster* mons,
         break;
     case ENCH_TORNADO_COOLDOWN:
         cturn = random_range(25, 35) * 10 / _mod_speed(10, mons->speed);
+        break;
+    case ENCH_VORTEX_COOLDOWN:
+        cturn = random_range(7, 17) * 10 / _mod_speed(10, mons->speed);
         break;
     case ENCH_FROZEN:
         cturn = 3 * BASELINE_DELAY;

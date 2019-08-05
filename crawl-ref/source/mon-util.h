@@ -8,6 +8,7 @@
 #include <functional>
 
 #include "enum.h"
+#include "gender-type.h"
 #include "los-type.h"
 #include "mon-enum.h"
 #include "mon-inv-type.h"
@@ -209,7 +210,7 @@ bool give_monster_proper_name(monster& mon, bool orcs_only = true);
 
 bool mons_flattens_trees(const monster& mon);
 size_type mons_class_body_size(monster_type mc);
-bool mons_class_res_wind(monster_type mc);
+bool mons_class_res_tornado(monster_type mc);
 
 mon_itemuse_type mons_class_itemuse(monster_type mc);
 mon_itemuse_type mons_itemuse(const monster& mon);
@@ -245,7 +246,7 @@ bool mons_class_sees_invis(monster_type type, monster_type base);
 bool mons_immune_magic(const monster& mon);
 
 mon_attack_def mons_attack_spec(const monster& mon, int attk_number, bool base_flavour = false);
-string mon_attack_name(attack_type attack);
+string mon_attack_name(attack_type attack, bool with_object = true);
 bool flavour_triggers_damageless(attack_flavour flavour);
 int flavour_damage(attack_flavour flavour, int HD, bool random = true);
 
@@ -346,11 +347,11 @@ bool mons_has_los_ability(monster_type mon_type);
 bool mons_has_ranged_spell(const monster& mon, bool attack_only = false,
                            bool ench_too = true);
 bool mons_has_ranged_attack(const monster& mon);
-bool mons_has_known_ranged_attack(const monster& mon);
 bool mons_can_attack(const monster& mon);
 bool mons_has_incapacitating_spell(const monster& mon, const actor& foe);
 bool mons_has_incapacitating_ranged_attack(const monster& mon, const actor& foe);
 
+gender_type mons_class_gender(monster_type mc);
 const char *mons_pronoun(monster_type mon_type, pronoun_type variant,
                          bool visible = true);
 
@@ -381,6 +382,7 @@ bool mons_is_slime(const monster& mon);
 bool mons_class_is_plant(monster_type mc);
 bool mons_is_plant(const monster& mon);
 bool mons_eats_items(const monster& mon);
+bool actor_is_susceptible_to_vampirism(const actor& act);
 monster_type mons_genus(monster_type mc);
 monster_type mons_species(monster_type mc);
 monster_type draco_or_demonspawn_subspecies(const monster& mon);
@@ -563,10 +565,12 @@ bool mons_is_notable(const monster& mon);
 
 int max_mons_charge(monster_type m);
 
-void init_mutant_beast(monster &mon, short HD, vector<int> beast_facets,
-                       set<int> avoid_facets);
-void radiate_pain_bond(const monster& mon, int damage, const monster* original_target);
+void init_mutant_beast(monster &mon, short HD, vector<int> beast_facets);
+
+void radiate_pain_bond(const monster& mon, int damage,
+                       const monster* original_target);
 void throw_monster_bits(const monster& mon);
+
 void set_ancestor_spells(monster &ancestor, bool notify = false);
 
 typedef function<bool (monster& mon)> monster_func;

@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "ability.h"
+#include "art-enum.h"
 #include "areas.h"
 #include "branch.h"
 #include "colour.h"
@@ -35,9 +36,11 @@
 #include "misc.h"
 #include "mutation.h"
 #include "notes.h"
+#include "player-equip.h"
 #include "player-stats.h"
 #include "prompt.h"
 #include "religion.h"
+#include "scroller.h"
 #include "showsymb.h"
 #include "skills.h"
 #include "state.h"
@@ -288,7 +291,7 @@ static int _god_status_colour(int default_colour);
 #define HUD_CAPTION_COLOUR Options.status_caption_colour
 
 // Colour for values, which come after captions.
-static const short HUD_VALUE_COLOUR = LIGHTGREY;
+static const auto HUD_VALUE_COLOUR = LIGHTGREY;
 
 // ----------------------------------------------------------------------
 // colour_bar
@@ -502,14 +505,13 @@ static bool _boosted_ac()
 
 static bool _boosted_ev()
 {
-    return you.duration[DUR_AGILITY];
+    return you.duration[DUR_AGILITY] || acrobat_boost_active();
 }
 
 static bool _boosted_sh()
 {
     return you.duration[DUR_DIVINE_SHIELD]
-           || qazlal_sh_boost() > 0
-           || you.attribute[ATTR_BONE_ARMOUR] > 0;
+           || qazlal_sh_boost() > 0;
 }
 
 #ifdef DGL_SIMPLE_MESSAGING
@@ -547,14 +549,14 @@ void update_turn_count()
     // Show the turn count starting from 1. You can still quit on turn 0.
     textcolour(HUD_VALUE_COLOUR);
     if (Options.show_game_time)
-    {
-        CPRINTF("%.1f (%.1f)%s", you.elapsed_time / 10.0,
-                (you.elapsed_time - you.elapsed_time_at_last_input) / 10.0,
-                // extra spaces to erase excess if previous output was longer
-                "    ");
-    }
+        CPRINTF("%.1f", you.elapsed_time / 10.0);
     else
         CPRINTF("%d", you.num_turns);
+
+    CPRINTF(" (%.1f)%s",
+            (you.elapsed_time - you.elapsed_time_at_last_input) / 10.0,
+            // extra spaces to erase excess if previous output was longer
+            "    ");
     textcolour(LIGHTGREY);
 }
 
@@ -591,6 +593,7 @@ static void _print_stats_equip(int x, int y)
             if (you.slot_item(eqslot))
             {
                 cglyph_t g = get_item_glyph(*(you.slot_item(eqslot)));
+                g.col = element_colour(g.col, !Options.animate_equip_bar);
                 formatted_string::parse_string(glyph_to_tagstr(g)).display();
             }
             else if (!you_can_wear(eqslot, true))
@@ -731,11 +734,21 @@ static void _print_stats_mp(int x, int y)
     if (!boosted)
         textcolour(HUD_VALUE_COLOUR);
     CPRINTF("/%d", you.max_magic_points);
-    if (boosted)
-        textcolour(HUD_VALUE_COLOUR);
 
     int col = _count_digits(you.magic_points)
               + _count_digits(you.max_magic_points) + 1;
+
+    int real_mp = get_real_mp(false);
+    if (you.species == SP_DEEP_DWARF
+        && real_mp != you.max_magic_points)
+    {
+        CPRINTF(" (%d)", real_mp);
+        col += _count_digits(real_mp) + 3;
+    }
+
+    if (boosted)
+        textcolour(HUD_VALUE_COLOUR);
+
     for (int i = 11-col; i > 0; i--)
         CPRINTF(" ");
 
@@ -749,7 +762,7 @@ static void _print_stats_mp(int x, int y)
 
 static void _print_stats_hp(int x, int y)
 {
-    int max_max_hp = get_real_hp(true, true);
+    int max_max_hp = get_real_hp(true, false);
 
     // Calculate colour
     short hp_colour = HUD_VALUE_COLOUR;
@@ -761,7 +774,7 @@ static void _print_stats_hp(int x, int y)
     else
     {
         const int hp_percent =
-            (you.hp * 100) / get_real_hp(true, false);
+            (you.hp * 100) / get_real_hp(true, true);
 
         for (const auto &entry : Options.hp_colour)
             if (hp_percent <= entry.first)
@@ -797,10 +810,6 @@ static void _print_stats_hp(int x, int y)
 
 static short _get_stat_colour(stat_type stat)
 {
-    // If player is Gnoll, stats don't change; always return HUD_VALUE_COLOUR
-    if (you.species == SP_GNOLL)
-        return HUD_VALUE_COLOUR;
-
     if (you.duration[stat_zero_duration(stat)])
         return LIGHTRED;
 
@@ -842,39 +851,41 @@ static void _print_stat(stat_type stat, int x, int y)
 static void _print_stats_ac(int x, int y)
 {
     // AC:
-    CGOTOXY(x+4, y, GOTO_STAT);
+    auto text_col = HUD_VALUE_COLOUR;
     if (_boosted_ac())
-        textcolour(LIGHTBLUE);
+        text_col = LIGHTBLUE;
     else if (you.duration[DUR_CORROSION])
-        textcolour(RED);
-    else
-        textcolour(HUD_VALUE_COLOUR);
+        text_col = RED;
+
     string ac = make_stringf("%2d ", you.armour_class());
 #ifdef WIZARD
     if (you.wizard)
         ac += make_stringf("(%d%%) ", you.gdr_perc());
 #endif
+    textcolour(text_col);
+    CGOTOXY(x+4, y, GOTO_STAT);
     CPRINTF("%-12s", ac.c_str());
 
     // SH: (two lines lower)
-    CGOTOXY(x+4, y+2, GOTO_STAT);
+    text_col = HUD_VALUE_COLOUR;
     if (you.incapacitated() && you.shielded())
-        textcolour(RED);
+        text_col = RED;
     else if (_boosted_sh())
-        textcolour(LIGHTBLUE);
-    else
-        textcolour(HUD_VALUE_COLOUR);
+        text_col = LIGHTBLUE;
+
     string sh = make_stringf("%2d ", player_displayed_shield_class());
+    textcolour(text_col);
+    CGOTOXY(x+4, y+2, GOTO_STAT);
     CPRINTF("%-12s", sh.c_str());
 }
 
 static void _print_stats_ev(int x, int y)
 {
     CGOTOXY(x+4, y, GOTO_STAT);
-    textcolour(you.duration[DUR_PETRIFYING] || you.duration[DUR_GRASPING_ROOTS]
-              || you.cannot_move() ? RED :
-              _boosted_ev()
-              ? LIGHTBLUE : HUD_VALUE_COLOUR);
+    textcolour(you.duration[DUR_PETRIFYING]
+               || you.cannot_move() ? RED
+                                    : _boosted_ev() ? LIGHTBLUE
+                                                    : HUD_VALUE_COLOUR);
     CPRINTF("%2d ", you.evasion());
 }
 
@@ -993,7 +1004,7 @@ static void _add_status_light_to_out(int i, vector<status_light>& out)
 {
     status_info inf;
 
-    if (fill_status_info(i, &inf) && !inf.light_text.empty())
+    if (fill_status_info(i, inf) && !inf.light_text.empty())
     {
         status_light sl(inf.light_colour, inf.light_text);
         out.push_back(sl);
@@ -1479,7 +1490,41 @@ void draw_border()
     // Line 8 is exp pool, Level
 }
 
-void redraw_screen()
+#ifndef USE_TILE_LOCAL
+void redraw_console_sidebar()
+{
+    // TODO: this is super hacky and merges stuff from redraw_screen and
+    // viewwindow. It won't do nothing for webtiles, but should be basically
+    // benign there.
+    draw_border();
+
+    you.redraw_title        = true;
+    you.redraw_hit_points   = true;
+    you.redraw_magic_points = true;
+    you.redraw_stats.init(true);
+    you.redraw_armour_class  = true;
+    you.redraw_evasion       = true;
+    you.redraw_experience    = true;
+    you.wield_change         = true;
+    you.redraw_quiver        = true;
+    you.redraw_status_lights = true;
+
+    print_stats();
+
+    {
+        no_notes nx;
+        print_stats_level();
+        update_turn_count();
+    }
+    puttext(crawl_view.viewp.x, crawl_view.viewp.y, crawl_view.vbuf);
+    update_monster_pane();
+
+    you.flash_colour = BLACK;
+    you.flash_where = 0;
+}
+#endif
+
+void redraw_screen(bool show_updates)
 {
     if (!crawl_state.need_save)
     {
@@ -1489,7 +1534,8 @@ void redraw_screen()
     }
 
 #ifdef USE_TILE_WEB
-    tiles.close_all_menus();
+    if (!ui::has_layout())
+        tiles.pop_all_ui_layouts();
 #endif
 
     draw_border();
@@ -1519,13 +1565,15 @@ void redraw_screen()
     if (Options.messages_at_top)
     {
         display_message_window();
-        viewwindow();
+        viewwindow(show_updates);
     }
     else
     {
-        viewwindow();
+        viewwindow(show_updates);
         display_message_window();
     }
+    // normalize the cursor region independent of messages_at_top
+    set_cursor_region(GOTO_MSG);
 
     update_screen();
 }
@@ -1864,7 +1912,7 @@ static const char* _determine_colour_string(int level, int max_level)
     }
 }
 
-static int _stealth_breakpoint(int stealth)
+int stealth_breakpoint(int stealth)
 {
     if (stealth == 0)
         return 0;
@@ -1882,7 +1930,7 @@ static string _stealth_bar(int sw)
     //no colouring
     bar += _determine_colour_string(0, 5);
     bar += "Stlth    ";
-    const int stealth_num = _stealth_breakpoint(player_stealth());
+    const int stealth_num = stealth_breakpoint(player_stealth());
     for (int i = 0; i < stealth_num; i++)
         bar += "+";
     for (int i = 0; i < 10 - stealth_num; i++)
@@ -2133,7 +2181,7 @@ static vector<formatted_string> _get_overview_stats()
 
     entry.cprintf("%d/%d", you.hp, you.hp_max);
     if (player_rotted())
-        entry.cprintf(" (%d)", get_real_hp(true, true));
+        entry.cprintf(" (%d)", get_real_hp(true, false));
 
     cols.add_formatted(0, entry.to_colour_string(), false);
     entry.clear();
@@ -2150,6 +2198,11 @@ static vector<formatted_string> _get_overview_stats()
         entry.textcolour(HUD_VALUE_COLOUR);
 
     entry.cprintf("%d/%d", you.magic_points, you.max_magic_points);
+    if (you.species == SP_DEEP_DWARF
+        && get_real_mp(false) != you.max_magic_points)
+    {
+        entry.cprintf(" (%d)", get_real_mp(false));
+    }
 
     cols.add_formatted(0, entry.to_colour_string(), false);
     entry.clear();
@@ -2368,13 +2421,17 @@ static vector<formatted_string> _get_overview_resistances(
     const int rmagi = player_res_magic(calc_unid) / MR_PIP;
     out += _resist_composer("MR", cwidth, rmagi, 5) + "\n";
 
-    out += _stealth_bar(get_number_of_cols()) + "\n";
+    out += _stealth_bar(20) + "\n";
 
     const int regen = player_regen(); // round up
     out += make_stringf("HPRegen  %d.%d%d/turn\n", regen/100, regen/10%10, regen%10);
 
-    const int mp_regen = player_mp_regen(); // round up
-    out += make_stringf("MPRegen  %d.%d%d/turn\n", mp_regen/100, mp_regen/10%10, mp_regen%10);
+    const bool etheric = player_equip_unrand(UNRAND_ETHERIC_CAGE);
+    const int mp_regen = player_mp_regen() //round up
+                         + (etheric ? 50 : 0); // on average
+    out += make_stringf("MPRegen  %d.%02d/turn%s\n",
+                        mp_regen / 100, mp_regen % 100,
+                        etheric ? "*" : "");
 
     cols.add_formatted(0, out, false);
 
@@ -2435,41 +2492,52 @@ static vector<formatted_string> _get_overview_resistances(
     return cols.formatted_lines();
 }
 
-// New scrollable status overview screen, including stats, mutations etc.
-static char _get_overview_screen_results()
+class overview_popup : public formatted_scroller
 {
-    bool calc_unid = false;
-    formatted_scroller overview;
+public:
+    overview_popup() {};
+    vector<char> equip_chars;
+private:
+    bool process_key(int ch) override
+    {
+        if (find(equip_chars.begin(), equip_chars.end(), ch) != equip_chars.end())
+        {
+            item_def& item = you.inv[letter_to_index(ch)];
+            if (!describe_item(item))
+                return false;
+            return true;
+        }
+        return formatted_scroller::process_key(ch);
+    };
+};
 
-    overview.set_flags(MF_SINGLESELECT | MF_ALWAYS_SHOW_MORE | MF_NOWRAP);
+void print_overview_screen()
+{
+    // TODO: this should handle window resizes
+    constexpr int num_cols = 80;
+    bool calc_unid = false;
+    overview_popup overview;
+
     overview.set_more();
     overview.set_tag("resists");
 
-    overview.add_text(_overview_screen_title(get_number_of_cols()));
+    overview.add_text(_overview_screen_title(num_cols));
 
     for (const formatted_string &bline : _get_overview_stats())
-        overview.add_item_formatted_string(bline);
-    overview.add_text(" ");
+        overview.add_formatted_string(bline, true);
+    overview.add_text("\n");
 
     {
-        vector<char> equip_chars;
         vector<formatted_string> blines =
-            _get_overview_resistances(equip_chars, calc_unid, get_number_of_cols());
+            _get_overview_resistances(overview.equip_chars, calc_unid, num_cols);
 
         for (unsigned int i = 0; i < blines.size(); ++i)
-        {
-            // Kind of a hack -- we don't really care what items these
-            // hotkeys go to. So just pick the first few.
-            const char hotkey = (i < equip_chars.size()) ? equip_chars[i] : 0;
-            overview.add_item_formatted_string(blines[i], hotkey);
-        }
+            overview.add_text(blines[i].to_colour_string() + "\n");
     }
 
-    overview.add_text(" ");
-    overview.add_text(_status_mut_rune_list(get_number_of_cols()));
-
-    vector<MenuEntry *> results = overview.show();
-    return (!results.empty()) ? results[0]->hotkeys[0] : 0;
+    overview.add_text("\n");
+    overview.add_text(_status_mut_rune_list(num_cols));
+    overview.show();
 }
 
 string dump_overview_screen(bool full_id)
@@ -2504,22 +2572,6 @@ string dump_overview_screen(bool full_id)
     return text;
 }
 
-void print_overview_screen()
-{
-    while (true)
-    {
-        char c = _get_overview_screen_results();
-        if (!c)
-            break;
-
-        item_def& item = you.inv[letter_to_index(c)];
-        if (!describe_item(item))
-            break;
-        // loop around for another go.
-    }
-    redraw_screen();
-}
-
 static string _annotate_form_based(string desc, bool suppressed)
 {
     if (suppressed)
@@ -2539,6 +2591,10 @@ string mutation_overview()
 {
     string mtext;
     vector<string> mutations;
+
+    const char* size_adjective = get_size_adj(you.body_size(PSIZE_BODY), true);
+    if (size_adjective)
+        mutations.emplace_back(size_adjective);
 
     for (const string& str : fake_mutations(you.species, true))
     {
@@ -2655,7 +2711,7 @@ string _status_mut_rune_list(int sw)
     status_info inf;
     for (unsigned i = 0; i <= STATUS_LAST_STATUS; ++i)
     {
-        if (fill_status_info(i, &inf) && !inf.short_text.empty())
+        if (fill_status_info(i, inf) && !inf.short_text.empty())
             status.emplace_back(inf.short_text);
     }
 

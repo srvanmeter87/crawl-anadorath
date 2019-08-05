@@ -29,6 +29,7 @@
 #include "player-stats.h"
 #include "stringutil.h"
 #include "state.h"
+#include "terrain.h"
 #include "transform.h"
 #include "traps.h"
 #include "travel.h"
@@ -61,8 +62,17 @@ static bool _mons_has_path_to_player(const monster* mon, bool want_move = false)
     if (mon->travel_target == MTRAV_FOE)
         return true;
 
-    if (mon->travel_target == MTRAV_KNOWN_UNREACHABLE)
+    // use MTRAV_KNOWN_UNREACHABLE as a cache, but only for monsters
+    // that aren't visible. This forces a pathfinding check whenever previously
+    // known unreachable monsters come into (or are in) view. It may be a bit
+    // inefficient for certain vaults, but it is necessary to check for things
+    // like sensed monsters via ash (which will get set as known unreachable
+    // on detection).
+    if (mon->travel_target == MTRAV_KNOWN_UNREACHABLE
+                                        && !you.see_cell_no_trans(mon->pos()))
+    {
         return false;
+    }
 
     // Try to find a path from monster to player, using the map as it's
     // known to the player and assuming unknown terrain to be traversable.
@@ -96,7 +106,7 @@ bool mons_can_hurt_player(const monster* mon, const bool want_move)
     // Even if the monster can not actually reach the player it might
     // still use some ranged form of attack.
     if (you.see_cell_no_trans(mon->pos())
-        && mons_has_known_ranged_attack(*mon))
+        && mons_has_ranged_attack(*mon))
     {
         return true;
     }
@@ -254,6 +264,22 @@ bool i_feel_safe(bool announce, bool want_move, bool just_monsters,
         {
             if (announce)
                 mprf(MSGCH_WARN, "You are on fire!");
+
+            return false;
+        }
+
+        if (!actor_slime_wall_immune(&you) && count_adjacent_slime_walls(you.pos()) > 0)
+        {
+            if (announce)
+                mprf(MSGCH_WARN, "You're standing next to a slime covered wall!");
+
+            return false;
+        }
+
+        if (you.props[EMERGENCY_FLIGHT_KEY])
+        {
+            if (announce)
+                mprf(MSGCH_WARN, "You are being drained by your emergency flight!");
 
             return false;
         }
@@ -416,9 +442,6 @@ void revive()
     set_hunger(HUNGER_DEFAULT, true);
     restore_stat(STAT_ALL, 0, true);
 
-#if TAG_MAJOR_VERSION == 34
-    you.attribute[ATTR_DELAYED_FIREBALL] = 0;
-#endif
     clear_trapping_net();
     you.attribute[ATTR_DIVINE_VIGOUR] = 0;
     you.attribute[ATTR_DIVINE_STAMINA] = 0;
@@ -431,7 +454,9 @@ void revive()
     you.attribute[ATTR_INVIS_UNCANCELLABLE] = 0;
     you.attribute[ATTR_FLIGHT_UNCANCELLABLE] = 0;
     you.attribute[ATTR_XP_DRAIN] = 0;
+    you.attribute[ATTR_SERPENTS_LASH] = 0;
     you.attribute[ATTR_HEAVENLY_STORM] = 0;
+    you.attribute[ATTR_WALL_JUMP_READY] = 0;
     you.los_noise_level = 0;
     you.los_noise_last_turn = 0; // silence in death
     if (you.duration[DUR_SCRYING])
@@ -443,6 +468,7 @@ void revive()
 
     update_vision_range(); // in case you had darkness cast before
     you.props["corrosion_amount"] = 0;
+    you.props.erase(SAP_MAGIC_KEY);
 
     unrot_hp(9999);
     set_hp(9999);

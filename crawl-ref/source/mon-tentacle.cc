@@ -45,6 +45,8 @@ static mgen_data _segment_data(const monster& head, coord_def pos,
                                monster_type type)
 {
     mgen_data mg(type, SAME_ATTITUDE((&head)), pos, head.foe, MG_FORCE_PLACE);
+    if (mons_is_zombified(head))
+        mg.base_type = head.type;
     mg.set_summoned(&head, 0, 0, head.god)
       .set_col(head.colour);
     return mg;
@@ -915,7 +917,7 @@ void move_solo_tentacle(monster* tentacle)
         if (constrictee->is_player())
             stop_delay(true);
     }
-    tentacle->clear_far_constrictions();
+    tentacle->clear_invalid_constrictions();
 
     tentacle_connect_constraints connect_costs;
     connect_costs.connection_constraints = &connection_data;
@@ -1110,7 +1112,7 @@ void move_child_tentacles(monster* mons)
             if (constrictee->is_player())
                 stop_delay(true);
         }
-        tentacle->clear_far_constrictions();
+        tentacle->clear_invalid_constrictions();
 
         connect_costs.connection_constraints = &connection_data;
         connect_costs.base_monster = tentacle;

@@ -19,13 +19,13 @@ static void _give_wanderer_weapon(skill_type wpn_skill, int plus)
         // get curare here.
         if (plus)
         {
-            newgame_make_item(OBJ_MISSILES, MI_NEEDLE, 1 + random2(4),
+            newgame_make_item(OBJ_MISSILES, MI_DART, 1 + random2(4),
                               0, SPMSL_CURARE);
         }
-        // Otherwise, we just get some poisoned needles.
+        // Otherwise, we just get some poisoned darts.
         else
         {
-            newgame_make_item(OBJ_MISSILES, MI_NEEDLE, 5 + roll_dice(2, 5),
+            newgame_make_item(OBJ_MISSILES, MI_DART, 5 + roll_dice(2, 5),
                               0, SPMSL_POISONED);
         }
     }
@@ -57,10 +57,6 @@ static void _give_wanderer_weapon(skill_type wpn_skill, int plus)
 
     case SK_STAVES:
         sub_type = WPN_QUARTERSTAFF;
-        break;
-
-    case SK_THROWING:
-        sub_type = WPN_BLOWGUN;
         break;
 
     case SK_BOWS:
@@ -332,8 +328,8 @@ static void _give_wanderer_book(skill_type skill)
  * @param spell             The spell to be filtered.
  * @return                  Whether the spell can be included.
  */
-static bool exact_level_spell_filter(spschool_flag_type discipline_1,
-                                     spschool_flag_type discipline_2,
+static bool exact_level_spell_filter(spschool discipline_1,
+                                     spschool discipline_2,
                                      int agent,
                                      const vector<spell_type> &prev,
                                      spell_type spell)
@@ -381,7 +377,7 @@ static void _give_wanderer_minor_book(skill_type skill)
         skill = skill_type(SK_FIRST_MAGIC_SCHOOL + random2(value));
     }
 
-    spschool_flag_type school = skill2spell_type(skill);
+    spschool school = skill2spell_type(skill);
 
     item_def* item = newgame_make_item(OBJ_BOOKS, BOOK_RANDART_THEME);
     if (!item)
@@ -459,7 +455,7 @@ static void _wanderer_random_evokable()
     else
     {
         wand_type selected_wand =
-              random_choose(WAND_ENSLAVEMENT, WAND_CONFUSION, WAND_FLAME);
+              random_choose(WAND_ENSLAVEMENT, WAND_PARALYSIS, WAND_FLAME);
         newgame_make_item(OBJ_WANDS, selected_wand, 1, 15);
     }
 }
@@ -746,4 +742,25 @@ void create_wanderer()
     gift_skills.insert(decent_2);
 
     _wanderer_cover_equip_holes();
+}
+
+void memorise_wanderer_spell()
+{
+    // If the player got only one level 1 spell, memorise it. Otherwise, let the
+    // player choose which spell(s) to memorise and don't memorise any.
+    auto const available_spells = get_sorted_spell_list(true, true);
+    if (available_spells.size())
+    {
+        int num_level_one_spells = 0;
+        spell_type which_spell;
+        for (spell_type spell : available_spells)
+            if (spell_difficulty(spell) == 1)
+            {
+                num_level_one_spells += 1;
+                which_spell = spell;
+            }
+
+        if (num_level_one_spells == 1)
+            add_spell_to_memory(which_spell);
+    }
 }

@@ -127,11 +127,14 @@ PlaceInfo& player::get_place_info(branch_type branch) const
 void player::clear_place_info()
 {
     global_xp_info = LevelXPInfo();
-    for (branch_iterator it; it; ++it)
+
+    // can't use branch_iterator here, because it depends on a global that
+    // may not be inited when you is first constructed.
+    for (int i = BRANCH_DUNGEON; i < NUM_BRANCHES; i++)
     {
-        branch_info[it->id] = PlaceInfo();
-        branch_info[it->id].branch = it->id;
-        branch_info[it->id].assert_validity();
+        branch_info[i] = PlaceInfo();
+        branch_info[i].branch = static_cast<branch_type>(i);
+        branch_info[i].assert_validity();
     }
 }
 
@@ -164,14 +167,14 @@ vector<PlaceInfo> player::get_all_place_info(bool visited_only,
 }
 
 LevelXPInfo::LevelXPInfo()
-    : level(level_id(GLOBAL_BRANCH_INFO, -1)), spawn_xp(0), spawn_count(0),
-      generated_xp(0), generated_count(0), turns(0)
+    : level(level_id(GLOBAL_BRANCH_INFO, -1)), non_vault_xp(0),
+      non_vault_count(0), vault_xp(0), vault_count(0)
 {
 }
 
 LevelXPInfo::LevelXPInfo(const level_id &lev)
-    : level(lev), spawn_xp(0), spawn_count(0), generated_xp(0),
-      generated_count(0), turns(0)
+    : level(lev), non_vault_xp(0), non_vault_count(0), vault_xp(0),
+      vault_count(0)
 {
 }
 
@@ -193,22 +196,20 @@ void LevelXPInfo::assert_validity() const
 
 const LevelXPInfo &LevelXPInfo::operator += (const LevelXPInfo &other)
 {
-    spawn_xp += other.spawn_xp;
-    spawn_count += other.spawn_count;
-    generated_xp += other.generated_xp;
-    generated_count += other.generated_count;
-    turns += other.turns;
+    vault_xp += other.vault_xp;
+    vault_count += other.vault_count;
+    non_vault_xp += other.non_vault_xp;
+    non_vault_count += other.non_vault_count;
 
     return *this;
 }
 
 const LevelXPInfo &LevelXPInfo::operator -= (const LevelXPInfo &other)
 {
-    spawn_xp -= other.spawn_xp;
-    spawn_count -= other.spawn_count;
-    generated_xp -= other.generated_xp;
-    generated_count -= other.generated_count;
-    turns -= other.turns;
+    vault_xp -= other.vault_xp;
+    vault_count -= other.vault_count;
+    non_vault_xp -= other.non_vault_xp;
+    non_vault_count -= other.non_vault_count;
 
     return *this;
 }
@@ -263,8 +264,8 @@ vector<LevelXPInfo> player::get_all_xp_info(bool must_have_kills) const
                 continue;
 
             if (must_have_kills
-                && mi->second.spawn_count == 0
-                && mi->second.generated_count == 0)
+                && mi->second.vault_count == 0
+                && mi->second.non_vault_count == 0)
             {
                 continue;
             }
