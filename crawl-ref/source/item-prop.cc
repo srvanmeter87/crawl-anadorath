@@ -15,7 +15,6 @@
 
 #include "artefact.h"
 #include "art-enum.h"
-#include "decks.h"
 #include "describe.h"
 #include "god-passive.h"
 #include "invent.h"
@@ -233,7 +232,7 @@ struct weapon_def
      redundant with having base damage and delay to modify - it is similar to
      being able to adjust the rarity of different base types of weapons.
 
-  2) The secondary purpose of varying weapon brand distribution is to give
+ 2)  The secondary purpose of varying weapon brand distribution is to give
      different weapon skills more individual feel. For instance, if you play a
      lot of maces chars in a row, then you will get used to using a lot of
      protection weapons and you'll never see vamp except on rare randarts, and
@@ -611,9 +610,11 @@ static const weapon_def Weapon_prop[] =
         }},
 
     // Range weapons
+#if TAG_MAJOR_VERSION == 34
     { WPN_BLOWGUN,           "blowgun",             0,  2, 10,
         SK_THROWING,     SIZE_LITTLE, SIZE_LITTLE, MI_NEEDLE,
-        DAMV_NON_MELEE, 5, 0, 25, {}, },
+        DAMV_NON_MELEE, 0, 0, 0, {}, },
+#endif
 
     { WPN_HUNTING_SLING,     "hunting sling",       5,  2, 12,
         SK_SLINGS,       SIZE_LITTLE, SIZE_LITTLE, MI_STONE,
@@ -653,10 +654,10 @@ struct missile_def
 static int Missile_index[NUM_MISSILES];
 static const missile_def Missile_prop[] =
 {
+    { MI_DART,          "dart",          0, 12, 2,  true  },
 #if TAG_MAJOR_VERSION == 34
-    { MI_DART,          "dart",          2, 1,  1,  true  },
-#endif
     { MI_NEEDLE,        "needle",        0, 12, 2,  false },
+#endif
     { MI_STONE,         "stone",         2, 8,  1,  true  },
     { MI_ARROW,         "arrow",         0, 8,  2,  false },
     { MI_BOLT,          "bolt",          0, 8,  2,  false },
@@ -664,51 +665,48 @@ static const missile_def Missile_prop[] =
     { MI_SLING_BULLET,  "sling bullet",  4, 8,  5,  false },
     { MI_JAVELIN,       "javelin",      10, 20, 8,  true  },
     { MI_THROWING_NET,  "throwing net",  0, 0,  30, true  },
-    { MI_TOMAHAWK,      "tomahawk",      6, 20, 5,  true  },
+    { MI_BOOMERANG,     "boomerang",     6, 20, 5,  true  },
 };
 
 struct food_def
 {
     int         id;
     const char *name;
-    int         value;
-    int         carn_mod;
-    int         herb_mod;
+    int         normal_nutr;
+    int         carn_nutr;
+    int         herb_nutr;
 };
 
 static int Food_index[NUM_FOODS];
 static const food_def Food_prop[] =
 {
-    { FOOD_MEAT_RATION,  "meat ration",  5000,   500, -1500 },
-    { FOOD_CHUNK,        "chunk",        1000,   100,  -500 },
-
-    { FOOD_BREAD_RATION, "bread ration", 4400, -1000,   500 },
-
-    { FOOD_FRUIT,        "fruit",         850,  -100,    50 },
-
-    { FOOD_ROYAL_JELLY,  "royal jelly",  2000,     0,     0 },
+    { FOOD_RATION,       "ration",       3400,  1900,  1900 },
+    { FOOD_CHUNK,        "chunk",        1000,  1300,     0 },
 
 #if TAG_MAJOR_VERSION == 34
-    // is_real_food assumes we list FOOD_UNUSED as the first removed
+    // is_real_food assumes we list FOOD_ROYAL_JELLY as the first removed
     // food here, after all the unremoved foods.
-    { FOOD_UNUSED,       "buggy",           0,     0,     0 },
-    { FOOD_AMBROSIA,     "buggy",           0,     0,     0 },
-    { FOOD_ORANGE,       "buggy",        1000,  -300,   300 },
-    { FOOD_BANANA,       "buggy",        1000,  -300,   300 },
-    { FOOD_LEMON,        "buggy",        1000,  -300,   300 },
-    { FOOD_PEAR,         "buggy",         700,  -200,   200 },
-    { FOOD_APPLE,        "buggy",         700,  -200,   200 },
-    { FOOD_APRICOT,      "buggy",         700,  -200,   200 },
-    { FOOD_CHOKO,        "buggy",         600,  -200,   200 },
-    { FOOD_RAMBUTAN,     "buggy",         600,  -200,   200 },
-    { FOOD_LYCHEE,       "buggy",         600,  -200,   200 },
-    { FOOD_STRAWBERRY,   "buggy",         200,   -50,    50 },
-    { FOOD_GRAPE,        "buggy",         100,   -20,    20 },
-    { FOOD_SULTANA,      "buggy",          70,   -20,    20 },
-    { FOOD_CHEESE,       "buggy",        1200,     0,     0 },
-    { FOOD_SAUSAGE,      "buggy",        1200,   150,  -400 },
-    { FOOD_BEEF_JERKY,   "buggy",        1500,   200,  -200 },
-    { FOOD_PIZZA,        "buggy",        1500,     0,     0 },
+    { FOOD_UNUSED,       "buggy pizza",     0,     0,     0 },
+    { FOOD_ROYAL_JELLY,  "buggy jelly",  2000,  2000,  2000 },
+    { FOOD_BREAD_RATION, "buggy ration", 4400,     0,  5900 },
+    { FOOD_FRUIT,        "buggy fruit",   850,     0,  1000 },
+    { FOOD_AMBROSIA,     "buggy fruit",     0,     0,     0 },
+    { FOOD_ORANGE,       "buggy fruit",  1000,  -300,   300 },
+    { FOOD_BANANA,       "buggy fruit",  1000,  -300,   300 },
+    { FOOD_LEMON,        "buggy fruit",  1000,  -300,   300 },
+    { FOOD_PEAR,         "buggy fruit",   700,  -200,   200 },
+    { FOOD_APPLE,        "buggy fruit",   700,  -200,   200 },
+    { FOOD_APRICOT,      "buggy fruit",   700,  -200,   200 },
+    { FOOD_CHOKO,        "buggy fruit",   600,  -200,   200 },
+    { FOOD_RAMBUTAN,     "buggy fruit",   600,  -200,   200 },
+    { FOOD_LYCHEE,       "buggy fruit",   600,  -200,   200 },
+    { FOOD_STRAWBERRY,   "buggy fruit",   200,   -50,    50 },
+    { FOOD_GRAPE,        "buggy fruit",   100,   -20,    20 },
+    { FOOD_SULTANA,      "buggy fruit",    70,   -20,    20 },
+    { FOOD_CHEESE,       "buggy fruit",  1200,     0,     0 },
+    { FOOD_SAUSAGE,      "buggy fruit",  1200,   150,  -400 },
+    { FOOD_BEEF_JERKY,   "buggy fruit",  1500,   200,  -200 },
+    { FOOD_PIZZA,        "buggy fruit",  1500,     0,     0 },
 #endif
 };
 
@@ -741,7 +739,6 @@ const set<pair<object_class_type, int> > removed_items =
 #if TAG_MAJOR_VERSION == 34
     { OBJ_JEWELLERY, AMU_CONTROLLED_FLIGHT },
     { OBJ_JEWELLERY, AMU_CONSERVATION },
-    { OBJ_JEWELLERY, AMU_DISMISSAL },
     { OBJ_JEWELLERY, RING_REGENERATION },
     { OBJ_JEWELLERY, RING_SUSTAIN_ATTRIBUTES },
     { OBJ_JEWELLERY, RING_TELEPORT_CONTROL },
@@ -753,6 +750,7 @@ const set<pair<object_class_type, int> > removed_items =
     { OBJ_POTIONS,   POT_WATER },
     { OBJ_POTIONS,   POT_STRONG_POISON },
     { OBJ_POTIONS,   POT_BLOOD_COAGULATED },
+    { OBJ_POTIONS,   POT_BLOOD },
     { OBJ_POTIONS,   POT_PORRIDGE },
     { OBJ_POTIONS,   POT_SLOWING },
     { OBJ_POTIONS,   POT_DECAY },
@@ -776,7 +774,8 @@ const set<pair<object_class_type, int> > removed_items =
     { OBJ_RODS,      ROD_SHADOWS },
     { OBJ_RODS,      ROD_IRON },
     { OBJ_SCROLLS,   SCR_ENCHANT_WEAPON_II },
-    /* { OBJ_SCROLLS,   SCR_ENCHANT_WEAPON_III }, */
+    { OBJ_SCROLLS,   SCR_ENCHANT_WEAPON_III },
+    { OBJ_SCROLLS,   SCR_RECHARGING},
     { OBJ_WANDS,     WAND_MAGIC_DARTS_REMOVED },
     { OBJ_WANDS,     WAND_FROST_REMOVED },
     { OBJ_WANDS,     WAND_FIRE_REMOVED },
@@ -786,9 +785,15 @@ const set<pair<object_class_type, int> > removed_items =
     { OBJ_WANDS,     WAND_HASTING_REMOVED },
     { OBJ_WANDS,     WAND_TELEPORTATION_REMOVED },
     { OBJ_WANDS,     WAND_SLOWING_REMOVED },
+    { OBJ_WANDS,     WAND_CONFUSION_REMOVED },
+    { OBJ_WANDS,     WAND_LIGHTNING_REMOVED },
     { OBJ_SCROLLS,   SCR_CURSE_WEAPON },
     { OBJ_SCROLLS,   SCR_CURSE_ARMOUR },
-    /* { OBJ_SCROLLS,   SCR_CURSE_JEWELLERY }, */
+    { OBJ_SCROLLS,   SCR_CURSE_JEWELLERY },
+    { OBJ_FOOD,      FOOD_BREAD_RATION },
+    { OBJ_FOOD,      FOOD_ROYAL_JELLY },
+    { OBJ_FOOD,      FOOD_UNUSED },
+    { OBJ_FOOD,      FOOD_FRUIT },
 #endif
     // Outside the #if because we probably won't remove these.
     { OBJ_RUNES,     RUNE_ELF },
@@ -828,34 +833,22 @@ static bool _maybe_note_found_unrand(const item_def &item)
 }
 
 /**
- * Is the provided item cursable? Note: this function would leak
- * information about unidentified holy wrath weapons, which is alright
- * because only Ashenzari worshippers can deliberately curse items and
- * they see all weapon egos anyway.
+ * Is the provided item cursable?
  *
  * @param item  The item under consideration.
- * @return      Whether the given item is a blessed weapon.
+ * @return      Whether the given item is cursable.
  */
-bool item_is_cursable(const item_def &item, bool ignore_holy_wrath)
+bool item_is_cursable(const item_def &item)
 {
     if (!item_type_has_curses(item.base_type))
         return false;
     if (item_known_cursed(item))
         return false;
-    if (!ignore_holy_wrath
-        && item.base_type == OBJ_WEAPONS
-        && (get_weapon_brand(item) == SPWPN_HOLY_WRATH
-            || you.duration[DUR_EXCRUCIATING_WOUNDS]
-               && item_is_equipped(item)
-               && you.props[ORIGINAL_BRAND_KEY].get_int() == SPWPN_HOLY_WRATH))
-    {
-        return false;
-    }
     return true;
 }
 
 // Curses a random player inventory item.
-bool curse_an_item(bool ignore_holy_wrath)
+bool curse_an_item()
 {
     // allowing these would enable mummy scumming
     if (have_passive(passive_t::want_curses))
@@ -873,7 +866,7 @@ bool curse_an_item(bool ignore_holy_wrath)
         if (!item.defined())
             continue;
 
-        if (!item_is_cursable(item, ignore_holy_wrath))
+        if (!item_is_cursable(item))
             continue;
 
         // Item is valid for cursing, so we'll give it a chance.
@@ -907,28 +900,6 @@ void do_curse_item(item_def &item, bool quiet)
     if (!is_weapon(item) && item.base_type != OBJ_ARMOUR
         && item.base_type != OBJ_JEWELLERY)
     {
-        return;
-    }
-
-    // Holy wrath weapons cannot be cursed.
-    if (item.base_type == OBJ_WEAPONS
-        && (get_weapon_brand(item) == SPWPN_HOLY_WRATH
-            || you.duration[DUR_EXCRUCIATING_WOUNDS]
-               && item_is_equipped(item)
-               && you.props[ORIGINAL_BRAND_KEY].get_int() == SPWPN_HOLY_WRATH))
-    {
-        if (!quiet)
-        {
-            mprf("Your %s glows black briefly, but repels the curse.",
-                 item.name(DESC_PLAIN).c_str());
-            if (is_artefact(item))
-                artefact_learn_prop(item, ARTP_BRAND);
-            else
-                set_ident_flags(item, ISFLAG_KNOW_TYPE);
-
-            if (!item_brand_known(item))
-                mprf_nocap("%s", item.name(DESC_INVENTORY_EQUIP).c_str());
-        }
         return;
     }
 
@@ -1031,22 +1002,6 @@ bool item_is_stationary(const item_def &item)
 bool item_is_stationary_net(const item_def &item)
 {
     return item.is_type(OBJ_MISSILES, MI_THROWING_NET) && item.net_placed;
-}
-
-/**
- * Get the actor held in a stationary net.
- *
- * @param net A stationary net item.
- * @return  A pointer to the actor in the net, guaranteed to be non-null.
- */
-actor *net_holdee(const item_def &net)
-{
-    ASSERT(item_is_stationary_net(net));
-    // Stationary nets should not be in inventory etc.
-    ASSERT_IN_BOUNDS(net.pos);
-    actor * const a = actor_at(net.pos);
-    ASSERTM(a, "No actor in stationary net at (%d,%d)", net.pos.x, net.pos.y);
-    return a;
 }
 
 static bool _is_affordable(const item_def &item)
@@ -1161,13 +1116,11 @@ static iflags_t _full_ident_mask(const item_def& item)
 #endif
     case OBJ_SCROLLS:
     case OBJ_POTIONS:
+    case OBJ_WANDS:
         flagset = ISFLAG_KNOW_TYPE;
         break;
     case OBJ_STAVES:
         flagset = ISFLAG_KNOW_TYPE | ISFLAG_KNOW_CURSE;
-        break;
-    case OBJ_WANDS:
-        flagset = (ISFLAG_KNOW_TYPE | ISFLAG_KNOW_PLUSES);
         break;
     case OBJ_JEWELLERY:
         flagset = (ISFLAG_KNOW_CURSE | ISFLAG_KNOW_TYPE);
@@ -1175,10 +1128,7 @@ static iflags_t _full_ident_mask(const item_def& item)
             flagset |= ISFLAG_KNOW_PLUSES;
         break;
     case OBJ_MISCELLANY:
-        if (is_deck(item))
-            flagset = ISFLAG_KNOW_TYPE;
-        else
-            flagset = 0;
+        flagset = 0;
         break;
     case OBJ_WEAPONS:
     case OBJ_ARMOUR:
@@ -1333,8 +1283,11 @@ armour_type hide_for_monster(monster_type mc)
 /**
  * Return whether a piece of armour is enchantable.
  *
+ * This function ignores the current enchantment level, so is still
+ * true for maximally-enchanted items.
+ *
  * @param item      The item being considered.
- * @return          The maximum enchantment the item can hold.
+ * @return          True if the armour can have a +X enchantment.
  */
 bool armour_is_enchantable(const item_def &item)
 {
@@ -1573,85 +1526,49 @@ bool check_armour_size(const item_def &item, size_type size)
     return check_armour_size(static_cast<armour_type>(item.sub_type), size);
 }
 
-/**
- * Can the given item be recharged?
- *
- * @param it            The item in question.
- * @param hide_charged  Whether wands known to be full should be included.
- * @return              Whether the item can be recharged.
- *
- */
-bool item_is_rechargeable(const item_def &it, bool hide_charged)
-{
-    if (it.base_type != OBJ_WANDS)
-        return false;
-
-    if (!hide_charged)
-        return true;
-
-    // Don't offer wands already maximally charged.
-    if (item_ident(it, ISFLAG_KNOW_PLUSES)
-        && it.charges >= wand_max_charges(it))
-    {
-        return false;
-    }
-
-    return true;
-}
-
 int wand_charge_value(int type)
 {
     switch (type)
     {
     case WAND_CLOUDS:
     case WAND_SCATTERSHOT:
-        return 3;
+    case WAND_DIGGING:
+        return 9;
 
     case WAND_ICEBLAST:
-    case WAND_LIGHTNING:
     case WAND_ACID:
-        return 5;
+    case WAND_ENSLAVEMENT:
+    case WAND_PARALYSIS:
+    case WAND_POLYMORPH:
+        return 15;
 
     default:
-        return 8;
+        return 24;
 
     case WAND_FLAME:
-    case WAND_CONFUSION:
     case WAND_RANDOM_EFFECTS:
-        return 16;
+        return 32;
     }
 }
 
-int wand_max_charges(const item_def &item)
-{
-    ASSERT(item.base_type == OBJ_WANDS);
 
-    const int charge_value = wand_charge_value(item.sub_type);
-
-    if (item.props.exists(PAKELLAS_SUPERCHARGE_KEY))
-        return 9 * charge_value / 2;
-
-    return charge_value * 3;
-}
-
+#if TAG_MAJOR_VERSION == 34
 /**
- * Is the given item a wand which is both empty & known to be empty?
+ * Is the given item a wand which is empty? Wands are normally destroyed when
+ * their charges are exhausted, but empty wands can still happen through
+ * transfered games.
  *
  * @param item  The item in question.
- * @return      Whether the wand is charge-id'd and empty, or at least known
- *              {empty}.
+ * @return      Whether the wand is empty.
  */
 bool is_known_empty_wand(const item_def &item)
 {
     if (item.base_type != OBJ_WANDS)
         return false;
 
-    // not charge-ID'd, but known empty (probably through hard experience)
-    if (item.used_count == ZAPCOUNT_EMPTY)
-        return true;
-
-    return item_ident(item, ISFLAG_KNOW_PLUSES) && item.charges <= 0;
+    return item_ident(item, ISFLAG_KNOW_TYPE) && item.charges <= 0;
 }
+#endif
 
 /**
  * For purpose of Ashenzari's monster equipment identification & warning
@@ -1666,20 +1583,20 @@ bool is_offensive_wand(const item_def& item)
     switch (item.sub_type)
     {
     // Monsters don't use those, so no need to warn the player about them.
-    case WAND_ENSLAVEMENT:
+    case WAND_CLOUDS:
+    case WAND_ICEBLAST:
     case WAND_RANDOM_EFFECTS:
+    case WAND_SCATTERSHOT:
+    // Monsters use it, but it's not an offensive wand
     case WAND_DIGGING:
         return false;
 
+    case WAND_ENSLAVEMENT:
     case WAND_FLAME:
     case WAND_PARALYSIS:
-    case WAND_CONFUSION:
-    case WAND_ICEBLAST:
-    case WAND_LIGHTNING:
     case WAND_POLYMORPH:
     case WAND_ACID:
     case WAND_DISINTEGRATION:
-    case WAND_CLOUDS:
         return true;
     }
     return false;
@@ -1690,6 +1607,10 @@ bool is_offensive_wand(const item_def& item)
 bool is_enchantable_armour(const item_def &arm, bool unknown)
 {
     if (arm.base_type != OBJ_ARMOUR)
+        return false;
+
+    // Armour types that can never be enchanted.
+    if (!armour_is_enchantable(arm))
         return false;
 
     // If we don't know the plusses, assume enchanting is possible.
@@ -1925,12 +1846,17 @@ bool convert2bad(item_def &item)
     return false;
 }
 
-bool is_brandable_armour(const item_def &arm)
+bool is_brandable_armour(const item_def &arm, bool unknown)
 {
     if (arm.base_type != OBJ_ARMOUR)
         return false;
 
-    if (is_artefact(arm))
+    // Armour types that can never be branded.
+    if (!armour_is_brandable(arm))
+        return false;
+
+    // If we don't know the plusses, assume branding is possible.
+    if (is_artefact(arm) || armour_is_special(arm))
         return false;
 
     return true;
@@ -1944,8 +1870,14 @@ bool is_brandable_weapon(const item_def &wpn, bool allow_ranged, bool divine)
     if (is_artefact(wpn))
         return false;
 
-    if (!allow_ranged && is_range_weapon(wpn) || wpn.sub_type == WPN_BLOWGUN)
+    if (!allow_ranged && is_range_weapon(wpn)
+#if TAG_MAJOR_VERSION == 34
+        || wpn.sub_type == WPN_BLOWGUN
+#endif
+       )
+    {
         return false;
+    }
 
     // Only gods can rebrand blessed weapons, and they revert back to their
     // old base type in the process.
@@ -2030,8 +1962,7 @@ bool item_skills(const item_def &item, set<skill_type> &skills)
 
     // Jewellery with evokable abilities, wands and similar unwielded
     // evokers allow training.
-    if (item_is_evokable(item, false, false, true, false, true)
-        && !is_deck(item)
+    if (item_is_evokable(item, false, false, false, true)
         || item.base_type == OBJ_JEWELLERY && gives_ability(item))
     {
         skills.insert(SK_EVOCATIONS);
@@ -2052,8 +1983,7 @@ bool item_skills(const item_def &item, set<skill_type> &skills)
     if (!you.could_wield(item, true, true))
         return !skills.empty();
 
-    if (item_is_evokable(item, false, false, false, false, false)
-        && !is_deck(item)
+    if (item_is_evokable(item, false, false, false, false)
         || staff_uses_evocations(item)
         || item.base_type == OBJ_WEAPONS && gives_ability(item))
     {
@@ -2127,7 +2057,7 @@ bool has_launcher(const item_def &ammo)
            && ammo.sub_type != MI_DART
 #endif
            && ammo.sub_type != MI_JAVELIN
-           && ammo.sub_type != MI_TOMAHAWK
+           && ammo.sub_type != MI_BOOMERANG
            && ammo.sub_type != MI_THROWING_NET;
 }
 
@@ -2222,6 +2152,8 @@ int ammo_type_damage(int missile_type)
 //
 reach_type weapon_reach(const item_def &item)
 {
+    if (is_unrandom_artefact(item, UNRAND_RIFT))
+        return REACH_THREE;
     if (item_attack_skill(item) == SK_POLEARMS)
         return REACH_TWO;
     return REACH_NONE;
@@ -2305,7 +2237,7 @@ bool ring_has_stackable_effect(const item_def &item)
     case RING_PROTECTION_FROM_COLD:
     case RING_LIFE_PROTECTION:
     case RING_STEALTH:
-    case RING_LOUDNESS:
+    case RING_ATTENTION:
     case RING_WIZARDRY:
     case RING_FIRE:
     case RING_ICE:
@@ -2327,18 +2259,16 @@ bool is_real_food(food_type food)
     return food < NUM_FOODS && Food_index[food] < Food_index[FOOD_UNUSED];
 }
 
-#endif
 bool is_blood_potion(const item_def &item)
 {
     if (item.base_type != OBJ_POTIONS)
         return false;
 
     return item.sub_type == POT_BLOOD
-#if TAG_MAJOR_VERSION == 34
            || item.sub_type == POT_BLOOD_COAGULATED
-#endif
             ;
 }
+#endif
 
 bool food_is_meaty(int food_type)
 {
@@ -2346,7 +2276,7 @@ bool food_is_meaty(int food_type)
             "Bad food type %d (NUM_FOODS = %d)",
             food_type, NUM_FOODS);
 
-    return Food_prop[Food_index[food_type]].carn_mod > 0;
+    return Food_prop[Food_index[food_type]].herb_nutr == 0;
 }
 
 bool food_is_meaty(const item_def &item)
@@ -2357,43 +2287,15 @@ bool food_is_meaty(const item_def &item)
     return food_is_meaty(item.sub_type);
 }
 
-bool food_is_veggie(int food_type)
-{
-    ASSERTM(food_type >= 0 && food_type < NUM_FOODS,
-            "Bad food type %d (NUM_FOODS = %d)",
-            food_type, NUM_FOODS);
-
-    return Food_prop[Food_index[food_type]].herb_mod > 0;
-}
-
-bool food_is_veggie(const item_def &item)
-{
-    if (item.base_type != OBJ_FOOD)
-        return false;
-
-    return food_is_veggie(item.sub_type);
-}
-
 int food_value(const item_def &item)
 {
     ASSERT(item.defined() && item.base_type == OBJ_FOOD);
 
-    const int herb = you.get_mutation_level(MUT_HERBIVOROUS);
-    const int carn = you.get_mutation_level(MUT_CARNIVOROUS);
-
     const food_def &food = Food_prop[Food_index[item.sub_type]];
 
-    int ret = food.value;
-
-    ret += carn * food.carn_mod;
-    ret += herb * food.herb_mod;
-
-    return ret;
-}
-
-bool is_fruit(const item_def & item)
-{
-    return item.is_type(OBJ_FOOD, FOOD_FRUIT);
+    return you.get_mutation_level(MUT_HERBIVOROUS) > 0 ? food.herb_nutr
+         : you.get_mutation_level(MUT_CARNIVOROUS) > 0 ? food.carn_nutr
+                                                       : food.normal_nutr;
 }
 
 //
@@ -2800,10 +2702,13 @@ bool gives_ability(const item_def &item)
         if (artefact_property(item, static_cast<artefact_prop_type>(rap)))
             return true;
 
-#if TAG_MAJOR_VERSION == 34
-    if (artefact_property(item, ARTP_FOG))
+    // Unrands that grant an evokable ability.
+    if (is_unrandom_artefact(item, UNRAND_THIEF)
+        || is_unrandom_artefact(item, UNRAND_RATSKIN_CLOAK)
+        || is_unrandom_artefact(item, UNRAND_RCLOUDS))
+    {
         return true;
-#endif
+    }
 
     return false;
 }
@@ -3035,11 +2940,8 @@ void seen_item(const item_def &item)
             you.seen_weapon[item.sub_type] |= 1U << SP_UNKNOWN_BRAND;
         if (item.base_type == OBJ_ARMOUR)
             you.seen_armour[item.sub_type] |= 1U << SP_UNKNOWN_BRAND;
-        if (item.base_type == OBJ_MISCELLANY
-            && !is_deck(item))
-        {
+        if (item.base_type == OBJ_MISCELLANY)
             you.seen_misc.set(item.sub_type);
-        }
     }
 
     _maybe_note_found_unrand(item);

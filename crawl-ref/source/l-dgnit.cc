@@ -1,8 +1,6 @@
-/**
- * @file
- * @brief Item-related functions in lua library "dgn".
-**/
-
+/***
+ * @module dgn
+ */
 #include "AppHdr.h"
 
 #include "l-libs.h"
@@ -50,7 +48,7 @@ void register_itemlist(lua_State *ls)
 
 static int dgn_item_from_index(lua_State *ls)
 {
-    const int index = luaL_checkint(ls, 1);
+    const int index = luaL_safe_checkint(ls, 1);
 
     item_def *item = &mitm[index];
 
@@ -67,6 +65,13 @@ static int dgn_items_at(lua_State *ls)
     COORDS(c, 1, 2);
     lua_push_floor_items(ls, env.igrid(c));
     return 1;
+}
+
+static int dgn_shop_inventory_at(lua_State *ls)
+{
+    // TODO: this could probably be done in a way that didn't need to be dlua.
+    COORDS(s, 1, 2);
+    return lua_push_shop_items_at(ls, s);
 }
 
 static int _dgn_item_spec(lua_State *ls)
@@ -112,13 +117,13 @@ static int dgn_item_property_set(lua_State *ls)
             item->props[key].get_bool() = lua_toboolean(ls, 4);
             break;
         case 'b':
-            item->props[key].get_byte() = luaL_checkint(ls, 4);
+            item->props[key].get_byte() = luaL_safe_checkint(ls, 4);
             break;
         case 'S':
-            item->props[key].get_short() = luaL_checkint(ls, 4);
+            item->props[key].get_short() = luaL_safe_checkint(ls, 4);
             break;
         case 'i':
-            item->props[key].get_int() = luaL_checkint(ls, 4);
+            item->props[key].get_int() = luaL_safe_checkint(ls, 4);
             break;
         case 'f':
             item->props[key].get_float() = luaL_checknumber(ls, 4);
@@ -127,8 +132,8 @@ static int dgn_item_property_set(lua_State *ls)
             item->props[key].get_string() = luaL_checkstring(ls, 4);
             break;
         case 'C':
-            item->props[key].get_coord() = coord_def(luaL_checkint(ls, 4),
-                                                     luaL_checkint(ls, 5));
+            item->props[key].get_coord() = coord_def(luaL_safe_checkint(ls, 4),
+                                                     luaL_safe_checkint(ls, 5));
             break;
         default:
             luaL_error(ls, "Unknown type: '%s'", type.c_str());
@@ -194,7 +199,7 @@ static int dgn_item_property(lua_State *ls)
 // Returns two arrays: one of floor items, one of shop items.
 static int dgn_stash_items(lua_State *ls)
 {
-    unsigned min_value  = lua_isnumber(ls, 1)  ? luaL_checkint(ls, 1) : 0;
+    unsigned min_value  = lua_isnumber(ls, 1)  ? luaL_safe_checkint(ls, 1) : 0;
     bool skip_stackable = lua_isboolean(ls, 2) ? lua_toboolean(ls, 2)
                                                 : false;
     vector<const item_def*> floor_items;
@@ -250,6 +255,7 @@ const struct luaL_reg dgn_item_dlib[] =
 {
     { "item_from_index", dgn_item_from_index },
     { "items_at", dgn_items_at },
+    { "shop_inventory_at", dgn_shop_inventory_at },
     { "create_item", dgn_create_item },
     { "item_property_remove", dgn_item_property_remove },
     { "item_property_set", dgn_item_property_set },

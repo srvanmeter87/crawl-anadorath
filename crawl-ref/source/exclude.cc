@@ -35,8 +35,11 @@ static bool _mon_needs_auto_exclude(const monster* mon, bool sleepy = false)
 {
     // These include the base monster's name in their name, but we don't
     // want things in the auto_exclude option to match them.
-    if (mon->type == MONS_PILLAR_OF_SALT || mon->type == MONS_BLOCK_OF_ICE)
+    if (mon->type == MONS_PILLAR_OF_SALT || mon->type == MONS_BLOCK_OF_ICE
+        || mon->type == MONS_TEST_STATUE)
+    {
         return false;
+    }
 
     if (mon->is_stationary())
         return !sleepy;
@@ -125,9 +128,18 @@ void remove_auto_exclude(const monster* mon, bool sleepy)
 travel_exclude::travel_exclude(const coord_def &p, int r,
                                bool autoexcl, string dsc, bool vaultexcl)
     : pos(p), radius(r),
-      los(los_def(p, opc_excl, circle_def(r, C_SQUARE))),
       uptodate(false), autoex(autoexcl), desc(dsc), vault(vaultexcl)
 {
+    const monster* m = monster_at(p);
+    if (m) {
+        // Don't exclude past glass for stationary monsters.
+        if (m->is_stationary())
+            los = los_def(p, opc_fully_no_trans, circle_def(r, C_SQUARE));
+        else
+            los = los_def(p, opc_excl, circle_def(r, C_SQUARE));
+    }
+    else
+        los = los_def(p, opc_excl, circle_def(r, C_SQUARE));
     set_los();
 }
 
@@ -371,8 +383,7 @@ static void _tile_exclude_gmap_update(const coord_def &p)
         for (int y = -8; y <= 8; y++)
         {
             const coord_def pc(p.x + x, p.y + y);
-            if (in_bounds(pc))
-                tiles.update_minimap(pc);
+            tiles.update_minimap(pc);
         }
 }
 #endif
@@ -428,7 +439,7 @@ void clear_excludes()
 static void _exclude_gate(const coord_def &p, bool del = false)
 {
     set<coord_def> all_doors;
-    find_connected_identical(p, all_doors);
+    find_connected_identical(p, all_doors, true);
     for (const auto &dc : all_doors)
     {
         if (del)
@@ -444,7 +455,7 @@ void cycle_exclude_radius(const coord_def &p)
 {
     if (travel_exclude *exc = curr_excludes.get_exclude_root(p))
     {
-        if (feat_is_door(grd(p)))
+        if (feat_is_door(grd(p)) && env.map_knowledge(p).known())
         {
             _exclude_gate(p, exc->radius == 0);
             return;

@@ -26,7 +26,9 @@
 #include "mon-place.h"
 #include "ouch.h"
 #include "religion.h"
+#include "spl-miscast.h"
 #include "state.h"
+#include "stringutil.h"
 #include "terrain.h"
 #include "transform.h"
 #include "view.h"
@@ -465,13 +467,16 @@ void shock_serpent_discharge_fineff::fire()
         mprf("The air sparks with electricity, shocking %s!",
              oppressor.name(DESC_THE).c_str());
     }
-
+    bolt beam;
+    beam.flavour = BEAM_ELECTRICITY;
 
     int amount = roll_dice(3, 4 + power * 3 / 2);
-    amount = oppressor.apply_ac(amount, 0, AC_HALF);
-    oppressor.hurt(serpent, amount, BEAM_ELECTRICITY,
-                   KILLED_BY_BEAM,
-                   "a shock serpent", "electric aura");
+    amount = oppressor.apply_ac(oppressor.beam_resists(beam, amount, true),
+                                0, ac_type::half);
+    oppressor.hurt(serpent, amount, beam.flavour, KILLED_BY_BEAM,
+                                        "a shock serpent", "electric aura");
+    if (amount)
+        oppressor.expose_to_element(beam.flavour, amount);
 }
 
 void delayed_action_fineff::fire()
@@ -545,6 +550,93 @@ void infestation_death_fineff::fire()
                                        name.c_str());
         }
     }
+}
+
+void make_derived_undead_fineff::fire()
+{
+    if (monster *undead = create_monster(mg))
+    {
+        if (!message.empty())
+            mpr(message);
+
+        // If the original monster has been levelled up, its HD might be
+        // different from its class HD, in which case its HP should be
+        // rerolled to match.
+        if (undead->get_experience_level() != experience_level)
+        {
+            undead->set_hit_dice(max(experience_level, 1));
+            roll_zombie_hp(undead);
+        }
+
+        // Fix up custom names
+        if (!mg.mname.empty())
+            name_zombie(*undead, mg.base_type, mg.mname);
+
+        undead->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
+        if (!agent.empty())
+        {
+            mons_add_blame(undead,
+                "animated by " + agent);
+        }
+    }
+}
+
+void mummy_death_curse_fineff::fire()
+{
+    if (pow <= 0)
+        return;
+
+    switch (killer)
+    {
+        // Mummy killed by trap or something other than the player or
+        // another monster, so no curse.
+        case KILL_MISC:
+        case KILL_RESET:
+        case KILL_DISMISSED:
+        // Mummy sent to the Abyss wasn't actually killed, so no curse.
+        case KILL_BANISHED:
+            return;
+
+        default:
+            break;
+    }
+
+    actor * victim;
+
+    if (YOU_KILL(killer))
+        victim = &you;
+    // Killed by a Zot trap, a god, etc, or suicide.
+    else if (!attacker() || attacker() == defender())
+        return;
+    else
+        victim = attacker();
+
+    // Mummy was killed by a ballistomycete spore or ball lightning?
+    if (!victim->alive())
+        return;
+
+    // Mummies are smart enough not to waste curses on summons or allies.
+    if (victim->is_monster() && victim->as_monster()->friendly()
+        && !crawl_state.game_is_arena())
+    {
+        victim = &you;
+    }
+
+    // Stepped from time?
+    if (!in_bounds(victim->pos()))
+        return;
+
+    if (victim->is_player())
+        mprf(MSGCH_MONSTER_SPELL, "You feel extremely nervous for a moment...");
+    else if (you.can_see(*victim))
+    {
+        mprf(MSGCH_MONSTER_SPELL, "A malignant aura surrounds %s.",
+             victim->name(DESC_THE).c_str());
+    }
+    const string cause = make_stringf("%s death curse",
+                            apostrophise(name).c_str());
+    MiscastEffect(victim, nullptr, {miscast_source::mummy}, spschool::necromancy,
+                  pow, random2avg(88, 3), cause.c_str());
 }
 
 // Effects that occur after all other effects, even if the monster is dead.

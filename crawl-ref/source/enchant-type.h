@@ -122,7 +122,9 @@ enum enchant_type
 #endif
     ENCH_SUMMON_CAPPED,  // Abjuring quickly because a summon cap was hit
     ENCH_TOXIC_RADIANCE,
+#if TAG_MAJOR_VERSION == 34
     ENCH_GRASPING_ROOTS_SOURCE, // Not actually entangled, but entangling others
+#endif
     ENCH_GRASPING_ROOTS,
     ENCH_SPELL_CHARGED,
     ENCH_FIRE_VULN,
@@ -159,8 +161,8 @@ enum enchant_type
 #endif
     ENCH_RESISTANCE,
     ENCH_HEXED,
-    ENCH_BONE_ARMOUR,
 #if TAG_MAJOR_VERSION == 34
+    ENCH_BONE_ARMOUR,
     ENCH_CHANT_FIRE_STORM, // chanting the fire storm spell
     ENCH_CHANT_WORD_OF_ENTROPY, // chanting word of entropy
 #endif
@@ -173,7 +175,10 @@ enum enchant_type
     ENCH_INFESTATION,
     ENCH_STILL_WINDS,
     ENCH_RING_OF_THUNDER,
-    ENCH_DISTRACTED_ACROBATICS,
+    ENCH_WHIRLWIND_PINNED,
+    ENCH_VORTEX,
+    ENCH_VORTEX_COOLDOWN,
+    ENCH_VILE_CLUTCH,
     // Update enchant_names[] in mon-ench.cc when adding or removing
     // enchantments.
     NUM_ENCHANTMENTS

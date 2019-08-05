@@ -33,12 +33,15 @@
 #include "randbook.h"
 #include "random.h"
 #include "religion.h"
+#include "shopping.h"
 #include "skills.h"
 #include "spl-book.h"
 #include "spl-util.h"
 #include "state.h"
 #include "stringutil.h"
 #include "terrain.h"
+#include "unwind.h"
+#include "ui.h"
 
 static equipment_type _acquirement_armour_slot(bool);
 static armour_type _acquirement_armour_for_slot(equipment_type, bool);
@@ -87,8 +90,8 @@ static int _acquirement_armour_subtype(bool divine, int & /*quantity*/)
  *                      the filter returns true may be chosen.
  * @return              A random element from the given list.
  */
-template<class M, class Pred>
-M filtered_vector_select(vector<pair<M, int>> weights, Pred filter)
+template<class M>
+M filtered_vector_select(vector<pair<M, int>> weights, function<bool(M)> filter)
 {
     for (auto &weight : weights)
     {
@@ -137,9 +140,10 @@ static equipment_type _acquirement_armour_slot(bool divine)
         { EQ_BOOTS,         1 },
     };
 
-    return filtered_vector_select(weights, [] (equipment_type etyp) {
-        return you_can_wear(etyp); // evading template nonsense
-    });
+    return filtered_vector_select<equipment_type>(weights,
+        [] (equipment_type etyp) {
+            return you_can_wear(etyp); // evading template nonsense
+        });
 }
 
 
@@ -216,7 +220,7 @@ static armour_type _acquirement_shield_type()
                              + _skill_rdiv(SK_SHIELDS, scale / 2) },
     };
 
-    return filtered_vector_select(weights, [] (armour_type shtyp) {
+    return filtered_vector_select<armour_type>(weights, [] (armour_type shtyp) {
         return check_armour_size(shtyp,  you.body_size(PSIZE_TORSO, true));
     });
 }
@@ -267,9 +271,10 @@ static armour_type _acquirement_body_armour(bool divine)
 {
     // Using an arbitrary legacy formula, do we think the player doesn't care
     // about armour EVP?
-    const bool warrior = random2(_skill_rdiv(SK_SPELLCASTING, 3)
-                                + _skill_rdiv(SK_DODGING))
-                         < random2(_skill_rdiv(SK_ARMOUR, 2));
+    int light_pref = _skill_rdiv(SK_SPELLCASTING, 3);
+    light_pref += _skill_rdiv(SK_DODGING);
+    light_pref = random2(light_pref);
+    const bool warrior = light_pref < random2(_skill_rdiv(SK_ARMOUR, 2));
 
     vector<pair<armour_type, int>> weights;
     for (int i = ARM_FIRST_MUNDANE_BODY; i < NUM_ARMOURS; ++i)
@@ -345,7 +350,7 @@ static armour_type _useless_armour_type()
                 { ARM_LARGE_SHIELD,  1 },
             };
 
-            return filtered_vector_select(shield_weights,
+            return filtered_vector_select<armour_type>(shield_weights,
                                           [] (armour_type shtyp) {
                 return !check_armour_size(shtyp,
                                           you.body_size(PSIZE_TORSO, true));
@@ -402,35 +407,14 @@ static int _acquirement_food_subtype(bool /*divine*/, int& quantity)
     // Food is a little less predictable now. - bwr
     if (you.species == SP_GHOUL)
         type_wanted = FOOD_CHUNK;
-    else if (you.species == SP_VAMPIRE)
-    {
-        // Vampires really don't want any OBJ_FOOD but OBJ_CORPSES
-        // but it's easier to just give them a potion of blood
-        // class type is set elsewhere
-        type_wanted = POT_BLOOD;
-    }
-    else if (you_worship(GOD_FEDHAS))
-    {
-        // Fedhas worshippers get fruit to use for growth and evolution
-        type_wanted = FOOD_FRUIT;
-    }
     else
-    {
-        type_wanted = coinflip()
-            ? FOOD_ROYAL_JELLY
-            : you.get_mutation_level(MUT_HERBIVOROUS) ? FOOD_BREAD_RATION
-                                                      : FOOD_MEAT_RATION;
-    }
+        type_wanted = FOOD_RATION;
 
     quantity = 3 + random2(5);
 
     // giving more of the lower food value items
-    if (type_wanted == FOOD_FRUIT)
-        quantity = 8 + random2avg(15, 2);
-    else if (type_wanted == FOOD_ROYAL_JELLY || type_wanted == FOOD_CHUNK)
+    if (type_wanted == FOOD_CHUNK)
         quantity += 2 + random2avg(10, 2);
-    else if (type_wanted == POT_BLOOD)
-        quantity = 8 + random2(5);
 
     return type_wanted;
 }
@@ -552,7 +536,7 @@ static int _acquirement_missile_subtype(bool /*divine*/, int & /*quantity*/)
             skill = i;
     }
 
-    missile_type result = MI_TOMAHAWK;
+    missile_type result = MI_BOOMERANG;
 
     switch (skill)
     {
@@ -565,8 +549,8 @@ static int _acquirement_missile_subtype(bool /*divine*/, int & /*quantity*/)
             // Choose from among all usable missile types.
             vector<pair<missile_type, int> > missile_weights;
 
-            missile_weights.emplace_back(MI_TOMAHAWK, 50);
-            missile_weights.emplace_back(MI_NEEDLE, 75);
+            missile_weights.emplace_back(MI_BOOMERANG, 50);
+            missile_weights.emplace_back(MI_DART, 75);
 
             if (you.body_size() >= SIZE_MEDIUM)
                 missile_weights.emplace_back(MI_JAVELIN, 100);
@@ -705,18 +689,16 @@ static int _acquirement_wand_subtype(bool /*divine*/, int & /*quantity*/)
 {
     // basic total: 120
     vector<pair<wand_type, int>> weights = {
-        { WAND_SCATTERSHOT,     20 },
-        { WAND_CLOUDS,          20 },
-        { WAND_LIGHTNING,       16 },
-        { WAND_ACID,            16 },
-        { WAND_ICEBLAST,        16 },
+        { WAND_SCATTERSHOT,     25 },
+        { WAND_CLOUDS,          25 },
+        { WAND_ACID,            18 },
+        { WAND_ICEBLAST,        18 },
+        { WAND_ENSLAVEMENT,     you.get_mutation_level(MUT_NO_LOVE) ? 0 : 8 },
+        { WAND_PARALYSIS,       8 },
         { WAND_DISINTEGRATION,  5 },
-        { WAND_DIGGING,         5 },
         { WAND_POLYMORPH,       5 },
-        { WAND_ENSLAVEMENT,     you.get_mutation_level(MUT_NO_LOVE) ? 0 : 5 },
-        { WAND_PARALYSIS,       5 },
-        { WAND_CONFUSION,       3 },
-        { WAND_RANDOM_EFFECTS,  3 },
+        { WAND_DIGGING,         5 },
+        { WAND_RANDOM_EFFECTS,  2 },
         { WAND_FLAME,           1 },
     };
 
@@ -730,6 +712,13 @@ static int _acquirement_wand_subtype(bool /*divine*/, int & /*quantity*/)
     return *wand;
 }
 
+static int _acquirement_book_subtype(bool /*divine*/, int & /*quantity*/)
+{
+    return BOOK_MINOR_MAGIC;
+    //this gets overwritten later, but needs to be a sane value
+    //or asserts will get set off
+}
+
 typedef int (*acquirement_subtype_finder)(bool divine, int &quantity);
 static const acquirement_subtype_finder _subtype_finders[] =
 {
@@ -741,7 +730,7 @@ static const acquirement_subtype_finder _subtype_finders[] =
     0, // no scrolls
     _acquirement_jewellery_subtype,
     _acquirement_food_subtype, // potion acquirement = food for vampires
-    0, // books handled elsewhere
+    _acquirement_book_subtype,
     _acquirement_staff_subtype,
     0, // no, you can't acquire the orb
     _acquirement_misc_subtype,
@@ -772,10 +761,6 @@ static int _find_acquirement_subtype(object_class_type &class_wanted,
         // Wands and misc have a common acquirement class.
         if (class_wanted == OBJ_MISCELLANY)
             class_wanted = random_choose(OBJ_WANDS, OBJ_MISCELLANY);
-
-        // Vampires acquire blood, not food.
-        if (class_wanted == OBJ_FOOD && you.species == SP_VAMPIRE)
-            class_wanted = OBJ_POTIONS;
 
         if (_subtype_finders[class_wanted])
             type_wanted = (*_subtype_finders[class_wanted])(divine, quantity);
@@ -832,8 +817,8 @@ static int _book_weight(book_type book)
     int total_weight = 0;
     for (spell_type stype : spellbook_template(book))
     {
-        // Skip over spells already seen.
-        if (you.seen_spell[stype])
+        // Skip over spells already in library.
+        if (you.spell_library[stype])
             continue;
         if (god_hates_spell(stype, you.religion))
             continue;
@@ -860,7 +845,7 @@ static bool _skill_useless_with_god(int skill)
     case GOD_ELYVILON:
         return skill == SK_NECROMANCY;
     case GOD_XOM:
-    case GOD_NEMELEX_XOBEH:
+    case GOD_RU:
     case GOD_KIKUBAAQUDGHA:
     case GOD_VEHUMET:
     case GOD_ASHENZARI:
@@ -1012,6 +997,26 @@ static bool _do_book_acquirement(item_def &book, int agent)
         break;
     }
     } // switch book choice
+
+    // If we couldn't make a useful book, try to make a manual instead.
+    // We have to temporarily identify the book for this.
+    if (agent != GOD_XOM && agent != GOD_SIF_MUNA)
+    {
+        bool useless = false;
+        {
+            unwind_var<iflags_t> oldflags{book.flags};
+            book.flags |= ISFLAG_KNOW_TYPE;
+            useless = is_useless_item(book);
+        }
+        if (useless)
+        {
+            destroy_item(book);
+            book.base_type = OBJ_BOOKS;
+            book.quantity = 1;
+            return _acquire_manual(book);
+        }
+    }
+
     return true;
 }
 
@@ -1198,6 +1203,7 @@ static string _why_reject(const item_def &item, int agent)
         return "Destroying sif-gifted rarebook!";
     }
 
+#if TAG_MAJOR_VERSION == 34
     // The crystal ball case should be handled elsewhere, but just in
     // case, it's also handled here.
     if (agent == GOD_PAKELLAS)
@@ -1208,6 +1214,7 @@ static string _why_reject(const item_def &item, int agent)
             return "Destroying CBoE that Pakellas hates!";
         }
     }
+#endif
 
     return ""; // all OK
 }
@@ -1219,7 +1226,11 @@ int acquirement_create_item(object_class_type class_wanted,
     ASSERT(class_wanted != OBJ_RANDOM);
 
     const bool divine = (agent == GOD_OKAWARU || agent == GOD_XOM
-                         || agent == GOD_TROG || agent == GOD_PAKELLAS);
+                         || agent == GOD_TROG
+#if TAG_MAJOR_VERSION == 34
+                         || agent == GOD_PAKELLAS
+#endif
+                        );
     int thing_created = NON_ITEM;
     int quant = 1;
 #define MAX_ACQ_TRIES 40
@@ -1331,11 +1342,12 @@ int acquirement_create_item(object_class_type class_wanted,
         {
             // New gold acquirement formula from dpeg.
             // Min=220, Max=5520, Mean=1218, Std=911
+            int quantity_rnd = roll_dice(1, 8); // ensure rnd sequence points
+            quantity_rnd *= roll_dice(1, 8);
+            quantity_rnd *= roll_dice(1, 8);
             acq_item.quantity = 10 * (20
                                     + roll_dice(1, 20)
-                                    + (roll_dice(1, 8)
-                                       * roll_dice(1, 8)
-                                       * roll_dice(1, 8)));
+                                    + quantity_rnd);
         }
         else if (class_wanted == OBJ_MISSILES && !divine)
             acq_item.quantity *= 5;
@@ -1357,11 +1369,6 @@ int acquirement_create_item(object_class_type class_wanted,
             }
             // That might have changed the item's subtype.
             item_colour(acq_item);
-
-            // Don't mark books as seen if only generated for the
-            // acquirement statistics.
-            if (!debug)
-                mark_had_book(acq_item);
         }
         else if (acq_item.base_type == OBJ_JEWELLERY)
         {
@@ -1377,7 +1384,7 @@ int acquirement_create_item(object_class_type class_wanted,
                 acq_item.plus = max(abs((int) acq_item.plus), 1);
                 break;
 
-            case RING_LOUDNESS:
+            case RING_ATTENTION:
             case RING_TELEPORTATION:
             case AMU_INACCURACY:
                 // These are the only truly bad pieces of jewellery.
@@ -1471,7 +1478,7 @@ int acquirement_create_item(object_class_type class_wanted,
 }
 
 bool acquirement(object_class_type class_wanted, int agent,
-                 bool quiet, int* item_index, bool debug)
+                 bool quiet, int* item_index, bool debug, bool known_scroll)
 {
     ASSERT(!crawl_state.game_is_arena());
 
@@ -1486,7 +1493,7 @@ bool acquirement(object_class_type class_wanted, int agent,
     if (you.get_mutation_level(MUT_NO_ARTIFICE))
         bad_class.set(OBJ_MISCELLANY);
 
-    bad_class.set(OBJ_FOOD, you_foodless_normally() && !you_worship(GOD_FEDHAS));
+    bad_class.set(OBJ_FOOD, you_foodless(false) && !you_worship(GOD_FEDHAS));
 
     static struct { object_class_type type; const char* name; } acq_classes[] =
     {
@@ -1495,14 +1502,14 @@ bool acquirement(object_class_type class_wanted, int agent,
         { OBJ_JEWELLERY,  "Jewellery" },
         { OBJ_BOOKS,      "Book" },
         { OBJ_STAVES,     "Staff " },
-        { OBJ_MISCELLANY, "Evocables" },
-        { OBJ_FOOD,       0 }, // amended below
-        { OBJ_GOLD,       "Gold" },
+        { OBJ_MISCELLANY, "Evocable" },
+        { OBJ_FOOD,       "Food" }, // amended below
+        { OBJ_GOLD,       0 },
     };
     ASSERT(acq_classes[6].type == OBJ_FOOD);
-    acq_classes[6].name = you_worship(GOD_FEDHAS) ? "Fruit":
-                          you.species == SP_VAMPIRE  ? "Blood":
-                                                       "Food";
+    string gold_text = make_stringf("Gold (you have $%d)", you.gold);
+    ASSERT(acq_classes[7].type == OBJ_GOLD);
+    acq_classes[7].name = gold_text.c_str();
 
     int thing_created = NON_ITEM;
 
@@ -1510,6 +1517,10 @@ bool acquirement(object_class_type class_wanted, int agent,
         item_index = &thing_created;
 
     *item_index = NON_ITEM;
+
+#ifdef USE_TILE_WEB
+    ui::cutoff_point ui_cutoff_point;
+#endif
 
     while (class_wanted == OBJ_RANDOM)
     {
@@ -1534,17 +1545,21 @@ bool acquirement(object_class_type class_wanted, int agent,
                 line.clear();
             }
         }
-        mprf(MSGCH_PROMPT, "What kind of item would you like to acquire? (\\ to view known items)");
+        mprf(MSGCH_PROMPT, "What kind of item would you like to acquire?"
+                "<lightgrey> [<w>\\</w>] known items %s</lightgrey>",
+                shopping_list.empty() ? "" : "[<w>$</w>] shopping list");
 
         const int keyin = toalower(get_ch());
         if (keyin >= 'a' && keyin < 'a' + (int)ARRAYSZ(acq_classes))
             class_wanted = acq_classes[keyin - 'a'].type;
         else if (keyin == '\\')
             check_item_knowledge(), redraw_screen();
+        else if (keyin == '$' && !shopping_list.empty())
+            shopping_list.display(true), redraw_screen();
         else
         {
             // Lets wizards escape out of accidentally choosing acquirement.
-            if (agent == AQ_WIZMODE)
+            if (agent == AQ_WIZMODE || known_scroll)
             {
                 canned_msg(MSG_OK);
                 return false;

@@ -6,7 +6,6 @@
 #include "energy-use-type.h"
 #include "equipment-type.h"
 #include "god-type.h"
-#include "held-type.h"
 #include "item-prop-enum.h"
 #include "mon-holy-type.h"
 #include "random-var.h"
@@ -19,13 +18,13 @@
 
 #define CLING_KEY "clinging" // 'is creature clinging' property key
 
-enum ev_ignore_bit
+enum class ev_ignore
 {
-    EV_IGNORE_NONE       = 0,
-    EV_IGNORE_HELPLESS   = 1<<0,
-    EV_IGNORE_UNIDED     = 1<<1,
+    none       = 0,
+    helpless   = 1<<0,
+    unided     = 1<<1,
 };
-DEF_BITFIELD(ev_ignore_type, ev_ignore_bit);
+DEF_BITFIELD(ev_ignore_type, ev_ignore);
 
 struct bolt;
 
@@ -199,7 +198,7 @@ public:
     virtual bool can_bleed(bool allow_tran = true) const = 0;
     virtual bool is_stationary() const = 0;
     virtual bool malmutate(const string &reason) = 0;
-    virtual bool polymorph(int pow) = 0;
+    virtual bool polymorph(int pow, bool allow_immobile = true) = 0;
     virtual bool drain_exp(actor *agent, bool quiet = false, int pow = 15) = 0;
     virtual bool rot(actor *agent, int amount, bool quiet = false,
                      bool no_cleanup = false) = 0;
@@ -243,7 +242,8 @@ public:
                              string source = "") = 0;
 
     virtual int  skill(skill_type sk, int scale = 1,
-                       bool real = false, bool drained = true) const = 0;
+                       bool real = false, bool drained = true,
+                       bool temp = true) const = 0;
     int  skill_rdiv(skill_type sk, int mult = 1, int div = 1) const;
 
 #define TORPOR_SLOWED_KEY "torpor_slowed"
@@ -260,9 +260,10 @@ public:
 
     virtual int armour_class(bool calc_unid = true) const = 0;
     virtual int gdr_perc() const = 0;
-    int apply_ac(int damage, int max_damage = 0, ac_type ac_rule = AC_NORMAL,
-                 int stab_bypass = 0, bool for_real = true) const;
-    virtual int evasion(ev_ignore_type ign = EV_IGNORE_NONE,
+    int apply_ac(int damage, int max_damage = 0,
+                 ac_type ac_rule = ac_type::normal, int stab_bypass = 0,
+                 bool for_real = true) const;
+    virtual int evasion(ev_ignore_type ign = ev_ignore::none,
                         const actor *attacker = nullptr) const = 0;
     virtual bool shielded() const = 0;
     virtual int shield_bonus() const = 0;
@@ -303,7 +304,7 @@ public:
     virtual int res_holy_energy() const = 0;
     virtual int res_negative_energy(bool intrinsic_only = false) const = 0;
     virtual bool res_torment() const = 0;
-    virtual bool res_wind() const = 0;
+    virtual bool res_tornado() const = 0;
     virtual bool res_petrify(bool temp = true) const = 0;
     virtual int res_constrict() const = 0;
     virtual int res_magic(bool calc_unid = true) const = 0;
@@ -410,8 +411,6 @@ public:
 
     // Constriction stuff:
 
-    // What is holding us?  Not necessarily a monster.
-    held_type held;
     mid_t constricted_by;
     int escape_attempts;
 
@@ -425,18 +424,22 @@ public:
     void stop_constricting(mid_t whom, bool intentional = false,
                            bool quiet = false);
     void stop_constricting_all(bool intentional = false, bool quiet = false);
+    void stop_directly_constricting_all(bool intentional = false,
+                                        bool quiet = false);
     void stop_being_constricted(bool quiet = false);
 
-    bool can_constrict(const actor* defender) const;
-    void clear_far_constrictions();
-    void clear_constrictions_far_from(const coord_def &where);
+    bool can_constrict(const actor* defender, bool direct) const;
+    bool has_invalid_constrictor(bool move = false) const;
+    void clear_invalid_constrictions(bool move = false);
     void accum_has_constricted();
     void handle_constriction();
     bool is_constricted() const;
+    bool is_directly_constricted() const;
     bool is_constricting() const;
     int num_constricting() const;
     virtual bool has_usable_tentacle() const = 0;
-    virtual int constriction_damage() const = 0;
+    virtual int constriction_damage(bool direct) const = 0;
+    virtual bool constriction_does_damage(bool direct) const = 0;
     virtual bool clear_far_engulf() = 0;
 
     // Be careful using this, as it doesn't keep the constrictor in sync.
@@ -452,6 +455,7 @@ public:
     static actor *ensure_valid_actor(actor *act);
 
 private:
+    void constriction_damage_defender(actor &defender, int duration);
     void end_constriction(mid_t whom, bool intentional, bool quiet);
 };
 

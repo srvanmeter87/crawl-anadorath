@@ -29,6 +29,13 @@ enum item_source_type
     AQ_WIZMODE    = 200,
 };
 
+enum autopickup_level_type
+{
+    AP_FORCE_OFF = -1,
+    AP_FORCE_NONE = 0,
+    AP_FORCE_ON = 1,
+};
+
 /// top-priority item override colour
 #define FORCED_ITEM_COLOUR_KEY "forced_item_colour"
 
@@ -63,6 +70,8 @@ item_def *find_floor_item(object_class_type cls, int sub_type = -1);
 int item_on_floor(const item_def &item, const coord_def& where);
 
 void init_item(int item);
+
+void add_held_books_to_library();
 
 void link_items();
 
@@ -133,6 +142,9 @@ bool can_autopickup();
 bool need_to_autopickup();
 void autopickup();
 
+void set_item_autopickup(const item_def &item, autopickup_level_type ap);
+int item_autopickup_level(const item_def &item);
+
 int find_free_slot(const item_def &i);
 
 bool need_to_autoinscribe();
@@ -149,6 +161,8 @@ void item_was_destroyed(const item_def &item);
 bool get_item_by_name(item_def *item, const char* specs,
                       object_class_type class_wanted,
                       bool create_for_real = false);
+
+bool get_item_by_exact_name(item_def &item, const char* name);
 
 void move_items(const coord_def r, const coord_def p);
 object_class_type get_random_item_mimic_type();

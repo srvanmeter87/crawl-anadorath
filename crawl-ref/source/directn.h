@@ -88,11 +88,13 @@ struct direction_chooser_args
     int range;
     bool just_looking;
     bool needs_path;
+    bool unrestricted; // for wizmode
     confirm_prompt_type self;
     const char *target_prefix;
     string top_prompt;
     targeting_behaviour *behaviour;
     bool show_floor_desc;
+    bool show_boring_feats;
     desc_filter get_desc_func;
     coord_def default_place;
 
@@ -103,10 +105,12 @@ struct direction_chooser_args
         range(-1),
         just_looking(false),
         needs_path(true),
-        self(CONFIRM_PROMPT),
+        unrestricted(false),
+        self(confirm_prompt_type::prompt),
         target_prefix(nullptr),
         behaviour(nullptr),
         show_floor_desc(false),
+        show_boring_feats(true),
         get_desc_func(nullptr),
         default_place(0, 0) {}
 };
@@ -223,8 +227,11 @@ private:
     void toggle_beam();
 
     void finalize_moves();
-    void draw_beam_if_needed();
     void do_redraws();
+
+    void draw_beam();
+    void highlight_summoner();
+    coord_def find_summoner();
 
     // Whether the current target is you.
     bool looking_at_you() const;
@@ -241,12 +248,12 @@ private:
     targ_mode_type mode;        // Hostiles or friendlies?
     int range;                  // Max range to consider
     bool just_looking;
-    bool needs_path;            // Determine a ray while we're at it?
     confirm_prompt_type self;   // What do when aiming at yourself
     const char *target_prefix;  // A string displayed before describing target
     string top_prompt;          // Shown at the top of the message window
     targeting_behaviour *behaviour; // Can be nullptr for default
     bool show_floor_desc;       // Describe the floor of the current target
+    bool show_boring_feats;
     targeter *hitfunc;         // Determine what would be hit.
     coord_def default_place;    // Start somewhere other than you.pos()?
 
@@ -261,7 +268,7 @@ private:
                                 // position?
 
     // What we need to redraw.
-    bool need_beam_redraw;
+    bool need_viewport_redraw;
     bool need_cursor_redraw;
     bool need_text_redraw;
     bool need_all_redraw;       // All of the above.
@@ -270,6 +277,11 @@ private:
 
     // Default behaviour, saved across instances.
     static targeting_behaviour stock_behaviour;
+
+    bool unrestricted;
+public:
+    // TODO: fix the weird behavior that led to this hack
+    bool needs_path;            // Determine a ray while we're at it?
 };
 
 // Monster equipment description level.

@@ -1,5 +1,14 @@
 #pragma once
 
+/* Don't change the order of any enums in this file unless you are breaking
+ * save compatibility. See ../docs/develop/save_compatibility.txt for
+ * more details, including how to schedule both the current and future
+ * enum orders.
+ *
+ * If you do break compatibility and change the order, be sure to change
+ * rltiles/dc-item.txt to match.
+ */
+
 enum armour_type
 {
     ARM_ROBE, // order of mundane armour matters to _upgrade_body_armour
@@ -91,8 +100,8 @@ enum armour_type
     ARM_SHADOW_DRAGON_ARMOUR,
     ARM_QUICKSILVER_DRAGON_HIDE,
     ARM_QUICKSILVER_DRAGON_ARMOUR,
-#endif
     ARM_SCARF,
+#endif
 
     NUM_ARMOURS
 };
@@ -189,7 +198,7 @@ enum jewellery_type
     RING_SLAYING,
     RING_SEE_INVISIBLE,
     RING_RESIST_CORROSION,
-    RING_LOUDNESS,
+    RING_ATTENTION,
     RING_TELEPORTATION,
     RING_EVASION,
 #if TAG_MAJOR_VERSION == 34
@@ -218,9 +227,7 @@ enum jewellery_type
     AMU_RAGE = 35,
     AMU_FIRST_AMULET = AMU_RAGE,
     AMU_HARM,
-#if TAG_MAJOR_VERSION == 34
-    AMU_DISMISSAL,
-#endif
+    AMU_ACROBAT,
     AMU_MANA_REGENERATION,
     AMU_THE_GOURMAND,
 #if TAG_MAJOR_VERSION == 34
@@ -264,27 +271,20 @@ enum misc_item_type
 #endif
     MISC_LIGHTNING_ROD,
 
+#if TAG_MAJOR_VERSION == 34
     MISC_DECK_OF_ESCAPE,
     MISC_FIRST_DECK = MISC_DECK_OF_ESCAPE,
     MISC_DECK_OF_DESTRUCTION,
-#if TAG_MAJOR_VERSION == 34
     MISC_DECK_OF_DUNGEONS,
-#endif
     MISC_DECK_OF_SUMMONING,
-#if TAG_MAJOR_VERSION == 34
     MISC_DECK_OF_WONDERS,
-#endif
     MISC_DECK_OF_PUNISHMENT,
-
-#if TAG_MAJOR_VERSION == 34
     MISC_DECK_OF_WAR,
     MISC_DECK_OF_CHANGES,
     MISC_DECK_OF_DEFENCE,
     MISC_LAST_DECK = MISC_DECK_OF_DEFENCE,
 
     MISC_RUNE_OF_ZOT,
-#else
-    MISC_LAST_DECK = MISC_DECK_OF_PUNISHMENT,
 #endif
 
     MISC_QUAD_DAMAGE, // Sprint only
@@ -301,19 +301,6 @@ enum misc_item_type
 
     NUM_MISCELLANY,
     MISC_DECK_UNKNOWN = NUM_MISCELLANY,
-};
-
-// in no particular order (but we need *a* fixed order for dbg-scan)
-const vector<misc_item_type> deck_types =
-{
-    MISC_DECK_OF_ESCAPE, MISC_DECK_OF_DESTRUCTION,
-#if TAG_MAJOR_VERSION == 34
-    MISC_DECK_OF_SUMMONING, MISC_DECK_OF_WONDERS, MISC_DECK_OF_ODDITIES,
-#endif
-    MISC_DECK_OF_PUNISHMENT, MISC_DECK_OF_WAR,
-#if TAG_MAJOR_VERSION == 34
-    MISC_DECK_OF_CHANGES, MISC_DECK_OF_DEFENCE, MISC_DECK_OF_DUNGEONS,
-#endif
 };
 
 // in no particular order (but we need *a* fixed order for dbg-scan)
@@ -338,10 +325,10 @@ const vector<misc_item_type> misc_types =
 
 enum missile_type
 {
-#if TAG_MAJOR_VERSION == 34
     MI_DART,
-#endif
+#if TAG_MAJOR_VERSION == 34
     MI_NEEDLE,
+#endif
     MI_ARROW,
     MI_BOLT,
     MI_JAVELIN,
@@ -350,7 +337,7 @@ enum missile_type
     MI_LARGE_ROCK,
     MI_SLING_BULLET,
     MI_THROWING_NET,
-    MI_TOMAHAWK,
+    MI_BOOMERANG,
 
     NUM_MISSILES,
     MI_NONE             // was MI_EGGPLANT... used for launch type detection
@@ -362,7 +349,7 @@ enum rune_type
     RUNE_SNAKE,
     RUNE_SHOALS,
     RUNE_SLIME,
-    RUNE_ELF, // unused
+    RUNE_ELF, // only used in sprints
     RUNE_VAULTS,
     RUNE_TOMB,
 
@@ -382,7 +369,7 @@ enum rune_type
     RUNE_GLOORX_VLOQ,
 
     RUNE_SPIDER,
-    RUNE_FOREST, // unused
+    RUNE_FOREST, // only used in sprints
     NUM_RUNE_TYPES
 };
 
@@ -411,17 +398,17 @@ enum scroll_type
     SCR_ENCHANT_WEAPON_II,
 #endif
     SCR_BRAND_WEAPON,
+#if TAG_MAJOR_VERSION == 34
     SCR_RECHARGING,
-/* #if TAG_MAJOR_VERSION == 34
     SCR_ENCHANT_WEAPON_III,
-#endif */
+#endif
     SCR_HOLY_WORD,
     SCR_VULNERABILITY,
     SCR_SILENCE,
     SCR_AMNESIA,
-/* #if TAG_MAJOR_VERSION == 34
+#if TAG_MAJOR_VERSION == 34
     SCR_CURSE_JEWELLERY,
-#endif */
+#endif
     SCR_BRAND_ARMOUR,
     SCR_BRAND_AMMUNITION,
     NUM_SCROLLS
@@ -475,26 +462,30 @@ enum special_missile_type // to separate from weapons in general {dlb}
     SPMSL_FROST,
     SPMSL_POISONED,
     SPMSL_CURARE,                      // Needle-only brand
+#if TAG_MAJOR_VERSION == 34
     SPMSL_RETURNING,
+#endif
     SPMSL_CHAOS,
+#if TAG_MAJOR_VERSION == 34
     SPMSL_PENETRATION,
+#endif
     SPMSL_DISPERSAL,
+#if TAG_MAJOR_VERSION == 34
     SPMSL_EXPLODING,
     SPMSL_STEEL,
-    SPMSL_SILVER,
-    SPMSL_PARALYSIS,                   // needle only from here on
-#if TAG_MAJOR_VERSION == 34
-    SPMSL_SLOW,
 #endif
+    SPMSL_SILVER,
+#if TAG_MAJOR_VERSION == 34
+    SPMSL_PARALYSIS,                   // dart only from here on
+    SPMSL_SLOW,
     SPMSL_SLEEP,
     SPMSL_CONFUSION,
-#if TAG_MAJOR_VERSION == 34
     SPMSL_SICKNESS,
 #endif
     SPMSL_FRENZY,
-    NUM_REAL_SPECIAL_MISSILES,
     SPMSL_BLINDING,
-    NUM_SPECIAL_MISSILES,
+    NUM_REAL_SPECIAL_MISSILES,
+    NUM_SPECIAL_MISSILES = NUM_REAL_SPECIAL_MISSILES,
 };
 
 enum special_ring_type // jewellery mitm[].special values
@@ -581,7 +572,9 @@ enum weapon_type
     WPN_GLAIVE,
     WPN_BARDICHE,
 
+#if TAG_MAJOR_VERSION == 34
     WPN_BLOWGUN,
+#endif
 
 #if TAG_MAJOR_VERSION > 34
     WPN_HAND_CROSSBOW,
@@ -646,7 +639,7 @@ enum weapon_type
     WPN_RANDOM,
     WPN_VIABLE,
 
-// thrown weapons (for hunter weapon selection) - rocks, javelins, tomahawks
+// thrown weapons (for hunter weapon selection) - rocks, javelins, boomerangs
     WPN_THROWN,
 };
 
@@ -708,17 +701,15 @@ enum wand_type
 #if TAG_MAJOR_VERSION == 34
     WAND_FIRE_REMOVED,
     WAND_COLD_REMOVED,
-#endif
-    WAND_CONFUSION,
-#if TAG_MAJOR_VERSION == 34
+    WAND_CONFUSION_REMOVED,
     WAND_INVISIBILITY_REMOVED,
 #endif
     WAND_DIGGING,
     WAND_ICEBLAST,
 #if TAG_MAJOR_VERSION == 34
     WAND_TELEPORTATION_REMOVED,
+    WAND_LIGHTNING_REMOVED,
 #endif
-    WAND_LIGHTNING,
     WAND_POLYMORPH,
     WAND_ENSLAVEMENT,
     WAND_ACID,
@@ -729,28 +720,19 @@ enum wand_type
     NUM_WANDS
 };
 
-enum zap_count_type
-{
-    ZAPCOUNT_EMPTY       = -1,
-    ZAPCOUNT_UNKNOWN     = -2,
-    ZAPCOUNT_RECHARGED   = -3,
-};
-
 enum food_type
 {
-    FOOD_MEAT_RATION,
-    FOOD_BREAD_RATION,
+    FOOD_RATION,
 #if TAG_MAJOR_VERSION == 34
+    FOOD_BREAD_RATION,
     FOOD_PEAR,
     FOOD_APPLE,
     FOOD_CHOKO,
 #endif
-    FOOD_ROYAL_JELLY,
 #if TAG_MAJOR_VERSION == 34
-    FOOD_UNUSED, // was: royal jelly
-#endif
+    FOOD_ROYAL_JELLY,   // was: royal jelly
+    FOOD_UNUSED, // was: royal jelly and/or pizza
     FOOD_FRUIT,  // was: snozzcumber
-#if TAG_MAJOR_VERSION == 34
     FOOD_PIZZA,
     FOOD_APRICOT,
     FOOD_ORANGE,

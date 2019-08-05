@@ -8,6 +8,7 @@
 #include "item-use.h"
 
 #include "ability.h"
+#include "acquire.h"
 #include "act-iter.h"
 #include "areas.h"
 #include "artefact.h"
@@ -18,7 +19,6 @@
 #include "colour.h"
 #include "coordit.h"
 #include "database.h"
-#include "decks.h"
 #include "delay.h"
 #include "describe.h"
 #include "directn.h"
@@ -26,6 +26,7 @@
 #include "env.h"
 #include "evoke.h"
 #include "exercise.h"
+#include "fight.h"
 #include "food.h"
 #include "god-abil.h"
 #include "god-conduct.h"
@@ -261,11 +262,7 @@ item_def* use_an_item(int item_type, operation_types oper, const char* prompt,
 
         // Handle inscribed item keys
         if (isadigit(keyin))
-        {
-            const int idx = digit_inscription_to_inv_index(keyin, oper);
-            if (idx >= 0)
-                target = &item_from_int(true, idx);
-        }
+            target = digit_inscription_to_item(keyin, oper);
         // TODO: handle * key
         else if (keyin == ',')
         {
@@ -348,8 +345,11 @@ bool can_wield(const item_def *weapon, bool say_reason,
     }
 
     if (you.get_mutation_level(MUT_NO_BOWS)
-        && ((*weapon).is_type(OBJ_WEAPONS, WPN_SHORTBOW)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_LONGBOW)))
+        && (*weapon).is_type(OBJ_WEAPONS, WPN_ARBALEST)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_SHORTBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_LONGBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_HAND_CROSSBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_TRIPLE_CROSSBOW))
     {
         SAY(mpr("You can't use bows."));
         return false;
@@ -418,21 +418,6 @@ bool can_wield(const item_def *weapon, bool say_reason,
         else
             return false;
     }
-    else if (!ignore_temporary_disability
-             && you.hunger_state < HS_FULL
-             && get_weapon_brand(*weapon) == SPWPN_VAMPIRISM
-             && you.undead_state() == US_ALIVE
-             && !you_foodless()
-             && (item_type_known(*weapon) || !only_known))
-    {
-        if (say_reason)
-        {
-            mpr("This weapon is vampiric, and you must be Full or above to equip it.");
-            id_brand = true;
-        }
-        else
-            return false;
-    }
     if (id_brand)
     {
         auto wwpn = const_cast<item_def*>(weapon);
@@ -461,8 +446,8 @@ bool can_wield(const item_def *weapon, bool say_reason,
 }
 
 /**
- * @param auto_wield true if this was initiated by the wield weapon command (w)
- *      false otherwise (e.g. switching between ranged and melee with the
+ * @param auto_wield false if this was initiated by the wield weapon command (w)
+ *      true otherwise (e.g. switching between ranged and melee with the
  *      auto_switch option)
  * @param slot Index into inventory of item to equip. Or one of following
  *     special values:
@@ -514,7 +499,7 @@ bool wield_weapon(bool auto_wield, int slot, bool show_weff_messages,
         {
             item_slot = prompt_invent_item(
                             "Wield which item (- for none, * to show all)?",
-                            MT_INVLIST, OSEL_WIELD,
+                            menu_type::invlist, OSEL_WIELD,
                             OPER_WIELD, invprompt_flag::no_warning, '-');
         }
         else
@@ -525,8 +510,13 @@ bool wield_weapon(bool auto_wield, int slot, bool show_weff_messages,
         return false;
     else if (item_slot == you.equip[EQ_WEAPON])
     {
-        mpr("You are already wielding that!");
-        return true;
+        if (Options.equip_unequip)
+            item_slot = SLOT_BARE_HANDS;
+        else
+        {
+            mpr("You are already wielding that!");
+            return true;
+        }
     }
 
     // Reset the warning counter.
@@ -618,7 +608,7 @@ bool wield_weapon(bool auto_wield, int slot, bool show_weff_messages,
         if (unwield_item(show_weff_messages))
         {
             // Enable skills so they can be re-disabled later
-            update_can_train();
+            update_can_currently_train();
         }
         else
             return false;
@@ -680,7 +670,8 @@ bool armour_prompt(const string & mesg, int *index, operation_types oper)
         int selector = OBJ_ARMOUR;
         if (oper == OPER_TAKEOFF && !Options.equip_unequip)
             selector = OSEL_WORN_ARMOUR;
-        int slot = prompt_invent_item(mesg.c_str(), MT_INVLIST, selector, oper);
+        int slot = prompt_invent_item(mesg.c_str(), menu_type::invlist,
+                                      selector, oper);
 
         if (!prompt_failed(slot))
         {
@@ -1059,8 +1050,9 @@ bool wear_armour(int item)
 
     if (item == -1)
     {
-        item = prompt_invent_item("Wear which item?", MT_INVLIST, OBJ_ARMOUR,
-                                  OPER_WEAR, invprompt_flag::no_warning);
+        item = prompt_invent_item("Wear which item?", menu_type::invlist,
+                                  OBJ_ARMOUR, OPER_WEAR,
+                                  invprompt_flag::no_warning);
         if (prompt_failed(item))
             return false;
     }
@@ -1289,6 +1281,12 @@ static int _prompt_ring_to_remove(int new_ring)
         slot_chars.push_back(index_to_letter(rings.back()->link));
     }
 
+    if (slot_chars.size() + 2 > msgwin_lines() || ui::has_layout())
+    {
+        // force a menu rather than a more().
+        return EQ_NONE;
+    }
+
     clear_messages();
 
     mprf(MSGCH_PROMPT,
@@ -1349,10 +1347,6 @@ static bool _safe_to_remove_or_wear(const item_def &item, bool remove, bool quie
 {
     if (remove && !safe_to_remove(item, quiet))
         return false;
-
-    //Gnolls don't get stat changes from items, so don't warn about stat zero
-    if (you.species == SP_GNOLL)
-        return true;
 
     int prop_str = 0;
     int prop_dex = 0;
@@ -1572,8 +1566,18 @@ static bool _swap_rings(int ring_slot)
         if (!all_same || Options.jewellery_prompt)
             unwanted = _prompt_ring_to_remove(ring_slot);
 
+        if (unwanted == EQ_NONE)
+        {
+            // do this here rather than in remove_ring so that the custom
+            // message is visible.
+            unwanted = prompt_invent_item(
+                    "You're wearing all the rings you can. Remove which one?",
+                    menu_type::invlist, OSEL_UNCURSED_WORN_RINGS, OPER_REMOVE,
+                    invprompt_flag::no_warning | invprompt_flag::hide_known);
+        }
+
         // Cancelled:
-        if (unwanted < -1)
+        if (unwanted < 0)
         {
             canned_msg(MSG_OK);
             return false;
@@ -1721,7 +1725,8 @@ static bool _can_puton_jewellery(int item_slot)
 }
 
 // Put on a particular ring or amulet
-static bool _puton_item(int item_slot, bool prompt_slot)
+static bool _puton_item(int item_slot, bool prompt_slot,
+                        bool check_for_inscriptions)
 {
     item_def& item = you.inv[item_slot];
 
@@ -1745,8 +1750,9 @@ static bool _puton_item(int item_slot, bool prompt_slot)
 
     // It looks to be possible to equip this item. Before going any further,
     // we should prompt the user with any warnings that come with trying to
-    // put it on.
-    if (!check_warning_inscriptions(item, OPER_PUTON))
+    // put it on, except when they have already been prompted with them
+    // from switching rings.
+    if (check_for_inscriptions && !check_warning_inscriptions(item, OPER_PUTON))
     {
         canned_msg(MSG_OK);
         return false;
@@ -1854,7 +1860,7 @@ static bool _puton_item(int item_slot, bool prompt_slot)
 }
 
 // Put on a ring or amulet. (If slot is -1, first prompt for which item to put on)
-bool puton_ring(int slot, bool allow_prompt)
+bool puton_ring(int slot, bool allow_prompt, bool check_for_inscriptions)
 {
     int item_slot;
 
@@ -1875,8 +1881,8 @@ bool puton_ring(int slot, bool allow_prompt)
     else
     {
         item_slot = prompt_invent_item("Put on which piece of jewellery?",
-                                       MT_INVLIST, OBJ_JEWELLERY, OPER_PUTON,
-                                       invprompt_flag::no_warning);
+                                       menu_type::invlist, OBJ_JEWELLERY,
+                                       OPER_PUTON, invprompt_flag::no_warning);
     }
 
     if (prompt_failed(item_slot))
@@ -1884,7 +1890,7 @@ bool puton_ring(int slot, bool allow_prompt)
 
     bool prompt = allow_prompt ? Options.jewellery_prompt : false;
 
-    return _puton_item(item_slot, prompt);
+    return _puton_item(item_slot, prompt, check_for_inscriptions);
 }
 
 // Remove the amulet/ring at given inventory slot (or, if slot is -1, prompt
@@ -1937,7 +1943,7 @@ bool remove_ring(int slot, bool announce)
     {
         const int equipn =
             (slot == -1)? prompt_invent_item("Remove which piece of jewellery?",
-                                             MT_INVLIST,
+                                             menu_type::invlist,
                                              OBJ_JEWELLERY,
                                              OPER_REMOVE,
                                              invprompt_flag::no_warning
@@ -2038,7 +2044,7 @@ void prompt_inscribe_item()
     }
 
     int item_slot = prompt_invent_item("Inscribe which item?",
-                                       MT_INVLIST, OSEL_ANY);
+                                       menu_type::invlist, OSEL_ANY);
 
     if (prompt_failed(item_slot))
         return;
@@ -2046,31 +2052,9 @@ void prompt_inscribe_item()
     inscribe_item(you.inv[item_slot]);
 }
 
-static bool _check_blood_corpses_on_ground()
-{
-    for (stack_iterator si(you.pos(), true); si; ++si)
-    {
-        if (si->is_type(OBJ_CORPSES, CORPSE_BODY)
-            && mons_has_blood(si->mon_type))
-        {
-            return true;
-        }
-    }
-    return false;
-}
-
-static void _vampire_corpse_help()
-{
-    if (you.species != SP_VAMPIRE)
-        return;
-
-    if (_check_blood_corpses_on_ground())
-        mpr("Use <w>e</w> to drain blood from corpses.");
-}
-
 void drink(item_def* potion)
 {
-    if (you_foodless())
+    if (you_foodless() && you.species != SP_VAMPIRE)
     {
         mpr("You can't drink.");
         return;
@@ -2093,10 +2077,7 @@ void drink(item_def* potion)
         potion = use_an_item(OBJ_POTIONS, OPER_QUAFF, "Drink which item?");
 
         if (!potion)
-        {
-            _vampire_corpse_help();
             return;
-        }
     }
 
     if (potion->base_type != OBJ_POTIONS)
@@ -2110,6 +2091,19 @@ void drink(item_def* potion)
     if (alreadyknown && is_bad_item(*potion, true))
     {
         canned_msg(MSG_UNTHINKING_ACT);
+        return;
+    }
+
+    bool penance = god_hates_item(*potion);
+    string prompt = make_stringf("Really quaff the %s?%s",
+                                 potion->name(DESC_DBNAME).c_str(),
+                                 penance ? " This action would place"
+                                           " you under penance!" : "");
+    if (alreadyknown && (is_dangerous_item(*potion, true) || penance)
+        && Options.bad_item_prompt
+        && !yesno(prompt.c_str(), false, 'n'))
+    {
+        canned_msg(MSG_OK);
         return;
     }
 
@@ -2134,11 +2128,6 @@ void drink(item_def* potion)
         // Xom loves it when you drink an unknown potion and there is
         // a dangerous monster nearby...
         xom_is_stimulated(200);
-    }
-    if (is_blood_potion(*potion))
-    {
-        // Always drink oldest potion.
-        remove_oldest_perishable_item(*potion);
     }
 
     // We'll need this later, after destroying the item.
@@ -2171,20 +2160,7 @@ bool god_hates_brand(const int brand)
     }
 
     if (you_worship(GOD_ANADORATH)
-        && (brand == SPWPN_ANTIMAGIC
-            || brand == SPWPN_HOLY_WRATH))
-    {
-        return true;
-    }
-
-    if (you_worship(GOD_DITHMENOS)
-        && (brand == SPWPN_FLAMING
-            || brand == SPWPN_CHAOS))
-    {
-        return true;
-    }
-
-    if (you_worship(GOD_SHINING_ONE) && brand == SPWPN_VENOM)
+        && (brand == SPWPN_ANTIMAGIC || brand == SPWPN_HOLY_WRATH))
         return true;
 
     if (you_worship(GOD_CHEIBRIADOS) && (brand == SPWPN_CHAOS
@@ -2425,6 +2401,7 @@ static void _rebrand_ammunition(item_def& msl)
                                      5, SPMSL_DISPERSAL,
                                      3, SPMSL_CHAOS);
         }
+#if TAG_MAJOR_VERSION == 34
         else if (msltype == MI_NEEDLE)
         {
             new_brand = random_choose_weighted(
@@ -2434,6 +2411,7 @@ static void _rebrand_ammunition(item_def& msl)
                                     15, SPMSL_PARALYSIS,
                                     15, SPMSL_FRENZY);
         }
+#endif
         else if (msltype == MI_SLING_BULLET)
         {
             new_brand = random_choose_weighted(
@@ -2444,7 +2422,7 @@ static void _rebrand_ammunition(item_def& msl)
                                      8, SPMSL_CHAOS,
                                      8, SPMSL_DISPERSAL);
         }
-        else if (msltype == MI_TOMAHAWK)
+        else if (msltype == MI_BOOMERANG)
         {
             new_brand = random_choose_weighted(
                                     18, SPMSL_POISONED,
@@ -2579,6 +2557,7 @@ static void _brand_armour(item_def &arm)
         mprf_nocap("%s", arm.name(DESC_INVENTORY_EQUIP).c_str());
         you.redraw_armour_class = true;
         you.redraw_evasion = true;
+        calc_spell_power();
         calc_mp();
         flash_view_delay(UA_PLAYER, flash_colour, 300);
     }
@@ -3058,7 +3037,6 @@ static void _handle_read_book(item_def& book)
 #endif
 
     set_ident_flags(book, ISFLAG_IDENT_MASK);
-    mark_had_book(book);
     read_book(book);
 }
 
@@ -3088,17 +3066,18 @@ static bool _is_cancellable_scroll(scroll_type scroll)
 {
     return scroll == SCR_IDENTIFY
            || scroll == SCR_BLINKING
-           || scroll == SCR_RECHARGING
            || scroll == SCR_ENCHANT_ARMOUR
            || scroll == SCR_AMNESIA
            || scroll == SCR_REMOVE_CURSE
 #if TAG_MAJOR_VERSION == 34
            || scroll == SCR_CURSE_ARMOUR
-           /* || scroll == SCR_CURSE_JEWELLERY */
+           || scroll == SCR_CURSE_JEWELLERY
+           || scroll == SCR_RECHARGING
 #endif
            || scroll == SCR_BRAND_WEAPON
            || scroll == SCR_ENCHANT_WEAPON
            || scroll == SCR_MAGIC_MAPPING
+           || scroll == SCR_ACQUIREMENT
            || scroll == SCR_BRAND_ARMOUR
            || scroll == SCR_BRAND_AMMUNITION;
 }
@@ -3189,20 +3168,6 @@ string cannot_read_item_reason(const item_def &item)
                 return "You have no spells to forget!";
             return "";
 
-#if TAG_MAJOR_VERSION == 34
-        case SCR_CURSE_WEAPON:
-            if (!you.weapon())
-                return "This scroll only affects a wielded weapon!";
-
-            // assumption: wielded weapons always have their curse & brand known
-            if (you.weapon()->cursed())
-                return "Your weapon is already cursed!";
-
-            if (get_weapon_brand(*you.weapon()) == SPWPN_HOLY_WRATH)
-                return "Holy weapons cannot be cursed!";
-            return "";
-#endif
-
         case SCR_BRAND_ARMOUR:
             return _no_items_reason(OSEL_BRANDABLE_ARMOUR, true);
 
@@ -3218,18 +3183,27 @@ string cannot_read_item_reason(const item_def &item)
         case SCR_IDENTIFY:
             return _no_items_reason(OSEL_UNIDENT, true);
 
-        case SCR_RECHARGING:
-            return _no_items_reason(OSEL_RECHARGE);
-
         case SCR_REMOVE_CURSE:
             return _no_items_reason(OSEL_CURSED_WORN);
 
 #if TAG_MAJOR_VERSION == 34
+        case SCR_CURSE_WEAPON:
+            if (!you.weapon())
+                return "This scroll only affects a wielded weapon!";
+
+            // assumption: wielded weapons always have their curse & brand known
+            if (you.weapon()->cursed())
+                return "Your weapon is already cursed!";
+
+            if (get_weapon_brand(*you.weapon()) == SPWPN_HOLY_WRATH)
+                return "Holy weapons cannot be cursed!";
+            return "";
+
         case SCR_CURSE_ARMOUR:
             return _no_items_reason(OSEL_UNCURSED_WORN_ARMOUR);
 
-        /* case SCR_CURSE_JEWELLERY:
-            return _no_items_reason(OSEL_UNCURSED_WORN_JEWELLERY); */
+        case SCR_CURSE_JEWELLERY:
+            return _no_items_reason(OSEL_UNCURSED_WORN_JEWELLERY);
 #endif
 
         default:
@@ -3238,9 +3212,36 @@ string cannot_read_item_reason(const item_def &item)
 }
 
 /**
+ * Check if a particular scroll type would hurt a monster.
+ *
+ * @param scr           Scroll type in question
+ * @param m             Actor as a potential victim to the scroll
+ * @return  true if the provided scroll type is harmful to the actor.
+ */
+static bool _scroll_will_harm(const scroll_type scr, const actor &m)
+{
+    if (!m.alive())
+        return false;
+
+    switch (scr)
+    {
+        case SCR_HOLY_WORD:
+            if (m.undead_or_demonic())
+                return true;
+            break;
+        case SCR_TORMENT:
+            if (!m.res_torment())
+                return true;
+            break;
+        default: break;
+    }
+
+    return false;
+}
+
+/**
  * Check to see if the player can read the item in the given slot, and if so,
- * reads it. (Examining books, evoking the tome of destruction, & using
- * scrolls.)
+ * reads it. (Examining books and using scrolls.)
  *
  * @param slot      The slot of the item in the player's inventory. If -1, the
  *                  player is prompted to choose a slot.
@@ -3270,14 +3271,51 @@ void read(item_def* scroll)
         return;
     }
 
-    // need to handle this before we waste time (with e.g. blurryvis)
-    if (scroll->sub_type == SCR_BLINKING && item_type_known(*scroll)
-        && orb_limits_translocation()
-        && !yesno("Your blink will be uncontrolled - continue anyway?",
-                  false, 'n'))
-    {
-        canned_msg(MSG_OK);
-        return;
+    const scroll_type which_scroll = static_cast<scroll_type>(scroll->sub_type);
+    // Handle player cancels before we waste time (with e.g. blurryvis)
+    if (item_type_known(*scroll)) {
+        bool penance = god_hates_item(*scroll);
+        string verb_object = "read the " + scroll->name(DESC_DBNAME);
+
+        string penance_prompt = make_stringf("Really %s? This action would"
+                                             " place you under penance!",
+                                             verb_object.c_str());
+
+        targeter_los hitfunc(&you, LOS_NO_TRANS);
+
+        if (stop_attack_prompt(hitfunc, verb_object.c_str(),
+                               [which_scroll] (const actor* m)
+                               {
+                                   return _scroll_will_harm(which_scroll, *m);
+                               },
+                               nullptr, nullptr))
+        {
+            return;
+        }
+        else if (penance && !yesno(penance_prompt.c_str(), false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return;
+        }
+        else if ((is_dangerous_item(*scroll, true)
+                  || is_bad_item(*scroll, true))
+                 && Options.bad_item_prompt
+                 && !yesno(make_stringf("Really %s?",
+                                        verb_object.c_str()).c_str(),
+                           false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return;
+        }
+
+        if (scroll->sub_type == SCR_BLINKING
+            && orb_limits_translocation()
+            && !yesno("Your blink will be uncontrolled - continue anyway?",
+                      false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return;
+        }
     }
 
     if (you.get_mutation_level(MUT_BLURRY_VISION)
@@ -3374,7 +3412,7 @@ void read_scroll(item_def& scroll)
         else
         {
             cancel_scroll = (cast_controlled_blink(false, safely_cancellable)
-                             == SPRET_ABORT) && alreadyknown;
+                             == spret::abort) && alreadyknown;
         }
 
         if (!cancel_scroll)
@@ -3398,7 +3436,10 @@ void read_scroll(item_def& scroll)
 
     case SCR_ACQUIREMENT:
         if (!alreadyknown)
+        {
+            mpr(pre_succ_msg);
             mpr("This is a scroll of acquirement!");
+        }
 
         // included in default force_more_message
         // Identify it early in case the player checks the '\' screen.
@@ -3415,7 +3456,11 @@ void read_scroll(item_def& scroll)
             // IDing scrolls. (Not an interesting ID game mechanic!)
         }
 
-        run_uncancel(UNC_ACQUIREMENT, AQ_SCROLL);
+        if (!alreadyknown)
+            run_uncancel(UNC_ACQUIREMENT, AQ_SCROLL);
+        else
+            cancel_scroll = !acquirement(OBJ_RANDOM, AQ_SCROLL, false, nullptr,
+                    false, true);
         break;
 
     case SCR_FEAR:
@@ -3432,6 +3477,7 @@ void read_scroll(item_def& scroll)
         break;
 
     case SCR_FOG:
+    {
         if (alreadyknown && (env.level_state & LSTATE_STILL_WINDS))
         {
             mpr("The air is too still for clouds to form.");
@@ -3439,8 +3485,10 @@ void read_scroll(item_def& scroll)
             break;
         }
         mpr("The scroll dissolves into smoke.");
-        big_cloud(random_smoke_type(), &you, you.pos(), 50, 8 + random2(8));
+        auto smoke = random_smoke_type();
+        big_cloud(smoke, &you, you.pos(), 50, 8 + random2(8));
         break;
+    }
 
     case SCR_MAGIC_MAPPING:
         if (alreadyknown && !is_map_persistent())
@@ -3463,9 +3511,6 @@ void read_scroll(item_def& scroll)
 
     case SCR_IMMOLATION:
     {
-        // Dithmenos hates trying to play with fire, even if it does nothing.
-        did_god_conduct(DID_FIRE, 2 + random2(3), item_type_known(scroll));
-
         bool had_effect = false;
         for (monster_near_iterator mi(you.pos(), LOS_NO_TRANS); mi; ++mi)
         {
@@ -3544,16 +3589,6 @@ void read_scroll(item_def& scroll)
         cancel_scroll = !_identify(alreadyknown, pre_succ_msg, link);
         break;
 
-    case SCR_RECHARGING:
-        if (!alreadyknown)
-        {
-            mpr(pre_succ_msg);
-            mpr("It is a scroll of recharging.");
-            // included in default force_more_message (to show it before menu)
-        }
-        cancel_scroll = (recharge_wand(alreadyknown, pre_succ_msg) == -1);
-        break;
-
     case SCR_ENCHANT_ARMOUR:
         if (!alreadyknown)
         {
@@ -3586,10 +3621,17 @@ void read_scroll(item_def& scroll)
 #if TAG_MAJOR_VERSION == 34
     // Should always be identified by Ashenzari.
     case SCR_CURSE_ARMOUR:
-    /* case SCR_CURSE_JEWELLERY: */
+    case SCR_CURSE_JEWELLERY:
     {
         const bool armour = which_scroll == SCR_CURSE_ARMOUR;
         cancel_scroll = !curse_item(armour, pre_succ_msg);
+        break;
+    }
+
+    case SCR_RECHARGING:
+    {
+        mpr("This item has been removed, sorry!");
+        cancel_scroll = true;
         break;
     }
 #endif
@@ -3622,10 +3664,23 @@ void read_scroll(item_def& scroll)
         }
         if (you.spell_no == 0)
             mpr("You feel forgetful for a moment.");
-        else if (!alreadyknown)
-            cast_selective_amnesia();
         else
-            cancel_scroll = (cast_selective_amnesia(pre_succ_msg) == -1);
+        {
+            bool done;
+            bool aborted;
+            do
+            {
+                aborted = cast_selective_amnesia() == -1;
+                done = !aborted
+                       || alreadyknown
+                       || crawl_state.seen_hups
+                       || yesno("Really abort (and waste the scroll)?",
+                                false, 0);
+                cancel_scroll = aborted && alreadyknown;
+            } while (!done);
+            if (aborted)
+                canned_msg(MSG_OK);
+        }
         break;
 
     default:
@@ -3656,8 +3711,11 @@ void read_scroll(item_def& scroll)
         && which_scroll != SCR_ENCHANT_WEAPON
         && which_scroll != SCR_IDENTIFY
         && which_scroll != SCR_ENCHANT_ARMOUR
-        && which_scroll != SCR_BRAND_ARMOUR
+#if TAG_MAJOR_VERSION == 34
         && which_scroll != SCR_RECHARGING
+#endif
+        && which_scroll != SCR_BRAND_ARMOUR
+        && which_scroll != SCR_BRAND_AMMUNITION
         && which_scroll != SCR_AMNESIA)
     {
         mprf("It %s a %s.",
@@ -3820,24 +3878,9 @@ void tile_item_use(int idx)
                 wear_armour(idx);
             return;
 
-        case OBJ_CORPSES:
-            if (you.species != SP_VAMPIRE
-                || item.sub_type == CORPSE_SKELETON)
-            {
-                break;
-            }
-            // intentional fall-through for Vampires
         case OBJ_FOOD:
             if (check_warning_inscriptions(item, OPER_EAT))
                 eat_food(idx);
-            return;
-
-        case OBJ_BOOKS:
-            if (item_is_spellbook(item)
-                && check_warning_inscriptions(item, OPER_MEMORISE))
-            {
-                learn_spell_from(item);
-            }
             return;
 
         case OBJ_SCROLLS:

@@ -60,7 +60,7 @@ attack::attack(actor *attk, actor *defn, actor *blame)
       attacker_to_hit_penalty(0), attack_verb("bug"), verb_degree(),
       no_damage_message(), special_damage_message(), aux_attack(), aux_verb(),
       attacker_armour_tohit_penalty(0), attacker_shield_tohit_penalty(0),
-      defender_shield(nullptr), miscast_level(-1), miscast_type(SPTYP_NONE),
+      defender_shield(nullptr), miscast_level(-1), miscast_type(spschool::none),
       miscast_target(nullptr), fake_chaos_attack(false), simu(false),
       aux_source(""), kill_type(KILLED_BY_MONSTER)
 {
@@ -203,7 +203,7 @@ int attack::calc_to_hit(bool random)
                                          && using_weapon()));
 
         // hunger penalty
-        if (you.hunger_state <= HS_STARVING)
+        if (apply_starvation_penalties())
             mhit -= 3;
 
         // armour penalty
@@ -437,7 +437,10 @@ void attack::alert_defender()
         && !attacker->as_monster()->wont_attack())
     {
         if (defender->is_player())
-            interrupt_activity(AI_MONSTER_ATTACKS, attacker->as_monster());
+        {
+            interrupt_activity(activity_interrupt::monster_attacks,
+                               attacker->as_monster());
+        }
         if (you.pet_target == MHITNOT && env.sanctuary_time <= 0)
             you.pet_target = attacker->mindex();
     }
@@ -470,14 +473,18 @@ bool attack::distortion_affects_defender()
     switch (choice)
     {
     case SMALL_DMG:
+        special_damage += 1 + random2avg(7, 2);
+        // No need to call attack_strength_punctuation here,
+        // since special damage < 7, so it will always return "."
         special_damage_message = make_stringf("Space bends around %s.",
                                               defender_name(false).c_str());
-        special_damage += 1 + random2avg(7, 2);
         break;
     case BIG_DMG:
-        special_damage_message = make_stringf("Space warps horribly around %s!",
-                                              defender_name(false).c_str());
         special_damage += 3 + random2avg(24, 2);
+        special_damage_message =
+            make_stringf("Space warps horribly around %s%s",
+                         defender_name(false).c_str(),
+                         attack_strength_punctuation(special_damage).c_str());
         break;
     case BLINK:
         if (defender_visible)
@@ -549,9 +556,10 @@ void attack::pain_affects_defender()
         if (special_damage && defender_visible)
         {
             special_damage_message =
-                make_stringf("%s %s in agony.",
+                make_stringf("%s %s in agony%s",
                              defender->name(DESC_THE).c_str(),
-                             defender->conj_verb("writhe").c_str());
+                             defender->conj_verb("writhe").c_str(),
+                           attack_strength_punctuation(special_damage).c_str());
         }
     }
 }
@@ -631,7 +639,7 @@ static const vector<chaos_effect> chaos_effects = {
             mon->add_ench(one_chance_in(3) ? ENCH_GLOWING_SHAPESHIFTER
                                            : ENCH_SHAPESHIFTER);
             // Immediately polymorph monster, just to make the effect obvious.
-            monster_polymorph(mon, RANDOM_MONSTER);
+            mon->polymorph();
 
             // Xom loves it if this happens!
             const int friend_factor = mon->friendly() ? 1 : 2;
@@ -656,7 +664,7 @@ static const vector<chaos_effect> chaos_effects = {
                                                            level1_chance, 1,
                                                            level2_chance, 2,
                                                            level3_chance, 3);
-            attack.miscast_type   = SPTYP_RANDOM;
+            attack.miscast_type   = spschool::random;
             attack.miscast_target = attack.defender;
 
             return false;
@@ -768,10 +776,10 @@ struct chaos_attack_type
     function<bool(const actor& def)> valid;
 };
 
-/*  Chaos melee attacks randomly choose a brand from here, with brands that
-    definitely won't affect the target being invalid. Chaos itself should
-    always be a valid option, triggering a more unpredictable chaos_effect
-    instead of a normal attack brand when selected. */
+// Chaos melee attacks randomly choose a brand from here, with brands that
+// definitely won't affect the target being invalid. Chaos itself should
+// always be a valid option, triggering a more unpredictable chaos_effect
+// instead of a normal attack brand when selected.
 static const vector<chaos_attack_type> chaos_types = {
     { AF_FIRE,      SPWPN_FLAMING,       10,
       [](const actor &d) { return !d.is_fiery(); } },
@@ -856,7 +864,7 @@ void attack::do_miscast()
 
     ASSERT(miscast_target != nullptr);
     ASSERT_RANGE(miscast_level, 0, 4);
-    ASSERT(count_bits(miscast_type) == 1);
+    ASSERT(count_bits(static_cast<uint64_t>(miscast_type)) == 1);
 
     if (!miscast_target->alive())
         return;
@@ -899,9 +907,9 @@ void attack::do_miscast()
         }
     }
 
-    MiscastEffect(miscast_target, attacker, MELEE_MISCAST,
-                  (spschool_flag_type) miscast_type, miscast_level, cause,
-                  NH_NEVER, 0, hand_str, false);
+    MiscastEffect(miscast_target, attacker, {miscast_source::melee},
+                  (spschool) miscast_type, miscast_level, cause,
+                  nothing_happens::NEVER, 0, hand_str, false);
 
     // Don't do miscast twice for one attack.
     miscast_level = -1;
@@ -926,10 +934,11 @@ void attack::drain_defender()
         {
             special_damage_message =
                 make_stringf(
-                    "%s %s %s!",
+                    "%s %s %s%s",
                     atk_name(DESC_THE).c_str(),
                     attacker->conj_verb("drain").c_str(),
-                    defender_name(true).c_str());
+                    defender_name(true).c_str(),
+                    attack_strength_punctuation(special_damage).c_str());
         }
     }
 }
@@ -979,7 +988,7 @@ string attack::debug_damage_number()
  *
  * Used in player / monster (both primary and aux) attacks
  */
-string attack::attack_strength_punctuation(int dmg)
+string attack_strength_punctuation(int dmg)
 {
     if (dmg < HIT_WEAK)
         return ".";
@@ -988,16 +997,7 @@ string attack::attack_strength_punctuation(int dmg)
     else if (dmg < HIT_STRONG)
         return "!!";
     else
-    {
-        string ret = "!!!";
-        int tmpdamage = dmg;
-        while (tmpdamage >= 2*HIT_STRONG)
-        {
-            ret += "!";
-            tmpdamage >>= 1;
-        }
-        return ret;
-    }
+        return string(3 + (int) log2(dmg / HIT_STRONG), '!');
 }
 
 /* Returns evasion adverb
@@ -1167,8 +1167,8 @@ int attack::player_apply_misc_modifiers(int damage)
 int attack::get_weapon_plus()
 {
     if (weapon->base_type == OBJ_STAVES
-        || weapon->sub_type == WPN_BLOWGUN
 #if TAG_MAJOR_VERSION == 34
+        || weapon->sub_type == WPN_BLOWGUN
         || weapon->base_type == OBJ_RODS
 #endif
        )
@@ -1178,8 +1178,8 @@ int attack::get_weapon_plus()
     return weapon->plus;
 }
 
-/*  Slaying and weapon enchantment. Apply this for slaying even if not
-    using a weapon to attack. */
+// Slaying and weapon enchantment. Apply this for slaying even if not
+// using a weapon to attack.
 int attack::player_apply_slaying_bonuses(int damage, bool aux)
 {
     int damage_plus = 0;
@@ -1348,7 +1348,7 @@ int attack::apply_defender_ac(int damage, int damage_max) const
         stab_bypass = random2(div_rand_round(stab_bypass, 100 * stab_bonus));
     }
     int after_ac = defender->apply_ac(damage, damage_max,
-                                      AC_NORMAL, stab_bypass);
+                                      ac_type::normal, stab_bypass);
     dprf(DIAG_COMBAT, "AC: att: %s, def: %s, ac: %d, gdr: %d, dam: %d -> %d",
                  attacker->name(DESC_PLAIN, true).c_str(),
                  defender->name(DESC_PLAIN, true).c_str(),
@@ -1518,16 +1518,20 @@ bool attack::apply_damage_brand(const char *what)
             break;
         else if (one_chance_in(3))
         {
-            special_damage_message =
-                defender->is_player()?
-                   "You are electrocuted!"
-                :  make_stringf("Lightning courses through %s!",
-                                defender->name(DESC_THE).c_str());
             special_damage = 8 + random2(13);
+            const string punctuation =
+                    attack_strength_punctuation(special_damage);
+            special_damage_message =
+                defender->is_player()
+                ? make_stringf("You are electrocuted%s", punctuation.c_str())
+                : make_stringf("Lightning courses through %s%s",
+                               defender->name(DESC_THE).c_str(),
+                               punctuation.c_str());
             special_damage_flavour = BEAM_ELECTRICITY;
             defender->expose_to_element(BEAM_ELECTRICITY, 2);
         }
-        attacker->god_conduct(DID_AIR, 1);
+        attacker->god_conduct(DID_AIR, 1)
+
         break;
 
     case SPWPN_VENOM:
@@ -1547,11 +1551,11 @@ bool attack::apply_damage_brand(const char *what)
     {
         if (!weapon
             || damage_done < 1
-            || defender->is_summoned()
-            || !(defender->holiness() & MH_NATURAL)
+            || !actor_is_susceptible_to_vampirism(*defender)
             || attacker->stat_hp() == attacker->stat_maxhp()
             || attacker->is_player() && you.duration[DUR_DEATHS_DOOR]
-            || x_chance_in_y(2, 5) && !is_unrandom_artefact(*weapon, UNRAND_LEECH))
+            || x_chance_in_y(2, 5)
+               && !is_unrandom_artefact(*weapon, UNRAND_LEECH))
         {
             break;
         }
@@ -1665,7 +1669,7 @@ bool attack::apply_damage_brand(const char *what)
             && miscast_level == -1 && one_chance_in(20))
         {
             miscast_level  = 0;
-            miscast_type   = SPTYP_RANDOM;
+            miscast_type   = spschool::random;
             miscast_target = random_choose(attacker, defender);
         }
 
@@ -1800,7 +1804,15 @@ void attack::player_stab_check()
         return;
     }
 
-    const stab_type st = find_stab_type(&you, *defender);
+    stab_type st = find_stab_type(&you, *defender);
+    // Find stab type is also used for displaying information about monsters,
+    // so we need to upgrade the stab type for the Spriggan's Knife here
+    if (using_weapon()
+        && is_unrandom_artefact(*weapon, UNRAND_SPRIGGANS_KNIFE)
+        && st != STAB_NO_STAB)
+    {
+        st = STAB_SLEEPING;
+    }
     stab_attempt = st != STAB_NO_STAB;
     stab_bonus = stab_bonus_denom(st);
 

@@ -16,18 +16,18 @@
 class monster;
 struct ait_hp_loss;
 
-enum activity_interrupt_payload_type
+enum class ai_payload // activity interrupt payloads
 {
-    AIP_NONE,
-    AIP_INT,
-    AIP_STRING,
-    AIP_MONSTER,
-    AIP_HP_LOSS,
+    none,
+    int_payload,
+    string_payload,
+    monster,
+    hp_loss,
 };
 
 struct activity_interrupt_data
 {
-    activity_interrupt_payload_type apt;
+    ai_payload apt;
     union
     {
         const char* string_data;
@@ -40,27 +40,28 @@ struct activity_interrupt_data
     seen_context_type context;
 
     activity_interrupt_data()
-        : apt(AIP_NONE), no_data(nullptr), context(SC_NONE)
+        : apt(ai_payload::none), no_data(nullptr), context(SC_NONE)
     {
     }
     activity_interrupt_data(const int *i)
-        : apt(AIP_INT), int_data(i), context(SC_NONE)
+        : apt(ai_payload::int_payload), int_data(i), context(SC_NONE)
     {
     }
     activity_interrupt_data(const char *s)
-        : apt(AIP_STRING), string_data(s), context(SC_NONE)
+        : apt(ai_payload::string_payload), string_data(s), context(SC_NONE)
     {
     }
     activity_interrupt_data(const string &s)
-        : apt(AIP_STRING), string_data(s.c_str()), context(SC_NONE)
+        : apt(ai_payload::string_payload), string_data(s.c_str()),
+          context(SC_NONE)
     {
     }
     activity_interrupt_data(monster* m, seen_context_type ctx = SC_NONE)
-        : apt(AIP_MONSTER), mons_data(m), context(ctx)
+        : apt(ai_payload::monster), mons_data(m), context(ctx)
     {
     }
     activity_interrupt_data(const ait_hp_loss *ahl)
-        : apt(AIP_HP_LOSS), ait_hp_loss_data(ahl), context(SC_NONE)
+        : apt(ai_payload::hp_loss), ait_hp_loss_data(ahl), context(SC_NONE)
     {
     }
 };
@@ -112,6 +113,8 @@ public:
 
     Delay(int dur) : duration{dur}
     { }
+
+    virtual ~Delay() = default;
 
     /**
      * @return whether this is a running delay (run, rest, travel), which
@@ -250,6 +253,8 @@ class ArmourOffDelay : public Delay
              armour.name(DESC_YOUR).c_str());
     }
 
+    bool invalidated() override;
+
     void finish() override;
 public:
     ArmourOffDelay(int dur, item_def& item) :
@@ -334,36 +339,6 @@ public:
     const char* name() const override
     {
         return "butcher";
-    }
-};
-
-class BottleBloodDelay : public Delay
-{
-    item_def& corpse;
-
-    bool invalidated() override;
-
-    void finish() override;
-public:
-    BottleBloodDelay(int dur, item_def& item) :
-                     Delay(dur), corpse(item)
-    { }
-
-    bool try_interrupt() override;
-
-    bool is_butcher() const override
-    {
-        return true;
-    }
-
-    bool is_being_used(const item_def* item, operation_types oper) const override
-    {
-        return oper == OPER_BUTCHER && (!item || &corpse == item);
-    }
-
-    const char* name() const override
-    {
-        return "bottle_blood";
     }
 };
 
@@ -689,6 +664,54 @@ public:
     }
 };
 
+class ExsanguinateDelay : public Delay
+{
+    bool was_prompted = false;
+
+    void start() override;
+
+    void tick() override
+    {
+        mprf(MSGCH_MULTITURN_ACTION, "You continue bloodletting.");
+    }
+
+    void finish() override;
+public:
+    ExsanguinateDelay(int dur) : Delay(dur)
+    { }
+
+    bool try_interrupt() override;
+
+    const char* name() const override
+    {
+        return "exsanguinate";
+    }
+};
+
+class RevivifyDelay : public Delay
+{
+    bool was_prompted = false;
+
+    void start() override;
+
+    void tick() override
+    {
+        mprf(MSGCH_MULTITURN_ACTION, "You continue your ritual.");
+    }
+
+    void finish() override;
+public:
+    RevivifyDelay(int dur) : Delay(dur)
+    { }
+
+    bool try_interrupt() override;
+
+    const char* name() const override
+    {
+        return "revivify";
+    }
+};
+
 void push_delay(shared_ptr<Delay> delay);
 
 template<typename T, typename... Args>
@@ -712,12 +735,12 @@ bool already_learning_spell(int spell = -1);
 
 void clear_macro_process_key_delay();
 
-activity_interrupt_type get_activity_interrupt(const string &);
+activity_interrupt get_activity_interrupt(const string &);
 
 void run_macro(const char *macroname = nullptr);
 
 void autotoggle_autopickup(bool off);
-bool interrupt_activity(activity_interrupt_type ai,
+bool interrupt_activity(activity_interrupt ai,
                         const activity_interrupt_data &a
                             = activity_interrupt_data(),
                         vector<string>* msgs_buf = nullptr);

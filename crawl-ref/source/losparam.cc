@@ -16,6 +16,7 @@
 const opacity_default opc_default = opacity_default();
 const opacity_fullyopaque opc_fullyopaque = opacity_fullyopaque();
 const opacity_no_trans opc_no_trans = opacity_no_trans();
+const opacity_fully_no_trans opc_fully_no_trans = opacity_fully_no_trans();
 const opacity_immob opc_immob = opacity_immob();
 const opacity_solid opc_solid = opacity_solid();
 const opacity_solid_see opc_solid_see = opacity_solid_see();
@@ -45,12 +46,20 @@ opacity_type opacity_fullyopaque::operator()(const coord_def& p) const
 opacity_type opacity_no_trans::operator()(const coord_def& p) const
 {
     dungeon_feature_type f = grd(p);
-    if (feat_is_opaque(f) || feat_is_wall(f))
+    if (feat_is_opaque(f) || feat_is_wall(f) || feat_is_closed_door(f))
         return OPC_OPAQUE;
     else if (is_opaque_cloud(cloud_type_at(p)))
         return OPC_HALF;
     else if (const monster *mon = monster_at(p))
         return mons_opacity(mon, LOS_NO_TRANS);
+    return OPC_CLEAR;
+}
+
+opacity_type opacity_fully_no_trans::operator()(const coord_def& p) const
+{
+    dungeon_feature_type f = grd(p);
+    if (feat_is_opaque(f) || feat_is_wall(f) || feat_is_closed_door(f))
+        return OPC_OPAQUE;
     return OPC_CLEAR;
 }
 
@@ -110,21 +119,15 @@ opacity_type opacity_no_actor::operator()(const coord_def& p) const
         return OPC_CLEAR;
 }
 
-static opacity_type _feat_opacity(dungeon_feature_type feat)
-{
-    return feat_is_opaque(feat) ? OPC_OPAQUE
-         : feat_is_tree(feat)   ? OPC_HALF : OPC_CLEAR;
-}
-
 opacity_type opacity_excl::operator()(const coord_def& p) const
 {
     map_cell& cell = env.map_knowledge(p);
     if (!cell.seen())
         return OPC_CLEAR;
     else if (!cell.changed())
-        return _feat_opacity(env.grid(p));
+        return feat_is_opaque(env.grid(p)) ? OPC_OPAQUE : OPC_CLEAR;
     else if (cell.feat() != DNGN_UNSEEN)
-        return _feat_opacity(cell.feat());
+        return feat_is_opaque(cell.feat()) ? OPC_OPAQUE : OPC_CLEAR;
     else
         return OPC_CLEAR;
 }

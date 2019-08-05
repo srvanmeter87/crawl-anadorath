@@ -109,6 +109,7 @@
 #include "mon-transit.h"
 #include "mon-util.h"
 #include "mutation.h"
+#include "movement.h"
 #include "nearby-danger.h"
 #include "notes.h"
 #include "options.h"
@@ -132,6 +133,7 @@
 #include "spl-damage.h"
 #include "spl-goditem.h"
 #include "spl-other.h"
+#include "spl-selfench.h"
 #include "spl-summoning.h"
 #include "spl-transloc.h"
 #include "spl-util.h"
@@ -206,12 +208,7 @@ static void _do_searing_ray();
 static void _input();
 
 static void _safe_move_player(coord_def move);
-static void _move_player(coord_def move);
 static void _swing_at_target(coord_def move);
-
-static int  _check_adjacent(dungeon_feature_type feat, coord_def& delta);
-static void _open_door(coord_def move = {0,0});
-static void _close_door(coord_def move);
 
 static void _start_running(int dir, int mode);
 
@@ -224,7 +221,6 @@ static void _do_prev_cmd_again();
 static void _update_replay_state();
 
 static void _show_commandline_options_help();
-static void _wanderer_startup_message();
 static void _announce_goal_message();
 static void _god_greeting_message(bool game_start);
 static void _take_starting_note();
@@ -304,6 +300,9 @@ int main(int argc, char *argv[])
     init_properties();
     init_item_name_cache();
 
+    // make sure all the expected data directories exist
+    validate_basedirs();
+
     // Read the init file.
     read_init_file();
 
@@ -330,7 +329,10 @@ int main(int argc, char *argv[])
 #endif
 
     _launch_game_loop();
-    end(0);
+    if (crawl_state.last_game_exit.message.size())
+        end(0, false, "%s\n", crawl_state.last_game_exit.message.c_str());
+    else
+        end(0);
 
     return 0;
 }
@@ -339,12 +341,11 @@ static void _reset_game()
 {
     clrscr();
     // Unset by death, but not by saving with restart_after_save.
-    crawl_state.need_save = false;
-    crawl_state.type = GAME_TYPE_UNSPECIFIED;
-    crawl_state.updating_scores = false;
+    crawl_state.reset_game();
     clear_message_store();
     macro_clear_buffers();
     the_lost_ones.clear();
+    shopping_list = ShoppingList();
     you = player();
     reset_hud();
     StashTrack = StashTracker();
@@ -378,11 +379,12 @@ static void _launch_game_loop()
         catch (game_ended_condition &ge)
         {
             game_ended = true;
+            crawl_state.last_game_exit = ge;
             _reset_game();
 
             // Don't re-enter the Sprint menu with restart_after_save, as
             // that would reload the just-saved game immediately.
-            if (ge.was_saved)
+            if (ge.exit_reason == game_exit::save)
                 crawl_state.last_type = GAME_TYPE_UNSPECIFIED;
         }
         catch (ext_fail_exception &fe)
@@ -393,7 +395,7 @@ static void _launch_game_loop()
         {
             end(1, false, "Error: truncation inside the save file.\n");
         }
-    } while (Options.restart_after_game
+    } while (crawl_should_restart(crawl_state.last_game_exit.exit_reason)
              && game_ended
              && !crawl_state.seen_hups);
 }
@@ -411,13 +413,7 @@ NORETURN static void _launch_game()
 
     _set_removed_types_as_identified();
 
-    if (!game_start && you.prev_save_version != Version::Long)
-    {
-        const string note = make_stringf("Upgraded the game from %s to %s",
-                                         you.prev_save_version.c_str(),
-                                         Version::Long);
-        take_note(Note(NOTE_MESSAGE, 0, 0, note));
-    }
+    Version::record(you.prev_save_version);
 
     if (!crawl_state.game_is_tutorial())
     {
@@ -431,9 +427,6 @@ NORETURN static void _launch_game()
 #ifdef USE_TILE
     viewwindow();
 #endif
-
-    if (game_start && you.char_class == JOB_WANDERER)
-        _wanderer_startup_message();
 
     if (game_start)
        _announce_goal_message();
@@ -505,6 +498,7 @@ static void _show_commandline_options_help()
     puts("  -no-throttle          disable throttling of user Lua scripts");
 #else
     puts("  -throttle             enable throttling of user Lua scripts");
+    puts("  -seed <number>        specify a game seed to use when creating a new game");
 #endif
 
     puts("");
@@ -552,6 +546,8 @@ static void _show_commandline_options_help()
     puts("      Defaults to entire dungeon; same level syntax as -mapstat.");
     puts("  -iters <num>        For -mapstat and -objstat, set the number of "
          "iterations");
+    puts("  -force-map <map>    For -mapstat and -objstat, alway choose the "
+         "      given map on every level.");
 #endif
     puts("");
     puts("Miscellaneous options:");
@@ -566,32 +562,52 @@ static void _show_commandline_options_help()
 #endif
 }
 
-static void _wanderer_startup_message()
-{
-    int skill_levels = 0;
-    for (int i = 0; i < NUM_SKILLS; ++i)
-        skill_levels += you.skills[ i ];
-
-    if (skill_levels <= 2)
-    {
-        // Some wanderers stand to not be able to see any of their
-        // skills at the start of the game (one or two skills should be
-        // easily guessed from starting equipment). Anyway, we'll give
-        // the player a message to warn them (and a reason why). - bwr
-        mpr("You wake up in a daze, and can't recall much.");
-    }
-}
-
-static void _wanderer_note_items()
+// Announce to the message log and make a note of the player's starting items,
+// spells and spell library
+static void _wanderer_note_equipment()
 {
     const string equip_str =
-        you.your_name + " set off with: "
+        "the following items: "
         + comma_separated_fn(begin(you.inv), end(you.inv),
                              [] (const item_def &item) -> string
                              {
                                  return item.name(DESC_A, false, true);
                              }, ", ", ", ", mem_fn(&item_def::defined));
-    take_note(Note(NOTE_MESSAGE, 0, 0, equip_str));
+
+    // Wanderers start with at most 1 spell memorised.
+    const string spell_str =
+        !you.spell_no ? "" :
+        "; and the following spell memorised: "
+        + comma_separated_fn(begin(you.spells), end(you.spells),
+                             [] (const spell_type spell) -> string
+                             {
+                                 return spell_title(spell);
+                             },
+                             ", ", ", ",
+                             // Don't include empty spell slots
+                             [] (const spell_type spell) -> bool
+                             {
+                                 return spell != SPELL_NO_SPELL;
+                             });
+
+    auto const library = get_sorted_spell_list(true, true);
+    const string library_str =
+        !library.size() ? "" :
+        "; and the following spells available to memorise: "
+        + comma_separated_fn(library.begin(), library.end(),
+                             [] (const spell_type spell) -> string
+                             {
+                                 return spell_title(spell);
+                             }, ", ", ", ");
+
+    // Announce the starting equipment and spells, because it is otherwise
+    // not obvious if the player has any spells.
+    mprf("You begin with %s%s%s.", equip_str.c_str(),
+         spell_str.c_str(), library_str.c_str());
+
+    const string combined_str = you.your_name + " set off with "
+                                + equip_str + spell_str + library_str;
+    take_note(Note(NOTE_MESSAGE, 0, 0, combined_str));
 }
 
 /**
@@ -666,7 +682,7 @@ static void _take_starting_note()
 #endif
 
     if (you.char_class == JOB_WANDERER)
-        _wanderer_note_items();
+        _wanderer_note_equipment();
 
     notestr << "HP: " << you.hp << "/" << you.hp_max
             << " MP: " << you.magic_points << "/" << you.max_magic_points;
@@ -705,14 +721,12 @@ static void _start_running(int dir, int mode)
         && (dir == RDIR_REST || you.is_habitable_feat(grd(next_pos)))
         && count_adjacent_slime_walls(next_pos))
     {
-        if (dir == RDIR_REST)
-            mprf(MSGCH_WARN, "You're standing next to a slime covered wall!");
-        else
-            mprf(MSGCH_WARN, "You're about to run into the slime covered wall!");
+        mprf(MSGCH_WARN, "You're about to run into a slime covered wall!");
         return;
     }
 
-    if (wu_jian_can_wall_jump(next_pos))
+    string wall_jump_err;
+    if (wu_jian_can_wall_jump(next_pos, wall_jump_err))
        return; // Do not wall jump while running.
 
     you.running.initialise(dir, mode);
@@ -847,8 +861,8 @@ static bool _cmd_is_repeatable(command_type cmd, bool is_again = false)
     case CMD_MOVE_DOWN_RIGHT:
         if (!i_feel_safe())
         {
-            return yesno("Really repeat movement command while monsters "
-                         "are nearby?", false, 'n');
+            return yesno("Really repeat movement command while danger "
+                         "is nearby?", false, 'n');
         }
 
         return true;
@@ -900,9 +914,6 @@ static void _update_place_info()
 
     delta.turns_total++;
     delta.elapsed_total += you.time_taken;
-
-    LevelXPInfo  xp_delta;
-    xp_delta.turns++;
 
     switch (you.running)
     {
@@ -956,17 +967,9 @@ static void _update_place_info()
     you.global_info += delta;
     you.global_info.assert_validity();
 
-
     PlaceInfo& curr_PlaceInfo = you.get_place_info();
     curr_PlaceInfo += delta;
     curr_PlaceInfo.assert_validity();
-
-    you.global_xp_info += xp_delta;
-    you.global_xp_info.assert_validity();
-
-    LevelXPInfo& curr_LevelXPInfo = you.get_level_xp_info();
-    curr_LevelXPInfo += xp_delta;
-    curr_LevelXPInfo.assert_validity();
 }
 
 //
@@ -1068,7 +1071,7 @@ static void _input()
         }
 
         if (!you_are_delayed())
-            update_can_train();
+            update_can_currently_train();
 
 #ifdef USE_TILE_WEB
         tiles.flush_messages();
@@ -1186,7 +1189,7 @@ static void _input()
         viewwindow();
     }
 
-    update_can_train();
+    update_can_currently_train();
 
     _update_replay_state();
 
@@ -1200,7 +1203,13 @@ static bool _can_take_stairs(dungeon_feature_type ftype, bool down,
     // Up and down both work for shops, portals, and altars.
     if (ftype == DNGN_ENTER_SHOP || feat_is_altar(ftype))
     {
-        if (you.berserk())
+        if (crawl_state.doing_prev_cmd_again)
+        {
+            mprf("You can't repeat %s actions.",
+                ftype == DNGN_ENTER_SHOP ? "shop" : "altar");
+            crawl_state.cancel_cmd_all();
+        }
+        else if (you.berserk())
             canned_msg(MSG_TOO_BERSERK);
         else if (ftype == DNGN_ENTER_SHOP) // don't convert to capitalism
             shop();
@@ -1273,7 +1282,7 @@ static bool _can_take_stairs(dungeon_feature_type ftype, bool down,
         if (ftype != it->entry_stairs)
             continue;
 
-        if (!is_existing_level(level_id(it->id, 1)))
+        if (!you.level_visited(level_id(it->id, 1)))
         {
             min_runes = runes_for_branch(it->id);
             if (runes_in_pack() < min_runes)
@@ -1298,27 +1307,6 @@ static bool _marker_vetoes_stair()
     return marker_vetoes_operation("veto_stair");
 }
 
-// Maybe prompt to enter a portal, return true if we should enter the
-// portal, false if the user said no at the prompt.
-static bool _prompt_dangerous_portal(dungeon_feature_type ftype)
-{
-    switch (ftype)
-    {
-    case DNGN_ENTER_PANDEMONIUM:
-    case DNGN_ENTER_ABYSS:
-        return yesno("If you enter this portal you might not be able to return "
-                     "immediately. Continue?", false, 'n');
-
-    case DNGN_MALIGN_GATEWAY:
-        return yesno("Are you sure you wish to approach this portal? There's no "
-                     "telling what its forces would wreak upon your fragile "
-                     "self.", false, 'n');
-
-    default:
-        return true;
-    }
-}
-
 static bool _prompt_unique_pan_rune(dungeon_feature_type ygrd)
 {
     if (ygrd != DNGN_TRANSIT_PANDEMONIUM
@@ -1341,16 +1329,26 @@ static bool _prompt_unique_pan_rune(dungeon_feature_type ygrd)
 static bool _prompt_stairs(dungeon_feature_type ygrd, bool down, bool shaft)
 {
     // Certain portal types always carry warnings.
-    if (!_prompt_dangerous_portal(ygrd))
+    if (!prompt_dangerous_portal(ygrd))
     {
         canned_msg(MSG_OK);
         return false;
     }
 
     // Does the next level have a warning annotation?
-    // Also checks for entering a labyrinth with teleportitis.
     if (!check_annotation_exclusion_warning())
         return false;
+
+    // Prompt for entering excluded transporters.
+    if (ygrd == DNGN_TRANSPORTER && is_exclude_root(you.pos()))
+    {
+        mprf(MSGCH_WARN, "This transporter is marked as excluded!");
+        if (!yesno("Enter transporter anyway?", true, 'n', true, false))
+        {
+            canned_msg(MSG_OK);
+            return false;
+        }
+    }
 
     // Toll portals, eg. troves, ziggurats. (Using vetoes like this is hacky.)
     if (_marker_vetoes_stair())
@@ -1363,6 +1361,18 @@ static bool _prompt_stairs(dungeon_feature_type ygrd, bool down, bool shaft)
         // "unsafe", as often you bail at single-digit hp and a wasted turn to
         // an overeager prompt cancellation might be nasty.
         if (!yesno("Are you sure you want to leave this ziggurat?", false, 'n'))
+        {
+            canned_msg(MSG_OK);
+            return false;
+        }
+    }
+
+    // Leaving ziggurat figurines behind.
+    if (ygrd == DNGN_EXIT_ZIGGURAT
+        && you.depth == brdepth[BRANCH_ZIGGURAT]
+        && find_floor_item(OBJ_MISCELLANY, MISC_ZIGGURAT))
+    {
+        if (!yesno("Really leave the ziggurat figurine behind?", false, 'n'))
         {
             canned_msg(MSG_OK);
             return false;
@@ -1453,6 +1463,7 @@ static void _take_transporter()
             explored_tracked_feature(DNGN_TRANSPORTER);
         }
         mpr("You enter the transporter and appear at another place.");
+        id_floor_items();
     }
 }
 
@@ -1463,10 +1474,10 @@ static void _take_stairs(bool down)
 
     const dungeon_feature_type ygrd = grd(you.pos());
 
-    const bool shaft = (down && get_trap_type(you.pos()) == TRAP_SHAFT
-                             && ygrd != DNGN_UNDISCOVERED_TRAP);
+    const bool shaft = (down && get_trap_type(you.pos()) == TRAP_SHAFT);
 
     if (!(_can_take_stairs(ygrd, down, shaft)
+          && !cancel_barbed_move()
           && _prompt_stairs(ygrd, down, shaft)
           && you.attempt_escape())) // false means constricted and don't escape
     {
@@ -1487,8 +1498,8 @@ static void _take_stairs(bool down)
         // only returns false if no trap was found, which shouldn't happen
         ASSERT(trap_triggered);
         you.turn_is_over = (you.pos() != old_pos);
-        if (!you.turn_is_over)
-            mpr("This passage doesn't lead anywhere!");
+        if (you.turn_is_over)
+            id_floor_items();
     }
     else
     {
@@ -1497,6 +1508,7 @@ static void _take_stairs(bool down)
             start_delay<DescendingStairsDelay>(1);
         else
             start_delay<AscendingStairsDelay>(1);
+        id_floor_items();
     }
 }
 
@@ -1588,7 +1600,7 @@ static void _toggle_travel_speed()
 
 static void _do_rest()
 {
-    if (you.hunger_state <= HS_STARVING && !you_min_hunger())
+    if (apply_starvation_penalties())
     {
         mpr("You're too hungry to rest.");
         return;
@@ -1598,7 +1610,8 @@ static void _do_rest()
     {
         if ((you.hp == you.hp_max || !player_regenerates_hp())
             && (you.magic_points == you.max_magic_points
-                || !player_regenerates_mp()))
+                || !player_regenerates_mp())
+            && ancestor_full_hp())
         {
             mpr("You start waiting.");
             _start_running(RDIR_REST, RMODE_WAIT_DURATION);
@@ -1670,9 +1683,12 @@ static void _do_list_gold()
 
 // Note that in some actions, you don't want to clear afterwards.
 // e.g. list_jewellery, etc.
+// calling this directly will not record the command for later replay; if you
+// want to ensure that it's recorded, see macro.cc:process_command_on_record.
 void process_command(command_type cmd)
 {
     you.apply_berserk_penalty = true;
+
     switch (cmd)
     {
 #ifdef USE_TILE
@@ -1690,14 +1706,14 @@ void process_command(command_type cmd)
     case CMD_ATTACK_DOWN_RIGHT: _swing_at_target({ 1,  1}); break;
     case CMD_ATTACK_RIGHT:      _swing_at_target({ 1,  0}); break;
 
-    case CMD_MOVE_DOWN_LEFT:  _move_player({-1,  1}); break;
-    case CMD_MOVE_DOWN:       _move_player({ 0,  1}); break;
-    case CMD_MOVE_UP_RIGHT:   _move_player({ 1, -1}); break;
-    case CMD_MOVE_UP:         _move_player({ 0, -1}); break;
-    case CMD_MOVE_UP_LEFT:    _move_player({-1, -1}); break;
-    case CMD_MOVE_LEFT:       _move_player({-1,  0}); break;
-    case CMD_MOVE_DOWN_RIGHT: _move_player({ 1,  1}); break;
-    case CMD_MOVE_RIGHT:      _move_player({ 1,  0}); break;
+    case CMD_MOVE_DOWN_LEFT:  move_player_action({-1,  1}); break;
+    case CMD_MOVE_DOWN:       move_player_action({ 0,  1}); break;
+    case CMD_MOVE_UP_RIGHT:   move_player_action({ 1, -1}); break;
+    case CMD_MOVE_UP:         move_player_action({ 0, -1}); break;
+    case CMD_MOVE_UP_LEFT:    move_player_action({-1, -1}); break;
+    case CMD_MOVE_LEFT:       move_player_action({-1,  0}); break;
+    case CMD_MOVE_DOWN_RIGHT: move_player_action({ 1,  1}); break;
+    case CMD_MOVE_RIGHT:      move_player_action({ 1,  0}); break;
 
     case CMD_SAFE_MOVE_DOWN_LEFT:  _safe_move_player({-1,  1}); break;
     case CMD_SAFE_MOVE_DOWN:       _safe_move_player({ 0,  1}); break;
@@ -1708,15 +1724,15 @@ void process_command(command_type cmd)
     case CMD_SAFE_MOVE_DOWN_RIGHT: _safe_move_player({ 1,  1}); break;
     case CMD_SAFE_MOVE_RIGHT:      _safe_move_player({ 1,  0}); break;
 
-    case CMD_CLOSE_DOOR_DOWN_LEFT:  _close_door({-1,  1}); break;
-    case CMD_CLOSE_DOOR_DOWN:       _close_door({ 0,  1}); break;
-    case CMD_CLOSE_DOOR_UP_RIGHT:   _close_door({ 1, -1}); break;
-    case CMD_CLOSE_DOOR_UP:         _close_door({ 0, -1}); break;
-    case CMD_CLOSE_DOOR_UP_LEFT:    _close_door({-1, -1}); break;
-    case CMD_CLOSE_DOOR_LEFT:       _close_door({-1,  0}); break;
-    case CMD_CLOSE_DOOR_DOWN_RIGHT: _close_door({ 1,  1}); break;
-    case CMD_CLOSE_DOOR_RIGHT:      _close_door({ 1,  0}); break;
-    case CMD_CLOSE_DOOR:            _close_door({ 0,  0}); break;
+    case CMD_CLOSE_DOOR_DOWN_LEFT:  close_door_action({-1,  1}); break;
+    case CMD_CLOSE_DOOR_DOWN:       close_door_action({ 0,  1}); break;
+    case CMD_CLOSE_DOOR_UP_RIGHT:   close_door_action({ 1, -1}); break;
+    case CMD_CLOSE_DOOR_UP:         close_door_action({ 0, -1}); break;
+    case CMD_CLOSE_DOOR_UP_LEFT:    close_door_action({-1, -1}); break;
+    case CMD_CLOSE_DOOR_LEFT:       close_door_action({-1,  0}); break;
+    case CMD_CLOSE_DOOR_DOWN_RIGHT: close_door_action({ 1,  1}); break;
+    case CMD_CLOSE_DOOR_RIGHT:      close_door_action({ 1,  0}); break;
+    case CMD_CLOSE_DOOR:            close_door_action({ 0,  0}); break;
 
     case CMD_RUN_DOWN_LEFT: _start_running(RDIR_DOWN_LEFT, RMODE_START); break;
     case CMD_RUN_DOWN:      _start_running(RDIR_DOWN, RMODE_START);      break;
@@ -1747,14 +1763,14 @@ void process_command(command_type cmd)
         break;
     }
 #endif
-    case CMD_REST:            _do_rest(); break;
+    case CMD_REST:           _do_rest(); break;
 
     case CMD_GO_UPSTAIRS:
     case CMD_GO_DOWNSTAIRS:
         _take_stairs(cmd == CMD_GO_DOWNSTAIRS);
         break;
 
-    case CMD_OPEN_DOOR:      _open_door(); break;
+    case CMD_OPEN_DOOR:      open_door_action(); break;
 
     // Repeat commands.
     case CMD_REPEAT_CMD:     _do_cmd_repeat();  break;
@@ -1787,8 +1803,7 @@ void process_command(command_type cmd)
     case CMD_DISPLAY_OVERMAP: display_overview(); break;
     case CMD_DISPLAY_MAP:     _do_display_map(); break;
 
-#ifdef TOUCH_UI
-        // zoom commands
+#ifdef USE_TILE
     case CMD_ZOOM_IN:   tiles.zoom_dungeon(true); break;
     case CMD_ZOOM_OUT:  tiles.zoom_dungeon(false); break;
 #endif
@@ -1813,9 +1828,8 @@ void process_command(command_type cmd)
             break;
         // else fall-through
     case CMD_WAIT:
+        update_acrobat_status();
         you.turn_is_over = true;
-        extract_manticore_spikes("You carefully extract the barbed spikes "
-                                 "from your body.");
         break;
 
     case CMD_PICKUP:
@@ -1874,7 +1888,7 @@ void process_command(command_type cmd)
 
         // Informational commands.
     case CMD_DISPLAY_CHARACTER_STATUS: display_char_status();          break;
-    case CMD_DISPLAY_COMMANDS:         list_commands(0, true);         break;
+    case CMD_DISPLAY_COMMANDS:         show_help(); redraw_screen(); break;
     case CMD_DISPLAY_INVENTORY:        display_inventory();            break;
     case CMD_DISPLAY_KNOWN_OBJECTS: check_item_knowledge(); redraw_screen(); break;
     case CMD_DISPLAY_MUTATIONS: display_mutations(); redraw_screen();  break;
@@ -1893,11 +1907,7 @@ void process_command(command_type cmd)
 
     case CMD_DISPLAY_RELIGION:
     {
-#ifdef USE_TILE_WEB
-        if (!you_worship(GOD_NO_GOD))
-            tiles_crt_control show_as_menu(CRT_MENU, "describe_god");
-#endif
-        describe_god(you.religion, true);
+        describe_god(you.religion);
         redraw_screen();
         break;
     }
@@ -1989,7 +1999,7 @@ void process_command(command_type cmd)
     case CMD_SAVE_GAME:
     {
         const char * const prompt
-            = (Options.restart_after_game && Options.restart_after_save)
+            = (crawl_should_restart(game_exit::save))
               ? "Save game and return to main menu?"
               : "Save game and exit?";
         explicit_keymap map;
@@ -2007,14 +2017,21 @@ void process_command(command_type cmd)
         break;
 
     case CMD_QUIT:
+    {
+        // TODO: msg whether this will start a new game? not very important
         if (crawl_state.disables[DIS_CONFIRMATIONS]
-            || yes_or_no("Are you sure you want to abandon this character and quit the game?"))
+            || yes_or_no("Are you sure you want to abandon this character%s?",
+                Options.newgame_after_quit ? "" : // hard to predict this case
+                (crawl_should_restart(game_exit::quit)
+                                            ? " and return to the main menu"
+                                            : " and quit the game")))
         {
             ouch(INSTANT_DEATH, KILLED_BY_QUITTING);
         }
         else
             canned_msg(MSG_OK);
         break;
+    }
 
     case CMD_LUA_CONSOLE:
         debug_terp_dlua(clua);
@@ -2098,6 +2115,15 @@ static void _check_sanctuary()
         return;
 
     decrease_sanctuary_radius();
+}
+
+static void _check_trapped()
+{
+    if (you.trapped)
+    {
+        do_trap_effects();
+        you.trapped = false;
+    }
 }
 
 static void _update_mold_state(const coord_def & pos)
@@ -2216,6 +2242,7 @@ void world_reacts()
 
     _check_banished();
     _check_sanctuary();
+    _check_trapped();
 
     run_environment_effects();
 
@@ -2259,6 +2286,8 @@ void world_reacts()
         _update_still_winds();
     if (!crawl_state.game_is_arena())
         player_reacts_to_monsters();
+
+    wu_jian_end_of_turn_effects();
 
     viewwindow();
 
@@ -2379,134 +2408,6 @@ static keycode_type _get_next_keycode()
     return keyin;
 }
 
-// Check squares adjacent to player for given feature and return how
-// many there are. If there's only one, return the dx and dy.
-static int _check_adjacent(dungeon_feature_type feat, coord_def& delta)
-{
-    int num = 0;
-
-    set<coord_def> doors;
-    for (adjacent_iterator ai(you.pos(), true); ai; ++ai)
-    {
-        if (grd(*ai) == feat)
-        {
-            // Specialcase doors to take into account gates.
-            if (feat_is_door(feat))
-            {
-                // Already included in a gate, skip this door.
-                if (doors.count(*ai))
-                    continue;
-
-                // Check if it's part of a gate. If so, remember all its doors.
-                set<coord_def> all_door;
-                find_connected_identical(*ai, all_door);
-                doors.insert(begin(all_door), end(all_door));
-            }
-
-            num++;
-            delta = *ai - you.pos();
-        }
-    }
-
-    return num;
-}
-
-static bool _cancel_barbed_move()
-{
-    if (you.duration[DUR_BARBS] && !you.props.exists(BARBS_MOVE_KEY))
-    {
-        string prompt = "The barbs in your skin will harm you if you move."
-                        " Continue?";
-        if (!yesno(prompt.c_str(), false, 'n'))
-        {
-            canned_msg(MSG_OK);
-            return true;
-        }
-
-        you.props[BARBS_MOVE_KEY] = true;
-    }
-
-    return false;
-}
-
-static bool _cancel_confused_move(bool stationary)
-{
-    dungeon_feature_type dangerous = DNGN_FLOOR;
-    monster *bad_mons = 0;
-    string bad_suff, bad_adj;
-    bool penance = false;
-    bool flight = false;
-    for (adjacent_iterator ai(you.pos(), false); ai; ++ai)
-    {
-        if (!stationary
-            && is_feat_dangerous(grd(*ai), true)
-            && need_expiration_warning(grd(*ai))
-            && (dangerous == DNGN_FLOOR || grd(*ai) == DNGN_LAVA))
-        {
-            dangerous = grd(*ai);
-            if (need_expiration_warning(DUR_FLIGHT, grd(*ai)))
-                flight = true;
-            break;
-        }
-        else
-        {
-            string suffix, adj;
-            monster *mons = monster_at(*ai);
-            if (mons
-                && (stationary
-                    || !(is_sanctuary(you.pos()) && is_sanctuary(mons->pos()))
-                       && !fedhas_passthrough(mons))
-                && bad_attack(mons, adj, suffix, penance)
-                && mons->angered_by_attacks())
-            {
-                bad_mons = mons;
-                bad_suff = suffix;
-                bad_adj = adj;
-                if (penance)
-                    break;
-            }
-        }
-    }
-
-    if (dangerous != DNGN_FLOOR || bad_mons)
-    {
-        string prompt = "";
-        prompt += "Are you sure you want to ";
-        prompt += !stationary ? "stumble around" : "swing wildly";
-        prompt += " while confused and next to ";
-
-        if (dangerous != DNGN_FLOOR)
-        {
-            prompt += (dangerous == DNGN_LAVA ? "lava" : "deep water");
-            prompt += flight ? " while you are losing your buoyancy"
-                             : " while your transformation is expiring";
-        }
-        else
-        {
-            string name = bad_mons->name(DESC_PLAIN);
-            if (starts_with(name, "the "))
-               name.erase(0, 4);
-            if (!starts_with(bad_adj, "your"))
-               bad_adj = "the " + bad_adj;
-            prompt += bad_adj + name + bad_suff;
-        }
-        prompt += "?";
-
-        if (penance)
-            prompt += " This could place you under penance!";
-
-        if (!crawl_state.disables[DIS_CONFIRMATIONS]
-            && !yesno(prompt.c_str(), false, 'n'))
-        {
-            canned_msg(MSG_OK);
-            return true;
-        }
-    }
-
-    return false;
-}
-
-
 static void _swing_at_target(coord_def move)
 {
     if (you.attribute[ATTR_HELD])
@@ -2524,7 +2425,7 @@ static void _swing_at_target(coord_def move)
             return;
         }
 
-        if (_cancel_confused_move(true))
+        if (cancel_confused_move(true))
             return;
 
         if (!one_chance_in(3))
@@ -2579,177 +2480,6 @@ static void _swing_at_target(coord_def move)
     return;
 }
 
-// Opens doors.
-// If move is !::origin, it carries a specific direction for the
-// door to be opened (eg if you type ctrl + dir).
-static void _open_door(coord_def move)
-{
-    ASSERT(!crawl_state.game_is_arena());
-    ASSERT(!crawl_state.arena_suspended);
-
-    if (you.attribute[ATTR_HELD])
-    {
-        free_self_from_net();
-        you.turn_is_over = true;
-        return;
-    }
-
-    if (you.confused())
-    {
-        canned_msg(MSG_TOO_CONFUSED);
-        return;
-    }
-
-    dist door_move;
-
-    // The player hasn't picked a direction yet.
-    if (move.origin())
-    {
-        const int num = _check_adjacent(DNGN_CLOSED_DOOR, move)
-                        + _check_adjacent(DNGN_RUNED_DOOR, move);
-
-        if (num == 0)
-        {
-            mpr("There's nothing to open nearby.");
-            return;
-        }
-
-        // If there's only one door to open, don't ask.
-        if (num == 1 && Options.easy_door)
-            door_move.delta = move;
-        else
-        {
-            mprf(MSGCH_PROMPT, "Which direction?");
-            direction_chooser_args args;
-            args.restricts = DIR_DIR;
-            direction(door_move, args);
-
-            if (!door_move.isValid)
-                return;
-        }
-    }
-    else
-        door_move.delta = move;
-
-    // We got a valid direction.
-    const coord_def doorpos = you.pos() + door_move.delta;
-
-    if (door_vetoed(doorpos))
-    {
-        // Allow doors to be locked.
-        const string door_veto_message = env.markers.property_at(doorpos,
-                                                                 MAT_ANY,
-                                                                 "veto_reason");
-        if (door_veto_message.empty())
-            mpr("The door is shut tight!");
-        else
-            mpr(door_veto_message);
-        if (you.confused())
-            you.turn_is_over = true;
-
-        return;
-    }
-
-    const dungeon_feature_type feat = (in_bounds(doorpos) ? grd(doorpos)
-                                                          : DNGN_UNSEEN);
-    switch (feat)
-    {
-    case DNGN_CLOSED_DOOR:
-    case DNGN_RUNED_DOOR:
-        player_open_door(doorpos);
-        break;
-    case DNGN_OPEN_DOOR:
-    {
-        string door_already_open = "";
-        if (in_bounds(doorpos))
-        {
-            door_already_open = env.markers.property_at(doorpos, MAT_ANY,
-                                                    "door_verb_already_open");
-        }
-
-        if (!door_already_open.empty())
-            mpr(door_already_open);
-        else
-            mpr("It's already open!");
-        break;
-    }
-    case DNGN_SEALED_DOOR:
-        mpr("That door is sealed shut!");
-        break;
-    default:
-        mpr("There isn't anything that you can open there!");
-        break;
-    }
-}
-
-static void _close_door(coord_def move)
-{
-    if (you.attribute[ATTR_HELD])
-    {
-        mprf("You can't close doors while %s.", held_status());
-        return;
-    }
-
-    if (you.confused())
-    {
-        canned_msg(MSG_TOO_CONFUSED);
-        return;
-    }
-
-    dist door_move;
-
-    if (move.origin())
-    {
-        // If there's only one door to close, don't ask.
-        int num = _check_adjacent(DNGN_OPEN_DOOR, move);
-        if (num == 0)
-        {
-            mpr("There's nothing to close nearby.");
-            return;
-        }
-        // move got set in _check_adjacent
-        else if (num == 1 && Options.easy_door)
-            door_move.delta = move;
-        else
-        {
-            mprf(MSGCH_PROMPT, "Which direction?");
-            direction_chooser_args args;
-            args.restricts = DIR_DIR;
-            direction(door_move, args);
-
-            if (!door_move.isValid)
-                return;
-        }
-
-        if (door_move.delta.origin())
-        {
-            mpr("You can't close doors on yourself!");
-            return;
-        }
-    }
-    else
-        door_move.delta = move;
-
-    const coord_def doorpos = you.pos() + door_move.delta;
-    const dungeon_feature_type feat = (in_bounds(doorpos) ? grd(doorpos)
-                                                          : DNGN_UNSEEN);
-
-    switch (feat)
-    {
-    case DNGN_OPEN_DOOR:
-        player_close_door(doorpos);
-        break;
-    case DNGN_CLOSED_DOOR:
-    case DNGN_RUNED_DOOR:
-    case DNGN_SEALED_DOOR:
-        mpr("It's already closed!");
-        break;
-    default:
-        mpr("There isn't anything that you can close there!");
-        break;
-    }
-}
-
 // An attempt to tone down berserk a little bit. -- bwross
 //
 // This function does the accounting for not attacking while berserk
@@ -2772,7 +2502,7 @@ static void _do_berserk_no_combat_penalty()
             mprf(MSGCH_DURATION, "You feel a strong urge to attack something.");
             break;
         case 4:
-            mprf(MSGCH_DURATION, "You feel your anger subside.");
+            mprf(MSGCH_DURATION, "You feel your anger nearly subside.");
             break;
         case 6:
             mprf(MSGCH_DURATION, "Your blood rage is quickly leaving you.");
@@ -2814,512 +2544,7 @@ static void _safe_move_player(coord_def move)
 {
     if (!i_feel_safe(true))
         return;
-    _move_player(move);
-}
-
-// Swap monster to this location. Player is swapped elsewhere.
-// Moves the monster into position, but does not move the player
-// or apply location effects: the latter should happen after the
-// player is moved.
-static void _swap_places(monster* mons, const coord_def &loc)
-{
-    ASSERT(map_bounds(loc));
-    ASSERT(monster_habitable_grid(mons, grd(loc)));
-
-    if (monster_at(loc))
-    {
-        if (mons->type == MONS_WANDERING_MUSHROOM
-            && monster_at(loc)->type == MONS_TOADSTOOL)
-        {
-            // We'll fire location effects for 'mons' back in _move_player,
-            // so don't do so here. The toadstool won't get location effects,
-            // but the player will trigger those soon enough. This wouldn't
-            // work so well if toadstools were aquatic, had clinging, or were
-            // otherwise handled specially in monster_swap_places or in
-            // apply_location_effects.
-            monster_swaps_places(mons, loc - mons->pos(), true, false);
-            return;
-        }
-        else
-        {
-            mpr("Something prevents you from swapping places.");
-            return;
-        }
-    }
-
-    mpr("You swap places.");
-
-    mons->move_to_pos(loc, true, true);
-    return;
-}
-
-static void _entered_malign_portal(actor* act)
-{
-    ASSERT(act); // XXX: change to actor &act
-    if (you.can_see(*act))
-    {
-        mprf("%s %s twisted violently and ejected from the portal!",
-             act->name(DESC_THE).c_str(), act->conj_verb("be").c_str());
-    }
-
-    act->blink();
-    act->hurt(nullptr, roll_dice(2, 4), BEAM_MISSILE, KILLED_BY_WILD_MAGIC,
-              "", "entering a malign gateway");
-}
-
-// Called when the player moves by walking/running. Also calls attack
-// function etc when necessary.
-static void _move_player(coord_def move)
-{
-    ASSERT(!crawl_state.game_is_arena() && !crawl_state.arena_suspended);
-
-    bool attacking = false;
-    bool moving = true;         // used to prevent eventual movement (swap)
-    bool swap = false;
-
-    int additional_time_taken = 0; // Extra time independent of movement speed
-
-    ASSERT(!in_bounds(you.pos()) || !cell_is_solid(you.pos())
-           || you.wizmode_teleported_into_rock);
-
-    if (you.attribute[ATTR_HELD])
-    {
-        free_self_from_net();
-        you.turn_is_over = true;
-        return;
-    }
-
-    const coord_def initial_position = you.pos();
-
-    // When confused, sometimes make a random move.
-    if (you.confused())
-    {
-        if (you.is_stationary())
-        {
-            // Don't choose a random location to try to attack into - allows
-            // abuse, since trying to move (not attack) takes no time, and
-            // shouldn't. Just force confused trees to use ctrl.
-            mpr("You cannot move. (Use ctrl+direction to attack without "
-                "moving.)");
-            return;
-        }
-
-        if (_cancel_confused_move(false))
-            return;
-
-        if (_cancel_barbed_move())
-            return;
-
-        if (!one_chance_in(3))
-        {
-            move.x = random2(3) - 1;
-            move.y = random2(3) - 1;
-            if (move.origin())
-            {
-                mpr("You're too confused to move!");
-                you.apply_berserk_penalty = true;
-                you.turn_is_over = true;
-                return;
-            }
-        }
-
-        const coord_def new_targ = you.pos() + move;
-        if (!in_bounds(new_targ) || !you.can_pass_through(new_targ))
-        {
-            you.turn_is_over = true;
-            if (you.digging) // no actual damage
-            {
-                mprf("Your mandibles retract as you bump into %s",
-                     feature_description_at(new_targ, false,
-                                            DESC_THE).c_str());
-                you.digging = false;
-            }
-            else
-            {
-                mprf("You bump into %s",
-                     feature_description_at(new_targ, false,
-                                            DESC_THE).c_str());
-            }
-            you.apply_berserk_penalty = true;
-            crawl_state.cancel_cmd_repeat();
-
-            return;
-        }
-    }
-
-    const coord_def targ = you.pos() + move;
-    bool can_wall_jump = wu_jian_can_wall_jump(targ);
-    bool did_wall_jump = false;
-    // You can't walk out of bounds!
-    if (!in_bounds(targ) && !can_wall_jump)
-    {
-        // Why isn't the border permarock?
-        if (you.digging)
-            mpr("This wall is too hard to dig through.");
-        return;
-    }
-
-    const dungeon_feature_type targ_grid = grd(targ);
-
-    const string walkverb = you.airborne()                     ? "fly"
-                          : you.swimming()                     ? "swim"
-                          : you.form == transformation::spider ? "crawl"
-                          : (you.species == SP_NAGA
-                             && form_keeps_mutations())        ? "slither"
-                                                               : "walk";
-
-    monster* targ_monst = monster_at(targ);
-    if (fedhas_passthrough(targ_monst) && !you.is_stationary())
-    {
-        // Moving on a plant takes 1.5 x normal move delay. We
-        // will print a message about it but only when moving
-        // from open space->plant (hopefully this will cut down
-        // on the message spam).
-        you.time_taken = div_rand_round(you.time_taken * 3, 2);
-
-        monster* current = monster_at(you.pos());
-        if (!current || !fedhas_passthrough(current))
-        {
-            // Probably need a better message. -cao
-            mprf("You %s carefully through the %s.", walkverb.c_str(),
-                 mons_genus(targ_monst->type) == MONS_FUNGUS ? "fungus"
-                                                             : "plants");
-        }
-        targ_monst = nullptr;
-    }
-
-    bool targ_pass = you.can_pass_through(targ) && !you.is_stationary();
-
-    if (you.digging)
-    {
-        if (you.hunger_state <= HS_STARVING && you.undead_state() == US_ALIVE)
-        {
-            you.digging = false;
-            canned_msg(MSG_TOO_HUNGRY);
-        }
-        else if (grd(targ) == DNGN_ROCK_WALL
-                 || grd(targ) == DNGN_CLEAR_ROCK_WALL
-                 || grd(targ) == DNGN_GRATE)
-        {
-            targ_pass = true;
-        }
-        else // moving or attacking ends dig
-        {
-            you.digging = false;
-            if (feat_is_solid(grd(targ)))
-                mpr("You can't dig through that.");
-            else
-                mpr("You retract your mandibles.");
-        }
-    }
-
-    // You can swap places with a friendly or good neutral monster if
-    // you're not confused, or even with hostiles if both of you are inside
-    // a sanctuary.
-    const bool try_to_swap = targ_monst
-                             && (targ_monst->wont_attack()
-                                    && !you.confused()
-                                 || is_sanctuary(you.pos())
-                                    && is_sanctuary(targ));
-
-    // You cannot move away from a siren but you CAN fight monsters on
-    // neighbouring squares.
-    monster* beholder = nullptr;
-    if (!you.confused())
-        beholder = you.get_beholder(targ);
-
-    // You cannot move closer to a fear monger.
-    monster *fmonger = nullptr;
-    if (!you.confused())
-        fmonger = you.get_fearmonger(targ);
-
-    if (you.running.check_stop_running())
-    {
-        // [ds] Do we need this? Shouldn't it be false to start with?
-        you.turn_is_over = false;
-        return;
-    }
-
-    coord_def mon_swap_dest;
-
-    if (targ_monst && !targ_monst->submerged())
-    {
-        if (try_to_swap && !beholder && !fmonger)
-        {
-            if (swap_check(targ_monst, mon_swap_dest))
-                swap = true;
-            else
-            {
-                stop_running();
-                moving = false;
-            }
-        }
-        else if (targ_monst->temp_attitude() == ATT_NEUTRAL && !you.confused()
-                 && targ_monst->visible_to(&you))
-        {
-            simple_monster_message(*targ_monst, " refuses to make way for you. "
-                                             "(Use ctrl+direction to attack.)");
-            you.turn_is_over = false;
-            return;
-        }
-        else if (!try_to_swap) // attack!
-        {
-            // Don't allow the player to freely locate invisible monsters
-            // with confirmation prompts.
-            if (!you.can_see(*targ_monst)
-                && !you.confused()
-                && !check_moveto(targ, walkverb))
-            {
-                stop_running();
-                you.turn_is_over = false;
-                return;
-            }
-
-            you.turn_is_over = true;
-            fight_melee(&you, targ_monst);
-
-            you.berserk_penalty = 0;
-            attacking = true;
-        }
-    }
-    else if (you.form == transformation::fungus && moving && !you.confused())
-    {
-        if (you.is_nervous())
-        {
-            mpr("You're too terrified to move while being watched!");
-            stop_running();
-            you.turn_is_over = false;
-            return;
-        }
-    }
-
-    const bool running = you_are_delayed() && current_delay()->is_run();
-
-    if (!attacking && (targ_pass || can_wall_jump)
-        && moving && !beholder && !fmonger)
-    {
-        if (you.confused() && is_feat_dangerous(env.grid(targ)))
-        {
-            mprf("You nearly stumble into %s!",
-                 feature_description_at(targ, false, DESC_THE, false).c_str());
-            you.apply_berserk_penalty = true;
-            you.turn_is_over = true;
-            return;
-        }
-
-        // can_wall_jump means `targ` is solid and can be walljumped off of,
-        // so the player will never enter `targ`. Therefore, we don't want to
-        // check exclusions at `targ`.
-        if (!you.confused() && !can_wall_jump && !check_moveto(targ, walkverb))
-        {
-            stop_running();
-            you.turn_is_over = false;
-            return;
-        }
-
-        // If confused, we've already been prompted (in case of stumbling into
-        // a monster and attacking instead).
-        if (!you.confused() && _cancel_barbed_move())
-            return;
-
-        if (!you.attempt_escape()) // false means constricted and did not escape
-            return;
-
-        if (you.duration[DUR_WATER_HOLD])
-        {
-            if (you.can_swim())
-                mpr("You deftly slip free of the water engulfing you.");
-            else //Unless you're a natural swimmer, this takes longer than normal
-            {
-                mpr("With effort, you pull free of the water engulfing you.");
-                you.time_taken = you.time_taken * 3 / 2;
-            }
-            you.duration[DUR_WATER_HOLD] = 1;
-            you.props.erase("water_holder");
-        }
-
-        if (you.digging)
-        {
-            mprf("You dig through %s.", feature_description_at(targ, false,
-                 DESC_THE, false).c_str());
-            destroy_wall(targ);
-            noisy(6, you.pos());
-            make_hungry(50, true);
-            additional_time_taken += BASELINE_DELAY / 5;
-        }
-
-        if (swap)
-            _swap_places(targ_monst, mon_swap_dest);
-        else if (you.duration[DUR_CLOUD_TRAIL])
-        {
-            if (cell_is_solid(you.pos()))
-                ASSERT(you.wizmode_teleported_into_rock);
-            else
-            {
-                auto cloud = static_cast<cloud_type>(
-                    you.props[XOM_CLOUD_TRAIL_TYPE_KEY].get_int());
-                ASSERT(cloud != CLOUD_NONE);
-                check_place_cloud(cloud,you.pos(), random_range(3, 10), &you,
-                                  0, -1);
-            }
-        }
-
-        if (running && env.travel_trail.empty())
-            env.travel_trail.push_back(you.pos());
-        else if (!running)
-            clear_travel_trail();
-
-        // clear constriction data
-        you.stop_constricting_all(true);
-        you.stop_being_constricted();
-
-        // Don't trigger traps when confusion causes no move.
-        if (you.pos() != targ && targ_pass)
-            move_player_to_grid(targ, true);
-        else if (can_wall_jump && !running)
-        {
-            auto wall_jump_direction = (you.pos() - targ).sgn();
-            auto wall_jump_landing_spot = (you.pos() + wall_jump_direction
-                                           + wall_jump_direction);
-            if (!check_moveto(wall_jump_landing_spot, "wall jump"))
-            {
-                you.turn_is_over = false;
-                return;
-            }
-            did_wall_jump = true;
-            move_player_to_grid(wall_jump_landing_spot, false);
-            wu_jian_wall_jump_effects(initial_position);
-        }
-
-        // Now it is safe to apply the swappee's location effects. Doing
-        // so earlier would allow e.g. shadow traps to put a monster
-        // at the player's location.
-        if (swap)
-            targ_monst->apply_location_effects(targ);
-
-        if (you.duration[DUR_BARBS])
-        {
-            mprf(MSGCH_WARN, "The barbed spikes dig painfully into your body "
-                             "as you move.");
-            ouch(roll_dice(2, you.attribute[ATTR_BARBS_POW]), KILLED_BY_BARBS);
-            bleed_onto_floor(you.pos(), MONS_PLAYER, 2, false);
-
-            // Sometimes decrease duration even when we move.
-            if (one_chance_in(3))
-                extract_manticore_spikes("The barbed spikes snap loose.");
-        }
-
-        if (you_are_delayed() && current_delay()->is_run())
-            env.travel_trail.push_back(you.pos());
-
-        you.time_taken *= player_movement_speed();
-        you.time_taken = div_rand_round(you.time_taken, 10);
-        you.time_taken += additional_time_taken;
-
-        if (you.running && you.running.travel_speed)
-        {
-            you.time_taken = max(you.time_taken,
-                                 div_round_up(100, you.running.travel_speed));
-        }
-
-        if (you.duration[DUR_NO_HOP])
-            you.duration[DUR_NO_HOP] += you.time_taken;
-
-        move.reset();
-        you.turn_is_over = true;
-        request_autopickup();
-    }
-
-    if (!attacking && !targ_pass && !can_wall_jump && !running
-        && moving && !beholder && !fmonger
-        && wu_jian_can_wall_jump_in_principle(targ))
-    {
-        // do messaging for a failed wall jump
-        wu_jian_can_wall_jump(targ, true);
-    }
-
-    // BCR - Easy doors single move
-    if ((Options.travel_open_doors || !you.running)
-        && !attacking
-        && feat_is_closed_door(targ_grid))
-    {
-        _open_door(move);
-    }
-    else if (!targ_pass && grd(targ) == DNGN_MALIGN_GATEWAY
-             && !attacking && !you.is_stationary())
-    {
-        if (!crawl_state.disables[DIS_CONFIRMATIONS]
-            && !_prompt_dangerous_portal(grd(targ)))
-        {
-            return;
-        }
-
-        move.reset();
-        you.turn_is_over = true;
-
-        _entered_malign_portal(&you);
-        return;
-    }
-    else if (!targ_pass && !attacking && !can_wall_jump)
-    {
-        if (you.is_stationary())
-            canned_msg(MSG_CANNOT_MOVE);
-        else if (grd(targ) == DNGN_OPEN_SEA)
-            mpr("The ferocious winds and tides of the open sea thwart your progress.");
-        else if (grd(targ) == DNGN_LAVA_SEA)
-            mpr("The endless sea of lava is not a nice place.");
-        else if (feat_is_tree(grd(targ)) && you_worship(GOD_FEDHAS))
-            mpr("You cannot walk through the dense trees.");
-
-        stop_running();
-        move.reset();
-        you.turn_is_over = false;
-        crawl_state.cancel_cmd_repeat();
-        return;
-    }
-    else if (beholder && !attacking && !can_wall_jump)
-    {
-        mprf("You cannot move away from %s!",
-            beholder->name(DESC_THE).c_str());
-        stop_running();
-        return;
-    }
-    else if (fmonger && !attacking && !can_wall_jump)
-    {
-        mprf("You cannot move closer to %s!",
-            fmonger->name(DESC_THE).c_str());
-        stop_running();
-        return;
-    }
-
-    if (you.running == RMODE_START)
-        you.running = RMODE_CONTINUE;
-
-    if (player_in_branch(BRANCH_ABYSS))
-        maybe_shift_abyss_around_player();
-
-    you.apply_berserk_penalty = !attacking;
-
-    if (!attacking && you_worship(GOD_CHEIBRIADOS) && one_chance_in(10)
-        && you.run())
-    {
-        did_god_conduct(DID_HASTY, 1, true);
-    }
-
-    // Wu Jian's lunge and whirlwind.
-    if (you_worship(GOD_WU_JIAN) && !attacking && !did_wall_jump)
-        wu_jian_trigger_martial_arts(initial_position);
-
-    if (you_worship(GOD_WU_JIAN) && !attacking && you.turn_is_over)
-        wu_jian_trigger_serpents_lash(initial_position);
-}
-
-static int _get_num_and_char_keyfun(int &ch)
-{
-    if (ch == CK_BKSP || isadigit(ch) || (unsigned)ch >= 128)
-        return 1;
-
-    return -1;
+    move_player_action(move);
 }
 
 static int _get_num_and_char(const char* prompt, char* buf, int buf_len)
@@ -3329,7 +2554,7 @@ static int _get_num_and_char(const char* prompt, char* buf, int buf_len)
 
     line_reader reader(buf, buf_len);
 
-    reader.set_keyproc(_get_num_and_char_keyfun);
+    reader.set_keyproc(keyfun_num_and_char);
 #ifdef USE_TILE_WEB
     reader.set_tag("repeat");
 #endif
@@ -3339,8 +2564,10 @@ static int _get_num_and_char(const char* prompt, char* buf, int buf_len)
 
 static void _cancel_cmd_repeat()
 {
-    crawl_state.cancel_cmd_again();
-    crawl_state.cancel_cmd_repeat();
+    // need to force reset these so that history for again is consistent, even
+    // if a repeat didn't get started.
+    crawl_state.cancel_cmd_again("", true);
+    crawl_state.cancel_cmd_repeat("", true);
     flush_input_buffer(FLUSH_REPLAY_SETUP_FAILURE);
 }
 
@@ -3513,10 +2740,9 @@ static void _do_prev_cmd_again()
         return;
     }
 
-    if (crawl_state.prev_cmd == CMD_NO_CMD)
+    if (crawl_state.prev_cmd == CMD_NO_CMD || crawl_state.prev_cmd_keys.empty())
     {
-        mpr("No previous command to re-do.");
-        crawl_state.cancel_cmd_again();
+        crawl_state.cancel_cmd_again("No previous command to re-do.", true);
         crawl_state.cancel_cmd_repeat();
         repeat_again_rec.clear();
         return;

@@ -137,16 +137,15 @@ enum command_type
 #endif
 
 #ifdef USE_TILE
+    CMD_ZOOM_IN,
+    CMD_ZOOM_OUT,
+
     CMD_EDIT_PLAYER_TILE,
     CMD_MIN_TILE = CMD_EDIT_PLAYER_TILE,
     CMD_MAX_TILE = CMD_EDIT_PLAYER_TILE,
 #endif
 
 #ifdef TOUCH_UI
-    // zoom on dungeon
-    CMD_ZOOM_IN,
-    CMD_ZOOM_OUT,
-
     // bring up the on-screen keyboard if needed
     CMD_SHOW_KEYBOARD,
 #endif
@@ -160,6 +159,9 @@ enum command_type
     CMD_LUA_CONSOLE,
 
     CMD_MAX_NORMAL = CMD_LUA_CONSOLE,
+
+    // inventory only
+    CMD_SET_SKILL_TARGET,
 
     // overmap commands
     CMD_MAP_CLEAR_MAP,
@@ -211,12 +213,18 @@ enum command_type
     CMD_MAP_EXPLORE,
 
     CMD_MAP_WIZARD_TELEPORT,
+    CMD_MAP_WIZARD_FORGET,
 
     CMD_MAP_DESCRIBE,
 
     CMD_MAP_HELP,
     CMD_MAP_FORGET,
     CMD_MAP_UNFORGET,
+
+#ifdef USE_TILE
+    CMD_MAP_ZOOM_IN,
+    CMD_MAP_ZOOM_OUT,
+#endif
 
     CMD_MAP_EXIT_MAP,
 

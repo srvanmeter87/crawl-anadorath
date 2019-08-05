@@ -19,5 +19,6 @@ void beogh_convert_orc(monster* orc, conv_t conv);
 void gozag_set_bribe(monster* traitor);
 void gozag_check_bribe(monster* traitor);
 void gozag_break_bribe(monster* victim);
+void do_conversions(monster* target);
 void anadorath_neutralise(monster* mons);
 void anadorath_convert(monster* mons);

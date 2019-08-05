@@ -7,6 +7,14 @@
 
 #pragma once
 
+// In this case, an x86 CPU will use x87 math for floating point calculations,
+// which uses 80 bit intermediate results, andleads to difference from the
+// (much more common, in 2019) SSE-based calculations.
+// probably far from the only case where seeding isn't reliable...
+#if defined(TARGET_CPU_X86) && !defined(__SSE__)
+#define SEEDING_UNRELIABLE
+#endif
+
 // Minimum terminal size allowed.
 #define MIN_COLS  79
 #define MIN_LINES 24
@@ -28,8 +36,8 @@
 // max size of inventory array {dlb}:
 #define ENDOFPACK 52
 
-// Max ghosts on a level.
-const int MAX_GHOSTS = 10;
+// Max ghosts in a bones file.
+const int MAX_GHOSTS = 127;
 
 enum extra_monster_index_type
 {
@@ -81,8 +89,6 @@ const int INFINITE_DISTANCE = 30000;
 // This is the border that must be left around the map. I'm not sure why it's
 // necessary, beyond hysterical raisins.
 const int MAPGEN_BORDER    = 2;
-
-const int LABYRINTH_BORDER = 4;
 
 // Now some defines about the actual play area:
 // Note: these boundaries are exclusive for the zone the player can move/dig,
@@ -182,6 +188,7 @@ const int WU_JIAN_HEAVEN_TICK_TIME = 10;
 const int AGILITY_BONUS = 5;
 
 #define TORNADO_RADIUS 5
+#define VORTEX_RADIUS 3
 
 #define VAULTS_ENTRY_RUNES 1
 #define ZOT_ENTRY_RUNES 3

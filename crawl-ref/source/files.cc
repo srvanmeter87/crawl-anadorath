@@ -34,6 +34,7 @@
 #include "cloud.h"
 #include "coordit.h"
 #include "dactions.h"
+#include "dbg-util.h"
 #include "dgn-overview.h"
 #include "directn.h"
 #include "dungeon.h"
@@ -49,6 +50,8 @@
 #include "god-passive.h"
 #include "hints.h"
 #include "initfile.h"
+#include "item-name.h"
+#include "item-status-flag-type.h"
 #include "items.h"
 #include "jobs.h"
 #include "kills.h"
@@ -93,9 +96,30 @@
 #define F_OK 0
 #endif
 
+#define BONES_DIAGNOSTICS (defined(WIZARD) || defined(DEBUG_BONES) || defined(DEBUG_DIAGNOSTICS))
+
+#ifdef BONES_DIAGNOSTICS
+/// show diagnostics following a wizard command, even if not a debug build
+static void _ghost_dprf(const char *format, ...)
+{
+    va_list argp;
+    va_start(argp, format);
+
+#ifndef DEBUG_DIAGNOSTICS
+    const bool wiz_cmd = (crawl_state.prev_cmd == CMD_WIZARD);
+    if (wiz_cmd)
+#endif
+        do_message_print(MSGCH_DIAGNOSTICS, 0, false, false, format, argp);
+
+    va_end(argp);
+}
+#else
+# define _ghost_dprf(...) ((void)0)
+#endif
+
 static void _save_level(const level_id& lid);
 
-static bool _ghost_version_compatible(reader &ghost_reader);
+static bool _ghost_version_compatible(const save_version &version);
 
 static bool _restore_tagged_chunk(package *save, const string &name,
                                   tag_type tag, const char* complaint);
@@ -147,6 +171,13 @@ static player_save_info _read_character_info(package *save)
     return fromfile;
 }
 
+vector<string> get_dir_files_sorted(const string &dirname)
+{
+    auto result = get_dir_files(dirname);
+    sort(result.begin(), result.end());
+    return result;
+}
+
 // Returns a vector of files (including directories if requested) in
 // the given directory, recursively. All filenames returned are
 // relative to the start directory. If an extension is supplied, all
@@ -168,7 +199,7 @@ vector<string> get_dir_files_recursive(const string &dirname, const string &ext,
         recursion_depth == -1? -1 : recursion_depth - 1;
     const bool recur = recursion_depth == -1 || recursion_depth > 0;
 
-    for (const string &filename : get_dir_files(dirname))
+    for (const string &filename : get_dir_files_sorted(dirname))
     {
         if (dir_exists(catpath(dirname, filename)))
         {
@@ -434,6 +465,71 @@ static vector<string> _get_base_dirs()
     return bases;
 }
 
+void validate_basedirs()
+{
+    // TODO: could use this to pick a single data directory?
+    vector<string> bases(_get_base_dirs());
+    bool found = false;
+
+    // there are a few others, but this should be enough to minimally run something
+    const vector<string> data_subfolders =
+    {
+#ifdef CLUA_BINDINGS
+        "clua",
+#endif
+        "database",
+        "defaults",
+        "des",
+        "descript",
+        "dlua"
+#ifdef USE_TILE_LOCAL
+        , "tiles"
+#endif
+    };
+
+    for (const string &d : bases)
+    {
+        if (dir_exists(d))
+        {
+            bool everything = true;
+            bool something = false;
+            for (auto subdir : data_subfolders)
+            {
+                if (dir_exists(d + subdir))
+                    something = true;
+                else
+                    everything = false;
+            }
+            if (everything)
+            {
+                mprf(MSGCH_PLAIN, "Data directory '%s' found.", d.c_str());
+                found = true;
+            }
+            else if (something)
+            {
+                // give an error for this case because this incomplete data
+                // directory will be checked before others, possibly leading
+                // to a weird mix of data files.
+                if (!found)
+                {
+                    mprf(MSGCH_ERROR,
+                        "Incomplete or corrupted data directory '%s'",
+                                d.c_str());
+                }
+            }
+        }
+    }
+
+    // can't proceed if nothing complete was found.
+    if (!found)
+    {
+        string err = "Missing DCSS data directory; tried: \n";
+        err += comma_separated_line(bases.begin(), bases.end());
+
+        end(1, false, "%s", err.c_str());
+    }
+}
+
 string datafile_path(string basename, bool croak_on_fail, bool test_base_path,
                      bool (*thing_exists)(const string&))
 {
@@ -646,7 +742,7 @@ static vector<player_save_info> _find_saved_characters()
     if (searchpath.empty())
         searchpath = ".";
 
-    for (const string &filename : get_dir_files(searchpath))
+    for (const string &filename : get_dir_files_sorted(searchpath))
     {
         if (is_save_file_name(filename))
         {
@@ -668,8 +764,12 @@ static vector<player_save_info> _find_saved_characters()
             {
                 dprf("%s: %s", filename.c_str(), E.what());
             }
+            catch (game_ended_condition &E) // another process is using the save
+            {
+                if (E.exit_reason != game_exit::abort)
+                    throw;
+            }
         }
-
     }
 
     sort(chars.begin(), chars.end());
@@ -728,10 +828,12 @@ string get_prefs_filename()
 #endif
 }
 
-static void _write_ghost_version(writer &outf)
+void write_ghost_version(writer &outf)
 {
-    marshallUByte(outf, TAG_MAJOR_VERSION);
-    marshallUByte(outf, TAG_MINOR_VERSION);
+    // this may be distinct from the current save version
+    auto bones_version = save_version::current_bones();
+    marshallUByte(outf, bones_version.major);
+    marshallUByte(outf, bones_version.minor);
 
     // extended_version just pads the version out to four 32-bit words.
     // This makes the bones file compatible with Hearse with no extra
@@ -826,12 +928,13 @@ static int _get_dest_stair_type(branch_type old_branch,
                 return it->exit_stairs;
         die("return corresponding to entry %d not found", stair_taken);
     }
-
+#if TAG_MAJOR_VERSION == 34
     if (stair_taken == DNGN_ENTER_LABYRINTH)
     {
         // dgn_find_nearby_stair uses special logic for labyrinths.
         return DNGN_ENTER_LABYRINTH;
     }
+#endif
 
     if (feat_is_portal_entrance(stair_taken))
         return DNGN_STONE_ARCH;
@@ -911,7 +1014,7 @@ static void _grab_followers()
     monster* dowan = nullptr;
     monster* duvessa = nullptr;
 
-    // Handle nearby ghosts.
+    // Handle some hacky cases
     for (adjacent_iterator ai(you.pos()); ai; ++ai)
     {
         monster* fol = monster_at(*ai);
@@ -931,14 +1034,6 @@ static void _grab_followers()
             // must have been a summon
             if (mons_class_can_use_stairs(fol->type))
                 non_stair_using_summons++;
-        }
-
-        if (fol->type == MONS_PLAYER_GHOST
-            && fol->hit_points < fol->max_hit_points / 2)
-        {
-            if (fol->visible_to(&you))
-                mpr("The ghost fades into the shadows.");
-            monster_teleport(fol, true);
         }
     }
 
@@ -1138,59 +1233,6 @@ static bool _leave_level(dungeon_feature_type stair_taken,
     return popped;
 }
 
-
-/**
- * Generate a new level.
- *
- * Cleanup the environment, build the level, and possibly place a ghost or
- * handle initial AK entrance.
- *
- * @param stair_taken   The means used to leave the last level.
- * @param old_level     The ID of the previous level.
- */
-static void _make_level(dungeon_feature_type stair_taken,
-                        const level_id& old_level)
-{
-
-    env.turns_on_level = -1;
-
-    if (you.chapter == CHAPTER_POCKET_ABYSS
-        && player_in_branch(BRANCH_DUNGEON))
-    {
-        // If we're leaving the Abyss for the first time as a Chaos
-        // Knight of Lugonu (who start out there), enable normal monster
-        // generation.
-        you.chapter = CHAPTER_ORB_HUNTING;
-    }
-
-    tile_init_default_flavour();
-    tile_clear_flavour();
-    env.tile_names.clear();
-
-    // XXX: This is ugly.
-    bool dummy;
-    dungeon_feature_type stair_type = static_cast<dungeon_feature_type>(
-        _get_dest_stair_type(old_level.branch,
-                             static_cast<dungeon_feature_type>(stair_taken),
-                             dummy));
-
-    _clear_env_map();
-    builder(true, stair_type);
-
-    if (!crawl_state.game_is_tutorial()
-        && !Options.seed
-        && !player_in_branch(BRANCH_ABYSS)
-        && (!player_in_branch(BRANCH_DUNGEON) || you.depth > 2)
-        && one_chance_in(3))
-    {
-        load_ghost(true);
-    }
-    env.turns_on_level = 0;
-    // sanctuary
-    env.sanctuary_pos  = coord_def(-1, -1);
-    env.sanctuary_time = 0;
-}
-
 /**
  * Move the player to the appropriate entrance location in a level.
  *
@@ -1214,7 +1256,7 @@ static void _place_player(dungeon_feature_type stair_taken,
     for (distance_iterator di(you.pos(), true, false); di; ++di)
         if (you.is_habitable_feat(grd(*di))
             && !is_feat_dangerous(grd(*di), true)
-            && !feat_is_trap(grd(*di), true))
+            && !feat_is_trap(grd(*di)))
         {
             if (you.pos() != *di)
                 you.moveto(*di);
@@ -1263,6 +1305,133 @@ static string _get_hatch_name()
     return "";
 }
 
+static const string VISITED_LEVELS_KEY = "visited_levels";
+
+#if TAG_MAJOR_VERSION == 34
+// n.b. these functions are in files.cc largely because this is where the fixup
+// needs to happen.
+// before pregeneration, whether the level had been visited was synonymous with
+// whether it had been visited, but after, we need to track this information
+// more directly. It is also inferrable from turns_on_level, but you can't get
+// at that very easily without fully loading the level.
+// no need for a minor version here, though there will be a brief window of
+// offline pregen games that this doesn't handle right -- they will get things
+// like broken runelock. (In principle this fixup could be done by loading
+// each level and checking turns, but it's not worth the trouble for these few
+// games.)
+static void _fixup_visited_from_package()
+{
+    // for games started later than this fixup, this prop is initialized in
+    // player::player
+    CrawlHashTable &visited = you.props[VISITED_LEVELS_KEY].get_table();
+    if (visited.size()) // only 0 for upgrades, or before entering D:1
+        return;
+    vector<level_id> levels = all_dungeon_ids();
+    for (const level_id &lid : levels)
+        if (is_existing_level(lid))
+            visited[lid.describe()] = true;
+}
+#endif
+
+void player::set_level_visited(const level_id &level)
+{
+    auto &visited = props[VISITED_LEVELS_KEY].get_table();
+    visited[level.describe()] = true;
+}
+
+/**
+ * Has the player visited the level currently stored in the save under the id
+ * `level`, if there is one? Returns false if there isn't one. This stores
+ * *token level* visited state, not type-level -- it does not answer questions
+ * like, e.g. has the player ever visited a trove? For that, see place_info.
+ * This distinction matters mainly for portal branches, especially ones that can
+ * be revisited, e.g. Pan levels and zigs.
+ */
+bool player::level_visited(const level_id &level)
+{
+    // `is_existing_level` is not reliable after the game end, because the
+    // save no longer exists, so we ignore it for printing morgues
+    if (!is_existing_level(level) && you.save)
+        return false;
+    const auto &visited = props[VISITED_LEVELS_KEY].get_table();
+    return visited.exists(level.describe());
+}
+
+static void _generic_level_reset()
+{
+    // TODO: can more be pulled into here?
+
+    you.prev_targ = MHITNOT;
+    you.prev_grd_targ.reset();
+
+    // Lose all listeners.
+    dungeon_events.clear();
+    clear_travel_trail();
+}
+
+/**
+ * Ensure that the level given by `l` is generated. This does not do much in
+ * the way of cleanup, and the caller must ensure the player ends up somewhere
+ * sensible afterwards (this will not place the player, and will wipe out their
+ * current location state if a level is built). Does not do anything if the
+ * save already contains the relevant level.
+ *
+ * @param l the level to try to build.
+ * @return whether a level was built.
+ */
+bool generate_level(const level_id &l)
+{
+    const string level_name = l.describe();
+    if (you.save->has_chunk(level_name))
+        return false;
+
+    unwind_var<int> depth(you.depth, l.depth);
+    unwind_var<branch_type> branch(you.where_are_you, l.branch);
+    unwind_var<coord_def> saved_position(you.position);
+    you.position.reset();
+
+    // simulate a reasonable stair to enter the level with
+    const dungeon_feature_type stair_taken =
+          you.depth == 1
+        ? (you.where_are_you == BRANCH_DUNGEON
+           ? DNGN_UNSEEN
+           : branches[you.where_are_you].entry_stairs)
+        : DNGN_STONE_STAIRS_DOWN_I;
+
+    unwind_var<dungeon_feature_type> stair(you.transit_stair, stair_taken);
+    // TODO how necessary is this?
+    unwind_bool ylev(you.entering_level, true);
+    // n.b. crawl_state.generating_level is handled in builder
+
+    _generic_level_reset();
+    delete_all_clouds();
+    los_changed(); // invalidate the los cache, which impacts monster placement
+
+    // initialize env for builder
+    env.turns_on_level = -1;
+    tile_init_default_flavour();
+    tile_clear_flavour();
+    env.tile_names.clear();
+    _clear_env_map();
+
+    // finally -- everything is set up, call the builder.
+    dprf("Generating new level for '%s'.", level_name.c_str());
+    builder(true);
+
+    you.vault_list[level_id::current()] = level_vault_names();
+
+    // initialize env for a new level
+    env.turns_on_level = 0;
+    env.sanctuary_pos  = coord_def(-1, -1);
+    env.sanctuary_time = 0;
+    env.markers.init_all(); // init first, activation happens when entering
+    show_update_emphasis(); // Clear map knowledge stair emphasis in env.
+
+    // save the level and associated env state
+    _save_level(level_id::current());
+    return true;
+}
+
 /**
  * Load the current level.
  *
@@ -1273,10 +1442,18 @@ static string _get_hatch_name()
 bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
                 const level_id& old_level)
 {
-
     const string level_name = level_id::current().describe();
+    if (!you.save->has_chunk(level_name) && load_mode == LOAD_VISITOR)
+        return false;
+
     const bool make_changes =
-    (load_mode == LOAD_START_GAME || load_mode == LOAD_ENTER_LEVEL);
+        (load_mode == LOAD_START_GAME || load_mode == LOAD_ENTER_LEVEL);
+
+#if TAG_MAJOR_VERSION == 34
+    // fixup saves that don't have this prop initialized.
+    if (load_mode == LOAD_RESTART_GAME)
+        _fixup_visited_from_package();
+#endif
 
     // Did we get here by popping the level stack?
     bool popped = false;
@@ -1302,16 +1479,12 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     // Save position for hatches to place a marker on the destination level.
     coord_def dest_pos = you.pos();
 
-    you.prev_targ     = MHITNOT;
-    you.prev_grd_targ.reset();
+    _generic_level_reset();
 
     // We clear twice - on save and on load.
     // Once would be enough...
     if (make_changes)
         delete_all_clouds();
-
-    // Lose all listeners.
-    dungeon_events.clear();
 
     // This block is to grab followers and save the old level to disk.
     if (load_mode == LOAD_ENTER_LEVEL)
@@ -1335,8 +1508,6 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
         update_companions();
     }
 
-    clear_travel_trail();
-
 #ifdef USE_TILE
     if (load_mode != LOAD_VISITOR)
     {
@@ -1346,23 +1517,30 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     }
 #endif
 
-    bool just_created_level = false;
+    if (load_mode != LOAD_VISITOR
+        && you.chapter == CHAPTER_POCKET_ABYSS
+        && player_in_branch(BRANCH_DUNGEON))
+    {
+        // If we're leaving the Abyss for the first time as a Chaos
+        // Knight of Lugonu (who start out there), enable normal monster
+        // generation.
+        you.chapter = CHAPTER_ORB_HUNTING;
+    }
 
     // GENERATE new level when the file can't be opened:
     if (!you.save->has_chunk(level_name))
     {
         ASSERT(load_mode != LOAD_VISITOR);
-        dprf("Generating new level for '%s'.", level_name.c_str());
-        _make_level(stair_taken, old_level);
-        just_created_level = true;
+        generate_level(level_id::current());
     }
     else
     {
         dprf("Loading old level '%s'.", level_name.c_str());
         _restore_tagged_chunk(you.save, level_name, TAG_LEVEL, "Level file is invalid.");
-
-        _redraw_all();
+        _redraw_all(); // TODO why is there a redraw call here?
     }
+
+    const bool just_created_level = !you.level_visited(level_id::current());
 
     // Clear map knowledge stair emphasis.
     show_update_emphasis();
@@ -1371,6 +1549,9 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     deleteAll(env.final_effects);
 
     los_changed();
+
+    if (load_mode != LOAD_VISITOR)
+        you.set_level_visited(level_id::current());
 
     // Markers must be activated early, since they may rely on
     // events issued later, e.g. DET_ENTERING_LEVEL or
@@ -1381,15 +1562,18 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     if (make_changes && env.elapsed_time && !just_created_level)
         update_level(you.elapsed_time - env.elapsed_time);
 
-    // Apply all delayed actions, if any.
+    // Apply all delayed actions, if any. TODO: logic for marshalling this is
+    // kind of odd.
     if (just_created_level)
-        env.dactions_done = you.dactions.size();
-    else
-        catchup_dactions();
+        env.dactions_done = 0;
 
     // Here's the second cloud clearing, on load (see above).
     if (make_changes)
     {
+        // this includes various things that are irrelevant for new levels, but
+        // also some things that aren't, such as bribe branch.
+        catchup_dactions();
+
         delete_all_clouds();
 
         _place_player(stair_taken, old_level.branch, return_pos, dest_pos,
@@ -1405,6 +1589,9 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     // Load monsters in transit.
     if (load_mode == LOAD_ENTER_LEVEL)
         place_transiting_monsters();
+
+    if (just_created_level && make_changes)
+        replace_boris();
 
     if (make_changes)
     {
@@ -1489,11 +1676,34 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
              "curr_PlaceInfo:: num_visits: %d, levels_seen: %d",
              curr_PlaceInfo.num_visits, curr_PlaceInfo.levels_seen);
 #endif
+#if TAG_MAJOR_VERSION == 34
+        // this fixup is for a bug where turns_on_level==0 was used to set
+        // just_created_level, and there were some obscure ways to have 0
+        // turns on a level that you had entered previously. It only applies
+        // to a narrow version range (basically 0.23.0) but there's no way to
+        // do a sensible minor version check here and the fixup can't happen
+        // on load.
+        if (is_connected_branch(curr_PlaceInfo.branch)
+            && brdepth[curr_PlaceInfo.branch] > 0
+            && static_cast<int>(curr_PlaceInfo.levels_seen)
+                                        > brdepth[curr_PlaceInfo.branch])
+        {
+            mprf(MSGCH_ERROR,
+                "Fixing up corrupted PlaceInfo for %s (levels_seen is %d)",
+                branches[curr_PlaceInfo.branch].shortname,
+                curr_PlaceInfo.levels_seen);
+            curr_PlaceInfo.levels_seen = brdepth[curr_PlaceInfo.branch];
+        }
+#endif
         curr_PlaceInfo.assert_validity();
     }
 
     if (just_created_level)
+    {
         you.attribute[ATTR_ABYSS_ENTOURAGE] = 0;
+        gozag_detect_level_gold(true);
+    }
+
 
     if (load_mode != LOAD_VISITOR)
         dungeon_events.fire_event(DET_ENTERED_LEVEL);
@@ -1694,14 +1904,8 @@ void save_game(bool leave_game, const char *farewellmsg)
     // so Valgrind doesn't complain.
     _save_game_exit();
 
-    if (Options.restart_after_game && Options.restart_after_save
-        && !crawl_state.seen_hups)
-    {
-        throw game_ended_condition(true);
-    }
-
-    end(0, false, farewellmsg? "%s" : "See you soon, %s!",
-        farewellmsg? farewellmsg : you.your_name.c_str());
+    game_ended(game_exit::save, farewellmsg ? farewellmsg
+                                : "See you soon, " + you.your_name + "!");
 }
 
 // Saves the game without exiting.
@@ -1712,13 +1916,96 @@ void save_game_state()
         save_game(true);
 }
 
-static string _make_ghost_filename()
+static bool _bones_save_individual_levels(bool store)
 {
-    return "bones."
-           + replace_all(level_id::current().describe(), ":", "-");
+    // Only use level-numbered bones files for places where players die a lot.
+    // For the permastore, go even coarser (just D and Lair use level numbers).
+    // n.b. some branches here may not currently generate ghosts.
+    // TODO: further adjustments? Make Zot coarser?
+    return store ? player_in_branch(BRANCH_DUNGEON) ||
+                   player_in_branch(BRANCH_LAIR)
+                 : !(player_in_branch(BRANCH_ZIGGURAT) ||
+                     player_in_branch(BRANCH_CRYPT) ||
+                     player_in_branch(BRANCH_TOMB) ||
+                     player_in_branch(BRANCH_ABYSS) ||
+                     player_in_branch(BRANCH_SLIME));
 }
 
-#define BONES_DIAGNOSTICS (defined(WIZARD) || defined(DEBUG_BONES) | defined(DEBUG_DIAGNOSTICS))
+static string _make_ghost_filename(bool store=false)
+{
+    const bool with_number = _bones_save_individual_levels(store);
+    // Players die so rarely in hell in practice that it doesn't even make
+    // sense to have per-hell bones. (Maybe vestibule should be separate?)
+    const string level_desc = player_in_hell(true) ? "Hells" :
+        replace_all(level_id::current().describe(false, with_number), ":", "-");
+    return string("bones.") + (store ? "store." : "") + level_desc;
+}
+
+static string _bones_permastore_file()
+{
+    string filename = _make_ghost_filename(true);
+    string full_path = _get_bonefile_directory() + filename;
+    if (file_exists(full_path))
+        return full_path;
+
+    string dist_full_path = datafile_path(
+            string("dist_bones") + FILE_SEPARATOR + filename, false, false);
+    if (dist_full_path.empty())
+        return dist_full_path;
+
+    // no matching permastore is in the player's bones file, but one exists in
+    // the crawl distribution. Install it.
+
+    FILE *src = fopen(dist_full_path.c_str(), "rb");
+    if (!src)
+    {
+        mprf(MSGCH_ERROR, "Bones file exists but can't be opened: %s",
+            dist_full_path.c_str());
+        return "";
+    }
+    FILE *target = lk_open("wb", full_path);
+    if (!target)
+    {
+        mprf(MSGCH_ERROR, "Unable to open bones file %s for writing",
+            full_path.c_str());
+        fclose(src);
+        return "";
+    }
+
+    _ghost_dprf("Copying %s to %s", dist_full_path.c_str(), full_path.c_str());
+
+    char buf[BUFSIZ];
+
+    size_t size;
+    while ((size = fread(buf, sizeof(char), BUFSIZ, src)) > 0)
+        fwrite(buf, sizeof(char), size, target);
+
+    lk_close(target, full_path);
+
+    if (!feof(src))
+    {
+        mprf(MSGCH_ERROR, "Error installing bones file to %s",
+                                                    full_path.c_str());
+        if (unlink(full_path.c_str()) != 0)
+        {
+            mprf(MSGCH_ERROR,
+                "Failed to unlink probably corrupt bones file: %s",
+                full_path.c_str());
+        }
+        fclose(src);
+        return "";
+    }
+    fclose(src);
+    return full_path;
+}
+
+// Bones files
+//
+// There are two kinds of bones files: temporary bones files and the
+// permastore. Temporary bones files are ephemeral: ghosts will be reused only
+// if they are on the floor where the player dies. The permastore is a more
+// permanent stock of ghosts (per level) to use as a backup in case the
+// temporary bones files are depleted.
 
 /**
  * Lists all bonefiles for the current level.
@@ -1731,16 +2018,20 @@ static vector<string> _list_bones()
     string base_filename = _make_ghost_filename();
     string underscored_filename = base_filename + "_";
 
-    vector<string> filenames = get_dir_files(bonefile_dir);
+    vector<string> filenames = get_dir_files_sorted(bonefile_dir);
     vector<string> bonefiles;
     for (const auto &filename : filenames)
-        if (starts_with(filename, underscored_filename))
+        if (starts_with(filename, underscored_filename)
+                                            && !ends_with(filename, ".backup"))
+        {
             bonefiles.push_back(bonefile_dir + filename);
+            _ghost_dprf("bonesfile %s", (bonefile_dir + filename).c_str());
+        }
 
     string old_bonefile = _get_old_bonefile_directory() + base_filename;
     if (access(old_bonefile.c_str(), F_OK) == 0)
     {
-        dprf("Found old bonefile %s", old_bonefile.c_str());
+        _ghost_dprf("Found old bonefile %s", old_bonefile.c_str());
         bonefiles.push_back(old_bonefile);
     }
 
@@ -1757,149 +2048,369 @@ static string _find_ghost_file()
     vector<string> bonefiles = _list_bones();
     if (bonefiles.empty())
         return "";
-    return bonefiles[ui_random(bonefiles.size())];
+    return bonefiles[random2(bonefiles.size())];
+}
+
+static string _old_bones_filename(string ghost_filename, const save_version &v)
+{
+    // TODO: a way of looking for any backup with a version earlier than v
+    if (ends_with(ghost_filename, ".backup"))
+        return ghost_filename; // already an old bones file
+
+    string new_filename = make_stringf("%s-v%d.%d.backup", ghost_filename.c_str(),
+                                        v.major, v.minor);
+    return new_filename;
+}
+
+static bool _backup_bones_for_upgrade(string ghost_filename, save_version &v)
+{
+    // Copy the bones file to a versioned name, so that non-upgraded saves can
+    // load it. Copying would be cleaner with c++ ios stuff, but we need to
+    // interact with the lock system.
+
+    if (ghost_filename.empty())
+        return false;
+    if (ends_with(ghost_filename, ".backup"))
+        return false; // already an old bones file
+
+    string upgrade_filename = _old_bones_filename(ghost_filename, v);
+    if (file_exists(upgrade_filename))
+        return false;
+    _ghost_dprf("Backing up bones file %s to %s before upgrade to %d.%d",
+                            ghost_filename.c_str(), upgrade_filename.c_str(),
+                            save_version::current_bones().major,
+                            save_version::current_bones().minor);
+
+    FILE *backup_src = lk_open("rb", ghost_filename);
+    if (!backup_src)
+    {
+        mprf(MSGCH_ERROR, "Bones file to back up doesn't exist: %s",
+            ghost_filename.c_str());
+        return false;
+    }
+    FILE *backup_target = lk_open("wb", upgrade_filename);
+    if (!backup_target)
+    {
+        mprf(MSGCH_ERROR, "Unable to open bones backup file %s for writing",
+            upgrade_filename.c_str());
+        lk_close(backup_src, ghost_filename);
+        return false;
+    }
+
+    char buf[BUFSIZ];
+
+    size_t size;
+    while ((size = fread(buf, sizeof(char), BUFSIZ, backup_src)) > 0)
+        fwrite(buf, sizeof(char), size, backup_target);
+
+    lk_close(backup_target, upgrade_filename);
+
+    if (!feof(backup_src))
+    {
+        mprf(MSGCH_ERROR, "Error backing up bones file to %s",
+                                                    upgrade_filename.c_str());
+        if (unlink(upgrade_filename.c_str()) != 0)
+        {
+            mprf(MSGCH_ERROR,
+                "Failed to unlink probably corrupt bones file: %s",
+                upgrade_filename.c_str());
+        }
+        lk_close(backup_src, ghost_filename);
+        return false;
+    }
+    lk_close(backup_src, ghost_filename);
+    return true;
+}
+
+save_version read_ghost_header(reader &inf)
+{
+    auto version = get_save_version(inf);
+    if (!version.valid())
+        return version;
+
+#if TAG_MAJOR_VERSION == 34
+    // downgrade bones files saved before the bones sub-versioning system
+    if (version > save_version::current_bones() && version.is_compatible())
+    {
+        _ghost_dprf("Setting bones file version from %d.%d to %d.%d on load",
+            version.major, version.minor,
+            save_version::current_bones().major,
+            save_version::current_bones().minor);
+        version = save_version::current_bones();
+    }
+#endif
+
+    try
+    {
+        // Check for the DCSS ghost signature.
+        if (unmarshallShort(inf) != GHOST_SIGNATURE)
+            return save_version(); // version was valid, but this isn't a bones file
+
+        // Discard three more 32-bit words of padding.
+        inf.read(nullptr, 3*4);
+    }
+    catch (short_read_exception &E)
+    {
+        mprf(MSGCH_ERROR,
+             "Ghost file \"%s\" seems to be invalid (short read); deleting it.",
+             inf.filename().c_str());
+        return save_version();
+    }
+
+    return version;
+}
+
+vector<ghost_demon> load_bones_file(string ghost_filename, bool backup)
+{
+    vector<ghost_demon> result;
+
+    if (ghost_filename.empty())
+        return result; // no such ghost.
+
+    reader inf(ghost_filename);
+    if (!inf.valid())
+    {
+        // file doesn't exist
+        _ghost_dprf("Ghost file '%s' invalid before read.", ghost_filename.c_str());
+        return result;
+    }
+
+    inf.set_safe_read(true); // don't die on 0-byte bones
+    save_version version = read_ghost_header(inf);
+    if (!_ghost_version_compatible(version))
+    {
+        string error = "Incompatible bones file: " + ghost_filename;
+        throw corrupted_save(error, version);
+    }
+    inf.setMinorVersion(version.minor);
+    if (backup && version < save_version::current_bones())
+        _backup_bones_for_upgrade(ghost_filename, version);
+
+    try
+    {
+        result = tag_read_ghosts(inf);
+        inf.fail_if_not_eof(ghost_filename);
+    }
+    catch (short_read_exception &short_read)
+    {
+        string error = "Broken bones file: " + ghost_filename;
+        throw corrupted_save(error, version);
+    }
+    inf.close();
+
+    if (!debug_check_ghosts(result))
+    {
+        string error = "Bones file is buggy: " + ghost_filename;
+        throw corrupted_save(error, version);
+    }
+
+    return result;
+}
+
+
+static vector<ghost_demon> _load_ghosts_core(string filename,
+                                                        bool backup_on_upgrade)
+{
+    vector<ghost_demon> results;
+    try
+    {
+        results = load_bones_file(filename, backup_on_upgrade);
+    }
+    catch (corrupted_save &err)
+    {
+        // not a corrupted save per se, just from the future. Try to load the
+        // versioned bones file if it exists.
+        if (err.version.valid() && err.version.is_future())
+        {
+            string old_bones =
+                        _old_bones_filename(filename, save_version::current());
+            if (old_bones != filename)
+            {
+                _ghost_dprf("Loading ghost from backup bones file %s",
+                                                        old_bones.c_str());
+                return load_bones_file(old_bones, false);
+            }
+            else
+                mprf(MSGCH_ERROR, "Mismatch between bones backup "
+                    "filename '%s' and version %d.%d!", filename.c_str(),
+                    err.version.major, err.version.minor);
+            // intentional fallthrough -- unlink the misnamed file
+        }
+        else
+            mprf(MSGCH_ERROR, "%s", err.what());
+        string report;
+        // if we get to this point the bones file is unreadable and needs to
+        // be scrapped
+        if (unlink(filename.c_str()) != 0)
+            report = "Failed to unlink bad bones file";
+        else
+            report = "Clearing bad bones file";
+        mprf(MSGCH_ERROR, "%s: %s", report.c_str(), filename.c_str());
+    }
+    return results;
+
+}
+
+static vector<ghost_demon> _load_ephemeral_ghosts()
+{
+    vector<ghost_demon> results;
+
+    string ghost_filename = _find_ghost_file();
+    if (ghost_filename.empty())
+    {
+        _ghost_dprf("%s", "No ephemeral ghost files for this level.");
+        return results; // no such ghost.
+    }
+
+    results = _load_ghosts_core(ghost_filename, true);
+
+    if (unlink(ghost_filename.c_str()) != 0)
+    {
+        mprf(MSGCH_ERROR, "Failed to unlink bones file: %s",
+                ghost_filename.c_str());
+    }
+    return results;
+}
+
+static vector<ghost_demon> _load_permastore_ghosts(bool backup_on_upgrade=false)
+{
+    return _load_ghosts_core(_bones_permastore_file(), backup_on_upgrade);
+}
+
+/**
+ * Attempt to fill in a monster based on bones files.
+ *
+ * @param mons the monster to fill in
+ *
+ * @return whether there was a saved ghost that could be used.
+ */
+bool define_ghost_from_bones(monster& mons)
+{
+    rng_generator rng(RNG_SYSTEM_SPECIFIC);
+
+    bool used_permastore = false;
+
+    vector<ghost_demon> loaded_ghosts = _load_ephemeral_ghosts();
+    if (loaded_ghosts.empty())
+    {
+        loaded_ghosts = _load_permastore_ghosts();
+        if (loaded_ghosts.empty())
+            return false;
+        used_permastore = true;
+    }
+
+    int place_i = random2(loaded_ghosts.size());
+    _ghost_dprf("Loaded ghost file with %u ghost(s), placing %s",
+         (unsigned int)loaded_ghosts.size(), loaded_ghosts[place_i].name.c_str());
+
+    mons.set_ghost(loaded_ghosts[place_i]);
+    mons.type = MONS_PLAYER_GHOST;
+    mons.ghost_init(false);
+
+    if (!mons.alive())
+        mprf(MSGCH_ERROR, "Placed ghost is not alive.");
+    else if (mons.type != MONS_PLAYER_GHOST)
+    {
+        mprf(MSGCH_ERROR, "Placed ghost is not MONS_PLAYER_GHOST, but %s",
+             mons.name(DESC_PLAIN, true).c_str());
+    }
+
+    if (!used_permastore)
+    {
+        loaded_ghosts.erase(loaded_ghosts.begin() + place_i);
+
+        if (!loaded_ghosts.empty())
+            save_ghosts(loaded_ghosts);
+    }
+    return true;
 }
 
 /**
  * Attempt to load one or more ghosts into the level.
  *
+ * @param max_ghosts        A maximum number of ghosts to creat.
+ *                          Set to <= 0 to load as many as possible.
  * @param creating_level    Whether a level is currently being generated.
  * @return                  Whether ghosts were actually generated.
  */
-bool load_ghost(bool creating_level)
+bool load_ghosts(int max_ghosts, bool creating_level)
 {
-    const bool wiz_cmd = (crawl_state.prev_cmd == CMD_WIZARD);
-
     ASSERT(you.transit_stair == DNGN_UNSEEN || creating_level);
     ASSERT(!you.entering_level || creating_level);
     ASSERT(!creating_level
            || (you.entering_level && you.transit_stair != DNGN_UNSEEN));
     // Only way to load a ghost without creating a level is via a wizard
     // command.
-    ASSERT(creating_level || wiz_cmd);
-
-#if !defined(DEBUG) && !defined(WIZARD)
-    UNUSED(creating_level);
-#endif
+    ASSERT(creating_level || (crawl_state.prev_cmd == CMD_WIZARD));
 
 #ifdef BONES_DIAGNOSTICS
-    const bool do_diagnostics =
-#  if defined(DEBUG_BONES) || defined(DEBUG_DIAGNOSTICS)
-        true
-#  elif defined(WIZARD)
-        !creating_level
-#  else // Can't happen currently
-        false
-#  endif
-        ;
-#endif // BONES_DIAGNOSTICS
-
-    const string ghost_filename = _find_ghost_file();
-    if (ghost_filename.empty())
-    {
-        if (wiz_cmd && !creating_level)
-            mprf(MSGCH_PROMPT, "No ghost files for this level.");
-        return false; // no such ghost.
-    }
-
-    reader inf(ghost_filename);
-    if (!inf.valid())
-    {
-        if (wiz_cmd && !creating_level)
-            mprf(MSGCH_PROMPT, "Ghost file invalidated before read.");
-        return false;
-    }
-
-    inf.set_safe_read(true); // don't die on 0-byte bones
-    if (_ghost_version_compatible(inf))
-    {
-        try
-        {
-            ghosts.clear();
-            tag_read(inf, TAG_GHOST);
-            inf.fail_if_not_eof(ghost_filename);
-        }
-        catch (short_read_exception &short_read)
-        {
-            mprf(MSGCH_ERROR, "Broken bones file: %s",
-                 ghost_filename.c_str());
-        }
-    }
-    inf.close();
-
-    // Remove bones file - ghosts are hardly permanent.
-    unlink(ghost_filename.c_str());
-
-    if (!debug_check_ghosts())
-    {
-        mprf(MSGCH_DIAGNOSTICS,
-             "Refusing to load buggy ghost from file \"%s\"!",
-             ghost_filename.c_str());
-
-        return false;
-    }
-
-#ifdef BONES_DIAGNOSTICS
-    if (do_diagnostics)
-    {
-        mprf(MSGCH_DIAGNOSTICS, "Loaded ghost file with %u ghost(s)",
-             (unsigned int)ghosts.size());
-    }
+    // this is pretty hacky, but arguably cleaner than what it is replacing.
+    // The effect is to show bones diagnostic messages on wizmode builds during
+    // level building
+    unwind_var<command_type> last_cmd(crawl_state.prev_cmd, creating_level ?
+        CMD_WIZARD : crawl_state.prev_cmd);
 #endif
 
-#ifdef BONES_DIAGNOSTICS
-    unsigned int  unplaced_ghosts = ghosts.size();
-    bool          ghost_errors    = false;
-#endif
+    vector<ghost_demon> loaded_ghosts = _load_ephemeral_ghosts();
+
+    _ghost_dprf("Loaded ghost file with %u ghost(s), will attempt to place %d of them",
+             (unsigned int)loaded_ghosts.size(), max_ghosts);
+
+    bool ghost_errors = false;
+
+    max_ghosts = max_ghosts <= 0 ? loaded_ghosts.size()
+                                 : min(max_ghosts, (int) loaded_ghosts.size());
+    int placed_ghosts = 0;
 
     // Translate ghost to monster and place.
-    while (!ghosts.empty())
+    while (!loaded_ghosts.empty() && placed_ghosts < max_ghosts)
     {
         monster * const mons = get_free_monster();
         if (!mons)
             break;
 
         mons->set_new_monster_id();
-        mons->set_ghost(ghosts[0]);
+        mons->set_ghost(loaded_ghosts[0]);
         mons->type = MONS_PLAYER_GHOST;
         mons->ghost_init();
-        mons->bind_melee_flags();
-        if (mons->has_spells())
-            mons->bind_spell_flags();
 
-        ghosts.erase(ghosts.begin());
-#ifdef BONES_DIAGNOSTICS
-        if (do_diagnostics)
+        loaded_ghosts.erase(loaded_ghosts.begin());
+        placed_ghosts++;
+
+        if (!mons->alive())
         {
-            unplaced_ghosts--;
-            if (!mons->alive())
-            {
-                mprf(MSGCH_DIAGNOSTICS, "Placed ghost is not alive.");
-                ghost_errors = true;
-            }
-            else if (mons->type != MONS_PLAYER_GHOST)
-            {
-                mprf(MSGCH_DIAGNOSTICS,
-                     "Placed ghost is not MONS_PLAYER_GHOST, but %s",
-                     mons->name(DESC_PLAIN, true).c_str());
-                ghost_errors = true;
-            }
+            _ghost_dprf("Placed ghost is not alive.");
+            ghost_errors = true;
         }
-#endif
+        else if (mons->type != MONS_PLAYER_GHOST)
+        {
+            _ghost_dprf("Placed ghost is not MONS_PLAYER_GHOST, but %s",
+                 mons->name(DESC_PLAIN, true).c_str());
+            ghost_errors = true;
+        }
     }
 
-#ifdef BONES_DIAGNOSTICS
-    if (do_diagnostics && unplaced_ghosts > 0)
+    if (placed_ghosts < max_ghosts)
     {
-        mprf(MSGCH_DIAGNOSTICS, "Unable to place %u ghost(s)",
-             (unsigned int)ghosts.size());
+        _ghost_dprf("Unable to place %u ghost(s)", max_ghosts - placed_ghosts);
         ghost_errors = true;
     }
+#ifdef BONES_DIAGNOSTICS
     if (ghost_errors)
         more();
 #endif
 
+    // resave any unused ghosts
+    if (!loaded_ghosts.empty())
+        save_ghosts(loaded_ghosts);
+
     return true;
+}
+
+static string _type_name_processed(game_type t)
+{
+    string name = game_state::game_type_name_for(t);
+    return name.size() ? name : "regular";
 }
 
 // returns false if a new game should start instead
@@ -1908,12 +2419,11 @@ static bool _restore_game(const string& filename)
     if (Options.no_save)
         return false;
 
-#ifdef USE_TILE_WEB
-    // a more before the player is loaded will crash when it tries to send
-    // enough information to the webtiles client to render the display.
-    // TODO: is there a good way to do any mores in load_messages?
+    // In webtiles, a more before the player is loaded will crash when it tries
+    // to send enough information to the webtiles client to render the display.
+    // This is just cosmetic for other build targets.
     unwind_bool save_more(crawl_state.show_more_prompt, false);
-#endif
+    game_type menu_game_type = crawl_state.type;
 
     clear_message_store();
 
@@ -1923,7 +2433,8 @@ static bool _restore_game(const string& filename)
     {
         // Note: if we are here, the save info was properly read, it would
         // raise an exception otherwise.
-        if (yesno(("This game comes from an incompatible version of Crawl ("
+        if (yesno(("There is an existing game for name '" + you.your_name +
+                   "' from an incompatible version of Crawl ("
                    + you.prev_save_version + ").\n"
                    "Unless you reinstall that version, you can't load it.\n"
                    "Do you want to DELETE that game and start a new one?"
@@ -1934,21 +2445,47 @@ static bool _restore_game(const string& filename)
             you.save = 0;
             return false;
         }
-        fail("Cannot load an incompatible save from version %s",
-             you.prev_save_version.c_str());
+        crawl_state.default_startup_name = you.your_name; // for main menu
+        you.save->abort();
+        delete you.save;
+        you.save = 0;
+        game_ended(game_exit::abort,
+            you.your_name + " is from an incompatible version and can't be loaded.");
     }
 
-    if (numcmp(you.prev_save_version.c_str(), Version::Long, 2) == -1
-        && version_is_stable(you.prev_save_version.c_str()))
+    if (!crawl_state.bypassed_startup_menu
+        && menu_game_type != crawl_state.type)
     {
-        if (!yesno("This game comes from a previous release of Crawl. If you "
-                   "load it now, you won't be able to go back. Continue?",
+        if (!yesno(("You already have a "
+                        + _type_name_processed(crawl_state.type) +
+                    " game saved under the name '" + you.your_name + "';\n"
+                    "do you want to load that instead?").c_str(),
                    true, 'n'))
         {
             you.save->abort(); // don't even rewrite the header
             delete you.save;
             you.save = 0;
-            end(0, false, "Please reinstall the stable version then.\n");
+            game_ended(game_exit::abort,
+                "Please use a different name to start a new " +
+                _type_name_processed(menu_game_type) + " game, then.");
+        }
+    }
+
+    crawl_state.default_startup_name = you.your_name; // for main menu
+
+    if (numcmp(you.prev_save_version.c_str(), Version::Long, 2) == -1
+        && version_is_stable(you.prev_save_version.c_str()))
+    {
+        if (!yesno(("This game comes from a previous release of Crawl (" +
+                    you.prev_save_version + ").\n\nIf you load it now,"
+                    " you won't be able to go back. Continue?").c_str(),
+                    true, 'n'))
+        {
+            you.save->abort(); // don't even rewrite the header
+            delete you.save;
+            you.save = 0;
+            game_ended(game_exit::abort, "Please use version " +
+                you.prev_save_version + " to load " + you.your_name + " then.");
         }
     }
 
@@ -2021,7 +2558,8 @@ bool restore_game(const string& filename)
     {
         if (yesno(make_stringf(
                    "There exists a save by that name but it appears to be invalid.\n"
-                   "(Error: %s). Do you want to delete it?", err.what()).c_str(),
+                   "Do you want to delete it?\n"
+                   "Error: %s", err.what()).c_str(), // TODO linebreak error
                   true, 'n'))
         {
             if (you.save)
@@ -2044,7 +2582,9 @@ static void _load_level(const level_id &level)
 }
 
 // Given a level returns true if the level has been created already
-// in this game.
+// in this game. Warning: after a game has ended, there is a phase where the
+// save has been deleted and this check isn't usable, and this is when a moruge
+// is generated.
 bool is_existing_level(const level_id &level)
 {
     return you.save && you.save->has_chunk(level.describe());
@@ -2061,6 +2601,10 @@ void delete_level(const level_id &level)
 
     if (you.save)
         you.save->delete_chunk(level.describe());
+
+    auto &visited = you.props[VISITED_LEVELS_KEY].get_table();
+    visited.erase(level.describe());
+
     if (level.branch == BRANCH_ABYSS)
     {
         save_abyss_uniques();
@@ -2109,7 +2653,7 @@ level_excursion::~level_excursion()
     }
 }
 
-bool get_save_version(reader &file, int &major, int &minor)
+save_version get_save_version(reader &file)
 {
     // Read first two bytes.
     uint8_t buf[2];
@@ -2120,14 +2664,9 @@ bool get_save_version(reader &file, int &major, int &minor)
     catch (short_read_exception& E)
     {
         // Empty file?
-        major = minor = -1;
-        return false;
+        return save_version(-1, -1);
     }
-
-    major = buf[0];
-    minor = buf[1];
-
-    return true;
+    return save_version(buf[0], buf[1]);
 }
 
 static bool _convert_obsolete_species()
@@ -2142,7 +2681,9 @@ static bool _convert_obsolete_species()
             you.save->abort(); // don't even rewrite the header
             delete you.save;
             you.save = 0;
-            end(0, false, "Please load the save in an earlier version if you want to keep it as a Lava Orc.\n");
+            game_ended(game_exit::abort,
+                "Please load the save in an earlier version "
+                "if you want to keep it as a Lava Orc.");
         }
         change_species_to(SP_HILL_ORC);
         // No need for conservation
@@ -2162,7 +2703,9 @@ static bool _convert_obsolete_species()
             you.save->abort(); // don't even rewrite the header
             delete you.save;
             you.save = 0;
-            end(0, false, "Please load the save in an earlier version if you want to keep it as a Djinni.\n");
+            game_ended(game_exit::abort,
+                "Please load the save in an earlier version "
+                "if you want to keep it as a Djinni.");
         }
         change_species_to(SP_VINE_STALKER);
         you.magic_contamination = 0;
@@ -2225,52 +2768,46 @@ static bool _read_char_chunk(package *save)
 
 static bool _tagged_chunk_version_compatible(reader &inf, string* reason)
 {
-    int major = 0, minor = TAG_MINOR_INVALID;
     ASSERT(reason);
 
-    if (!get_save_version(inf, major, minor))
+    const save_version version = get_save_version(inf);
+
+    if (!version.valid())
     {
-        *reason = "File is corrupt.";
+        *reason = make_stringf("File is corrupt (found version %d,%d).",
+                                version.major, version.minor);
         return false;
     }
 
-    if (major != TAG_MAJOR_VERSION
-#if TAG_MAJOR_VERSION == 34
-        && (major != 33 || minor != 17)
-#endif
-       )
+    if (!version.is_compatible())
     {
-        if (Version::ReleaseType)
+        const save_version current = save_version::current();
+        if (version.is_ancient())
         {
-            *reason = (CRAWL " " + string(Version::Short) + " is not compatible with "
-                       "save files from older versions. You can continue your "
-                       "game with the appropriate older version, or you can "
-                       "delete it and start a new game.");
+            if (Version::ReleaseType)
+            {
+                *reason = (CRAWL " " + string(Version::Short) + " is not compatible with "
+                           "save files from older versions. You can continue your "
+                           "game with the appropriate older version, or you can "
+                           "delete it and start a new game.");
+            }
+            else
+            {
+                *reason = make_stringf("Major version mismatch: %d (want %d).",
+                                       version.major, current.major);
+            }
         }
-        else
+        else if (version.is_future())
         {
-            *reason = make_stringf("Major version mismatch: %d (want %d).",
-                                   major, TAG_MAJOR_VERSION);
-        }
-        return false;
-    }
-
-    if (minor < 0)
-    {
-        *reason = make_stringf("Minor version %d is negative!",
-                               minor);
-        return false;
-    }
-
-    if (minor > TAG_MINOR_VERSION)
-    {
-        *reason = make_stringf("Minor version mismatch: %d (want <= %d). "
+            *reason = make_stringf("Version mismatch: %d.%d (want <= %d.%d). "
                                "The save is from a newer version.",
-                               minor, TAG_MINOR_VERSION);
+                               version.major, version.minor,
+                               current.major, current.minor);
+        }
         return false;
     }
 
-    inf.setMinorVersion(minor);
+    inf.setMinorVersion(version.minor);
     return true;
 }
 
@@ -2304,36 +2841,15 @@ static bool _restore_tagged_chunk(package *save, const string &name,
     return true;
 }
 
-static bool _ghost_version_compatible(reader &inf)
+static bool _ghost_version_compatible(const save_version &version)
 {
-    try
+    if (!version.valid())
+        return false;
+    if (!version.is_compatible())
     {
-        const int majorVersion = unmarshallUByte(inf);
-        const int minorVersion = unmarshallUByte(inf);
-
-        if (majorVersion != TAG_MAJOR_VERSION
-            || minorVersion > TAG_MINOR_VERSION)
-        {
-            dprf("Ghost version mismatch: ghost was %d.%d; wanted %d.%d",
-                 majorVersion, minorVersion,
-                 TAG_MAJOR_VERSION, TAG_MINOR_VERSION);
-            return false;
-        }
-
-        inf.setMinorVersion(minorVersion);
-
-        // Check for the DCSS ghost signature.
-        if (unmarshallShort(inf) != GHOST_SIGNATURE)
-            return false;
-
-        // Discard three more 32-bit words of padding.
-        inf.read(nullptr, 3*4);
-    }
-    catch (short_read_exception &E)
-    {
-        mprf(MSGCH_ERROR,
-             "Ghost file \"%s\" seems to be invalid (short read); deleting it.",
-             inf.filename().c_str());
+        _ghost_dprf("Ghost version mismatch: ghost was %d.%d; current is %d.%d",
+             version.major, version.minor,
+             save_version::current().major, save_version::current().minor);
         return false;
     }
     return true;
@@ -2347,17 +2863,17 @@ static bool _ghost_version_compatible(reader &inf)
  **/
 static FILE* _make_bones_file(string * return_gfilename)
 {
-
     const string bone_dir = _get_bonefile_directory();
-    const string base_filename = _make_ghost_filename();
+    const string base_filename = _make_ghost_filename(false);
+
     for (int i = 0; i < GHOST_LIMIT; i++)
     {
         const string g_file_name = make_stringf("%s%s_%d", bone_dir.c_str(),
                                                 base_filename.c_str(), i);
-        FILE *gfil = lk_open_exclusive(g_file_name);
+        FILE *ghost_file = lk_open_exclusive(g_file_name);
         // need to check file size, so can't open 'wb' - would truncate!
 
-        if (!gfil)
+        if (!ghost_file)
         {
             dprf("Could not open %s", g_file_name.c_str());
             continue;
@@ -2366,10 +2882,107 @@ static FILE* _make_bones_file(string * return_gfilename)
         dprf("found %s", g_file_name.c_str());
 
         *return_gfilename = g_file_name;
-        return gfil;
+        return ghost_file;
     }
 
     return nullptr;
+}
+
+#define GHOST_PERMASTORE_SIZE 10
+#define GHOST_PERMASTORE_REPLACE_CHANCE 5
+
+static size_t _ghost_permastore_size()
+{
+    if (_bones_save_individual_levels(true))
+        return GHOST_PERMASTORE_SIZE;
+    else
+        return GHOST_PERMASTORE_SIZE * 2;
+}
+
+static vector<ghost_demon> _update_permastore(const vector<ghost_demon> &ghosts)
+{
+    rng_generator rng(RNG_SYSTEM_SPECIFIC);
+    if (ghosts.empty())
+        return ghosts;
+
+    // this read is not locked...
+    vector<ghost_demon> permastore = _load_permastore_ghosts();
+    vector<ghost_demon> leftovers;
+
+    bool rewrite = false;
+    unsigned int i = 0;
+    const size_t max_ghosts = _ghost_permastore_size();
+    while (permastore.size() < max_ghosts && i < ghosts.size())
+    {
+        // TODO: heuristics to make this as distinct as possible; maybe
+        // create a new name?
+        permastore.push_back(ghosts[i]);
+#ifdef DGAMELAUNCH
+        // randomize name for online play
+        permastore.back().name = make_name();
+#endif
+        i++;
+        rewrite = true;
+    }
+    if (i > 0)
+        _ghost_dprf("Permastoring %d ghosts", i);
+    if (!rewrite && x_chance_in_y(GHOST_PERMASTORE_REPLACE_CHANCE, 100)
+                                                        && i < ghosts.size())
+    {
+        int rewrite_i = random2(permastore.size());
+        permastore[rewrite_i] = ghosts[i];
+#ifdef DGAMELAUNCH
+        permastore[rewrite_i].name = make_name();
+#endif
+        rewrite = true;
+    }
+    while (i < ghosts.size())
+    {
+        leftovers.push_back(ghosts[i]);
+        i++;
+    }
+
+    if (rewrite)
+    {
+        string permastore_file = _bones_permastore_file();
+
+        // the following is to ensure that an old game doesn't overwrite a
+        // permastore that has a version in the future relative to that game.
+        {
+            reader inf(permastore_file);
+            if (inf.valid())
+            {
+                inf.set_safe_read(true); // don't die on 0-byte bones
+                save_version version = read_ghost_header(inf);
+                if (version.valid() && version.is_future())
+                {
+                    permastore_file = _old_bones_filename(permastore_file,
+                                                    save_version::current());
+                }
+                inf.close();
+            }
+        }
+
+        FILE *ghost_file = lk_open("wb", permastore_file);
+
+        if (!ghost_file)
+        {
+            // this will fail silently if the lock fails, seems safest
+            // TODO: better lock system for servers?
+            _ghost_dprf("Could not open ghost permastore: %s",
+                                                    permastore_file.c_str());
+            return ghosts;
+        }
+
+        _ghost_dprf("Rewriting ghost permastore %s with %u ghosts",
+                    permastore_file.c_str(), (unsigned int) permastore.size());
+        writer outw(permastore_file, ghost_file);
+        write_ghost_version(outw);
+        tag_write_ghosts(outw, permastore);
+
+        lk_close(ghost_file, permastore_file);
+    }
+    return leftovers;
 }
 
 /**
@@ -2380,46 +2993,31 @@ static FILE* _make_bones_file(string * return_gfilename)
  *
  * @param force   Forces ghost generation even in otherwise-disallowed levels.
  **/
-
-void save_ghost(bool force)
+void save_ghosts(const vector<ghost_demon> &ghosts, bool force, bool use_store)
 {
-#ifdef BONES_DIAGNOSTICS
-    const bool do_diagnostics =
-#  if defined(DEBUG_BONES) || defined(DEBUG_DIAGNOSTICS)
-        true
-#  elif defined(WIZARD)
-        you.wizard
-#  else // Can't happen currently
-        false
-#  endif
-        ;
-#endif // BONES_DIAGNOSTICS
-
-    ghosts = ghost_demon::find_ghosts();
-
+    // n.b. this is not called in the normal course of events for wizmode
+    // chars, so for debugging anything to do with deaths in wizmode, you will
+    // need to edit a conditional at the end of ouch.cc:ouch.
+    _ghost_dprf("Trying to save ghosts.");
     if (ghosts.empty())
     {
-#ifdef BONES_DIAGNOSTICS
-        if (do_diagnostics)
-            mprf(MSGCH_DIAGNOSTICS, "Could not find any ghosts for this level.");
-#endif
+        _ghost_dprf("Could not find any ghosts for this level to save.");
         return;
     }
 
-    // No ghosts on D:1, D:2, the Temple, or the Abyss.
-    if (!force && (you.depth < 3 && player_in_branch(BRANCH_DUNGEON)
-                   || player_in_branch(BRANCH_TEMPLE)
-                   || player_in_branch(BRANCH_ABYSS)))
+    if (!force && !ghost_demon::ghost_eligible())
     {
+        _ghost_dprf("No eligible ghosts.");
         return;
     }
+
+    vector<ghost_demon> leftovers = _update_permastore(ghosts);
+    if (leftovers.size() == 0)
+        return;
 
     if (_list_bones().size() >= static_cast<size_t>(GHOST_LIMIT))
     {
-#ifdef BONES_DIAGNOSTICS
-        if (do_diagnostics)
-            mprf(MSGCH_DIAGNOSTICS, "Too many ghosts for this level already!");
-#endif
+        _ghost_dprf("Too many ghosts for this level already!");
         return;
     }
 
@@ -2428,24 +3026,18 @@ void save_ghost(bool force)
 
     if (!ghost_file)
     {
-#ifdef BONES_DIAGNOSTICS
-        if (do_diagnostics)
-            mprf(MSGCH_DIAGNOSTICS, "Could not open file to save ghosts.");
-#endif
+        _ghost_dprf("Could not open file to save ghosts.");
         return;
     }
 
     writer outw(g_file_name, ghost_file);
 
-    _write_ghost_version(outw);
-    tag_write(TAG_GHOST, outw);
+    write_ghost_version(outw);
+    tag_write_ghosts(outw, leftovers);
 
     lk_close(ghost_file, g_file_name);
 
-#ifdef BONES_DIAGNOSTICS
-    if (do_diagnostics)
-        mprf(MSGCH_DIAGNOSTICS, "Saved ghosts (%s).", g_file_name.c_str());
-#endif
+    _ghost_dprf("Saved ghosts (%s).", g_file_name.c_str());
 }
 
 ////////////////////////////////////////////////////////////////////////////
@@ -2575,7 +3167,7 @@ vector<string> get_title_files()
 {
     vector<string> titles;
     for (const string &dir : _get_base_dirs())
-        for (const string &file : get_dir_files(dir))
+        for (const string &file : get_dir_files_sorted(dir))
             if (file.substr(0, 6) == "title_")
                 titles.push_back(file);
     return titles;

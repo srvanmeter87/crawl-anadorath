@@ -52,6 +52,7 @@
 #include "coordit.h"
 #include "env.h"
 #include "losglobal.h"
+#include "mon-act.h"
 
 // These determine what rays are cast in the precomputation,
 // and affect start-up time significantly.

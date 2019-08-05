@@ -63,7 +63,7 @@ static bool _is_disconnected_level()
 {
     // Don't care about non-Dungeon levels.
     if (!player_in_connected_branch()
-        || (branches[you.where_are_you].branch_flags & BFLAG_ISLANDED))
+        || (branches[you.where_are_you].branch_flags & brflag::islanded))
     {
         return false;
     }
@@ -111,12 +111,13 @@ static bool _do_build_level()
     for (int y = 0; y < GYM; ++y)
         for (int x = 0; x < GXM; ++x)
         {
-            if (grd[x][y] == DNGN_RUNED_DOOR)
-                grd[x][y] = DNGN_CLOSED_DOOR;
-            // objstat tallying of monsters and shop items.
+            // objstat tallying of features, monsters, and shop items.
             if (crawl_state.obj_stat_gen)
             {
-                coord_def pos(x, y);
+                const coord_def pos(x, y);
+
+                objstat_record_feature(grd[x][y], map_masked(pos, MMT_VAULT));
+
                 monster *mons = monster_at(pos);
                 if (mons)
                     objstat_record_monster(mons);
@@ -129,6 +130,11 @@ static bool _do_build_level()
                             objstat_record_item(item);
                 }
             }
+
+            if (grd[x][y] == DNGN_RUNED_DOOR)
+                grd[x][y] = DNGN_CLOSED_DOOR;
+            else if (grd[x][y] == DNGN_RUNED_CLEAR_DOOR)
+                grd[x][y] = DNGN_CLOSED_CLEAR_DOOR;
         }
 
 
@@ -183,8 +189,8 @@ static void _dungeon_places()
         if (brdepth[it->id] == -1)
             continue;
 #if TAG_MAJOR_VERSION == 34
-        // Don't want to include Forest since it doesn't generate
-        if (it->id == BRANCH_FOREST)
+        // Don't want to include branches that no longer generate.
+        if (branch_is_unfinished(it->id))
             continue;
 #endif
 
@@ -192,7 +198,7 @@ static void _dungeon_places()
         for (int depth = 1; depth <= brdepth[it->id]; ++depth)
         {
             level_id l(it->id, depth);
-            if (SysEnv.map_gen_range.get() && !SysEnv.map_gen_range->is_usable_in(l))
+            if (SysEnv.map_gen_range && !SysEnv.map_gen_range->is_usable_in(l))
                 continue;
             generated_levels.push_back(l);
             if (new_branch)
@@ -346,7 +352,7 @@ static void _write_map_stats()
         for (int dep = 1; dep <= brdepth[it->id]; ++dep)
         {
             const level_id lid(it->id, dep);
-            if (SysEnv.map_gen_range.get()
+            if (SysEnv.map_gen_range
                 && !SysEnv.map_gen_range->is_usable_in(lid))
             {
                 continue;
@@ -406,7 +412,7 @@ static void _write_map_stats()
             fprintf(outf, "%3d) %s\n", i->first, i->second.c_str());
     }
 
-    if (!unused_maps.empty() && !SysEnv.map_gen_range.get())
+    if (!unused_maps.empty() && !SysEnv.map_gen_range)
     {
         fprintf(outf, "\n\nUnused maps:\n\n");
         for (int i = 0, size = unused_maps.size(); i < size; ++i)
@@ -479,30 +485,54 @@ static void _write_map_stats()
     printf("\n");
 }
 
+bool mapstat_find_forced_map()
+{
+    const map_def *map = find_map_by_name(crawl_state.force_map);
+
+    if (!map)
+    {
+        printf("Can't find map named '%s'.\n", crawl_state.force_map.c_str());
+        return false;
+    }
+
+    if (map->is_minivault())
+        you.props["force_minivault"] = map->name;
+    else
+        you.props["force_map"] = map->name;
+
+    return true;
+}
+
 void mapstat_generate_stats()
 {
     // Warn assertions about possible oddities like the artefact list being
     // cleared.
     you.wizard = true;
+
     // Let "acquire foo" have skill aptitudes to work with.
     you.species = SP_HUMAN;
 
+    if (!crawl_state.force_map.empty() && !mapstat_find_forced_map())
+        return;
+
     initialise_item_descriptions();
     initialise_branch_depths();
+
     // We have to run map preludes ourselves.
     run_map_global_preludes();
     run_map_local_preludes();
 
     _dungeon_places();
+
     clear_messages();
     mpr("Generating dungeon map stats");
     printf("Generating map stats for %d iteration(s) of %d level(s) over "
            "%d branch(es).\n", SysEnv.map_gen_iters,
            (int) generated_levels.size(), branch_count);
     fflush(stdout);
-    // We write mapstats even if the iterations were aborted due to a bad level
-    // build.
+
     mapstat_build_levels();
+
     _write_map_stats();
     printf("Map stats complete.\n");
 }

@@ -22,7 +22,7 @@
 #   include <SDL.h>
 #   include <GLES/gl.h>
 #  else
-#   include <SDL2/SDL_opengl.h>
+#   include <SDL_opengl.h>
 #   if defined(__MACOSX__)
 #    include <OpenGL/glu.h>
 #   else
@@ -33,10 +33,84 @@
 #endif
 
 #include "options.h"
+#include "stringutil.h"
+#include "tilesdl.h"
 
 #ifdef __ANDROID__
 # include <android/log.h>
 #endif
+
+// TODO: if this gets big enough, pull out into opengl-utils.cc/h or sth
+namespace opengl
+{
+    bool check_texture_size(const char *name, int width, int height)
+    {
+        int max_texture_size;
+        glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max_texture_size);
+        if (width > max_texture_size || height > max_texture_size)
+        {
+            mprf(MSGCH_ERROR,
+                "Texture %s is bigger than maximum driver texture size "
+                "(%d,%d vs. %d). Sprites from this texture will not display "
+                "properly.",
+                name, width, height, max_texture_size);
+            return false;
+        }
+        return true;
+    }
+
+    static string _gl_error_to_string(GLenum e)
+    {
+        switch (e)
+        {
+        case GL_NO_ERROR:
+            return "GL_NO_ERROR";
+        case GL_INVALID_ENUM:
+            return "GL_INVALID_ENUM";
+        case GL_INVALID_VALUE:
+            return "GL_INVALID_VALUE";
+        case GL_INVALID_OPERATION:
+            return "GL_INVALID_OPERATION";
+        case GL_INVALID_FRAMEBUFFER_OPERATION:
+            return "GL_INVALID_FRAMEBUFFER_OPERATION";
+        case GL_OUT_OF_MEMORY:
+            return "GL_OUT_OF_MEMORY (fatal)";
+        case GL_STACK_UNDERFLOW:
+            return "GL_STACK_UNDERFLOW";
+        case GL_STACK_OVERFLOW:
+            return "GL_STACK_OVERFLOW";
+        default:
+            return make_stringf("Unknown OpenGL error %d", e);
+        }
+    }
+
+    /**
+     * Log any opengl errors to console. Will crash if a really bad one occurs.
+     *
+     * @return true if there were any errors.
+     */
+    bool flush_opengl_errors()
+    {
+        GLenum e = GL_NO_ERROR;
+        bool fatal = false;
+        bool errors = false;
+        do
+        {
+            e = glGetError();
+            if (e != GL_NO_ERROR)
+            {
+                errors = true;
+                if (e == GL_OUT_OF_MEMORY)
+                    fatal = true;
+                mprf(MSGCH_ERROR, "OpenGL error %s",
+                                        _gl_error_to_string(e).c_str());
+            }
+        } while (e != GL_NO_ERROR);
+        if (fatal)
+            die("Fatal OpenGL error; giving up");
+        return errors;
+    }
+}
 
 /////////////////////////////////////////////////////////////////////////////
 // Static functions from GLStateManager
@@ -78,6 +152,7 @@ OGLStateManager::OGLStateManager()
 #ifdef __ANDROID__
     m_last_tex = 0;
 #endif
+    m_window_height = 0;
 }
 
 void OGLStateManager::set(const GLState& state)
@@ -198,17 +273,56 @@ void OGLStateManager::set(const GLState& state)
     m_current_state = state;
 }
 
+struct {
+    GLW_3VF trans, scale;
+} current_transform;
+
 void OGLStateManager::set_transform(const GLW_3VF &trans, const GLW_3VF &scale)
 {
     glLoadIdentity();
     glTranslatef(trans.x, trans.y, trans.z);
     glScalef(scale.x, scale.y, scale.z);
+    current_transform = { trans, scale };
+}
+
+void OGLStateManager::reset_transform()
+{
+    set_transform({0,0,0}, {1,1,1});
+}
+
+void OGLStateManager::get_transform(GLW_3VF *trans, GLW_3VF *scale)
+{
+    if (trans) *trans = current_transform.trans;
+    if (scale) *scale = current_transform.scale;
+}
+
+int OGLStateManager::logical_to_device(int n) const
+{
+    return display_density.logical_to_device(n);
+}
+
+int OGLStateManager::device_to_logical(int n, bool round) const
+{
+    return display_density.device_to_logical(n, round);
+}
+
+void OGLStateManager::set_scissor(int x, int y, unsigned int w, unsigned int h)
+{
+    glEnable(GL_SCISSOR_TEST);
+    glScissor(logical_to_device(x), logical_to_device(m_window_height-y-h),
+                logical_to_device(w), logical_to_device(h));
+}
+
+void OGLStateManager::reset_scissor()
+{
+    glDisable(GL_SCISSOR_TEST);
 }
 
 void OGLStateManager::reset_view_for_resize(const coord_def &m_windowsz,
                                             const coord_def &m_drawablesz)
 {
     glViewport(0, 0, m_drawablesz.x, m_drawablesz.y);
+    m_window_height = m_windowsz.y;
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
@@ -224,13 +338,6 @@ void OGLStateManager::reset_view_for_resize(const coord_def &m_windowsz,
     glOrtho(0, m_windowsz.x, m_windowsz.y, 0, -1000, 1000);
 #endif
     glDebug("glOrthof");
-}
-
-void OGLStateManager::reset_transform()
-{
-    glLoadIdentity();
-    glTranslatef(0,0,0);
-    glScalef(1,1,1);
 }
 
 void OGLStateManager::pixelstore_unpack_alignment(unsigned int bpp)

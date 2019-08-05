@@ -13,6 +13,7 @@
 #include "ability.h"
 #include "areas.h"
 #include "artefact.h"
+#include "attitude-change.h"
 #include "bloodspatter.h"
 #include "butcher.h"
 #include "clua.h"
@@ -22,13 +23,16 @@
 #include "describe.h"
 #include "directn.h"
 #include "dungeon.h"
+#include "english.h"
 #include "enum.h"
 #include "env.h"
 #include "exclude.h"
 #include "exercise.h"
+#include "fineff.h"
 #include "food.h"
 #include "fprop.h"
 #include "god-abil.h"
+#include "god-companions.h"
 #include "god-conduct.h"
 #include "god-passive.h"
 #include "god-prayer.h"
@@ -42,9 +46,12 @@
 #include "libutil.h"
 #include "macro.h"
 #include "message.h"
+#include "mon-act.h"
 #include "mon-behv.h"
+#include "mon-gear.h"
 #include "mon-tentacle.h"
 #include "mon-util.h"
+#include "mutation.h"
 #include "nearby-danger.h"
 #include "notes.h"
 #include "options.h"
@@ -66,6 +73,7 @@
 #include "state.h"
 #include "stringutil.h"
 #include "teleport.h"
+#include "terrain.h"
 #include "transform.h"
 #include "traps.h"
 #include "travel.h"
@@ -86,7 +94,7 @@ private:
 int interrupt_block::interrupts_blocked = 0;
 
 static void _xom_check_corpse_waste();
-static const char *_activity_interrupt_name(activity_interrupt_type ai);
+static const char *_activity_interrupt_name(activity_interrupt ai);
 
 void push_delay(shared_ptr<Delay> delay)
 {
@@ -139,12 +147,6 @@ static void _interrupt_butchering(const char* action)
                    return d->is_butcher();
                });
     mprf("You stop %s the corpse%s.", action, multiple_corpses ? "s" : "");
-}
-
-bool BottleBloodDelay::try_interrupt()
-{
-    _interrupt_butchering("bottling blood from");
-    return true;
 }
 
 bool ButcherDelay::try_interrupt()
@@ -258,6 +260,38 @@ bool ShaftSelfDelay::try_interrupt()
 {
     mpr("You stop digging.");
     return true;
+}
+
+bool ExsanguinateDelay::try_interrupt()
+{
+    if (duration > 1 && !was_prompted)
+    {
+        if (!crawl_state.disables[DIS_CONFIRMATIONS]
+            && !yesno("Keep bloodletting?", false, 0, false))
+        {
+            mpr("You stop emptying yourself of blood.");
+            return true;
+        }
+        else
+            was_prompted = true;
+    }
+    return false;
+}
+
+bool RevivifyDelay::try_interrupt()
+{
+    if (duration > 1 && !was_prompted)
+    {
+        if (!crawl_state.disables[DIS_CONFIRMATIONS]
+            && !yesno("Continue your ritual?", false, 0, false))
+        {
+            mpr("You stop revivifying.");
+            return true;
+        }
+        else
+            was_prompted = true;
+    }
+    return false;
 }
 
 void stop_delay(bool stop_stair_travel)
@@ -478,6 +512,16 @@ void BlurryScrollDelay::start()
     mprf(MSGCH_MULTITURN_ACTION, "You begin reading the scroll.");
 }
 
+void ExsanguinateDelay::start()
+{
+    mprf(MSGCH_MULTITURN_ACTION, "You begin bloodletting.");
+}
+
+void RevivifyDelay::start()
+{
+    mprf(MSGCH_MULTITURN_ACTION, "You begin the revivification ritual.");
+}
+
 command_type RunDelay::move_cmd() const
 {
     return _get_running_command();
@@ -594,11 +638,6 @@ static bool _check_corpse_gone(item_def& item, const char* action)
 bool ButcherDelay::invalidated()
 {
     return _check_corpse_gone(corpse, "butcher it");
-}
-
-bool BottleBloodDelay::invalidated()
-{
-    return _check_corpse_gone(corpse, "bottle its blood");
 }
 
 bool MultidropDelay::invalidated()
@@ -728,7 +767,7 @@ void JewelleryOnDelay::finish()
 #ifdef USE_SOUND
     parse_sound(WEAR_JEWELLERY_SOUND);
 #endif
-    puton_ring(jewellery.link, false);
+    puton_ring(jewellery.link, false, false);
 }
 
 void ArmourOnDelay::finish()
@@ -758,6 +797,11 @@ void ArmourOnDelay::finish()
     equip_item(eq_slot, armour.link);
 
     check_item_hint(armour, old_talents);
+}
+
+bool ArmourOffDelay::invalidated()
+{
+    return !armour.defined();
 }
 
 void ArmourOffDelay::finish()
@@ -803,10 +847,11 @@ void PasswallDelay::finish()
         break;
 
     case DNGN_CLOSED_DOOR:      // open the door
+    case DNGN_CLOSED_CLEAR_DOOR:
     case DNGN_RUNED_DOOR:
+    case DNGN_RUNED_CLEAR_DOOR:
         // Once opened, former runed doors become normal doors.
-        // Is that ok?  Keeping it for simplicity for now...
-        grd(dest) = DNGN_OPEN_DOOR;
+        dgn_open_door(dest);
         break;
     }
 
@@ -839,7 +884,6 @@ void PasswallDelay::finish()
     // triggered by changing location would be better (per Pleasingfungus),
     // but player_reacts is very sensitive to order and can't be easily
     // refactored in this way.
-    search_around();
     you.update_beholders();
     you.update_fearmongers();
 }
@@ -853,17 +897,27 @@ void BlurryScrollDelay::finish()
 {
     // Make sure the scroll still exists, the player isn't confused, etc
     if (_can_read_scroll(scroll))
+    {
         read_scroll(scroll);
+        // we are now probably out of sync with regular world_reacts timing, so
+        // trigger any fineffs that might have been caused by reading this
+        // scroll, e.g. torment vs. TRJ. Otherwise they'd have to wait until
+        // the next world_reacts.
+        // TODO: is there a more general condition that this can be triggered
+        // under? it might impact other obscure cases, e.g. passwalling with
+        // spiny.
+        fire_final_effects();
+    }
 }
 
-static void _finish_butcher_delay(item_def& corpse, bool bottling)
+static void _finish_butcher_delay(item_def& corpse)
 {
     // We know the item is valid and a real corpse, because invalidated()
     // checked for that.
-    finish_butchering(corpse, bottling);
+    finish_butchering(corpse);
     // Don't waste time picking up chunks if you're already
     // starving. (jpeg)
-    if ((you.hunger_state > HS_STARVING || you.species == SP_VAMPIRE)
+    if (you.hunger_state > HS_STARVING
         // Only pick up chunks if this is the last delay...
         && (you.delay_queue.size() == 1
         // ...Or, equivalently, if it's the last butcher one.
@@ -876,12 +930,7 @@ static void _finish_butcher_delay(item_def& corpse, bool bottling)
 
 void ButcherDelay::finish()
 {
-    _finish_butcher_delay(corpse, false);
-}
-
-void BottleBloodDelay::finish()
-{
-    _finish_butcher_delay(corpse, true);
+    _finish_butcher_delay(corpse);
 }
 
 void DropItemDelay::finish()
@@ -909,6 +958,25 @@ void AscendingStairsDelay::finish()
 void DescendingStairsDelay::finish()
 {
     down_stairs();
+}
+
+void ExsanguinateDelay::finish()
+{
+    blood_spray(you.pos(), MONS_PLAYER, 10);
+    you.vampire_alive = false;
+    you.redraw_status_lights = true;
+    calc_hp(true);
+    mpr("Now bloodless.");
+    vampire_update_transformations();
+}
+
+void RevivifyDelay::finish()
+{
+    you.vampire_alive = true;
+    you.redraw_status_lights = true;
+    mpr("Now alive.");
+    temp_mutate(MUT_FRAIL, "vampire revification");
+    vampire_update_transformations();
 }
 
 void run_macro(const char *macroname)
@@ -952,12 +1020,12 @@ void run_macro(const char *macroname)
 // Returns TRUE if the delay should be interrupted, MAYBE if the user function
 // had no opinion on the matter, FALSE if the delay should not be interrupted.
 static maybe_bool _userdef_interrupt_activity(Delay* delay,
-                                              activity_interrupt_type ai,
+                                              activity_interrupt ai,
                                               const activity_interrupt_data &at)
 {
 #ifdef CLUA_BINDINGS
     lua_State *ls = clua.state();
-    if (!ls || ai == AI_FORCE_INTERRUPT)
+    if (!ls || ai == activity_interrupt::force)
         return MB_TRUE;
 
     const char *interrupt_name = _activity_interrupt_name(ai);
@@ -992,7 +1060,7 @@ static maybe_bool _userdef_interrupt_activity(Delay* delay,
 
 // Returns true if the activity should be interrupted, false otherwise.
 static bool _should_stop_activity(Delay* delay,
-                                  activity_interrupt_type ai,
+                                  activity_interrupt ai,
                                   const activity_interrupt_data &at)
 {
     switch (_userdef_interrupt_activity(delay, ai, at))
@@ -1014,32 +1082,39 @@ static bool _should_stop_activity(Delay* delay,
 
     // No monster will attack you inside a sanctuary,
     // so presence of monsters won't matter.
-    if (ai == AI_SEE_MONSTER && is_sanctuary(you.pos()))
+    if (ai == activity_interrupt::see_monster && is_sanctuary(you.pos()))
         return false;
 
     auto curr = current_delay(); // Not necessarily what we were passed.
 
-    if ((ai == AI_SEE_MONSTER || ai == AI_MIMIC) && player_stair_delay())
-        return false;
-
-    if (ai == AI_FULL_HP || ai == AI_FULL_MP)
+    if ((ai == activity_interrupt::see_monster
+         || ai == activity_interrupt::mimic)
+        && player_stair_delay())
     {
-        if (Options.rest_wait_both && curr->is_resting()
-            && !you.is_sufficiently_rested())
+        return false;
+    }
+
+    if (ai == activity_interrupt::full_hp || ai == activity_interrupt::full_mp
+        || ai == activity_interrupt::ancestor_hp)
+    {
+        if ((Options.rest_wait_both && curr->is_resting()
+             && !you.is_sufficiently_rested())
+            || (Options.rest_wait_ancestor && curr->is_resting()
+                && !ancestor_full_hp()))
         {
             return false;
         }
     }
 
     // Don't interrupt feeding or butchering for monsters already in view.
-    if (curr->is_butcher() && ai == AI_SEE_MONSTER
+    if (curr->is_butcher() && ai == activity_interrupt::see_monster
         && testbits(at.mons_data->flags, MF_WAS_IN_VIEW))
     {
         return false;
     }
 
-    return ai == AI_FORCE_INTERRUPT
-           || Options.activity_interrupts[delay->name()][ai];
+    return ai == activity_interrupt::force
+           || Options.activity_interrupts[delay->name()][static_cast<int>(ai)];
 }
 
 static string _abyss_monster_creation_message(const monster* mon)
@@ -1076,24 +1151,24 @@ static string _abyss_monster_creation_message(const monster* mon)
     return *random_choose_weighted(messages);
 }
 
-static inline bool _monster_warning(activity_interrupt_type ai,
+static inline bool _monster_warning(activity_interrupt ai,
                                     const activity_interrupt_data &at,
                                     shared_ptr<Delay> delay,
                                     vector<string>* msgs_buf = nullptr)
 {
-    if (ai == AI_SENSE_MONSTER)
+    if (ai == activity_interrupt::sense_monster)
     {
         mprf(MSGCH_WARN, "You sense a monster nearby.");
         return true;
     }
-    if (ai != AI_SEE_MONSTER)
+    if (ai != activity_interrupt::see_monster)
         return false;
     if (delay && !delay->is_run() && !delay->is_butcher())
         return false;
     if (at.context != SC_NEWLY_SEEN && !delay)
         return false;
 
-    ASSERT(at.apt == AIP_MONSTER);
+    ASSERT(at.apt == ai_payload::monster);
     monster* mon = at.mons_data;
     ASSERT(mon);
     if (!you.can_see(*mon))
@@ -1117,8 +1192,10 @@ static inline bool _monster_warning(activity_interrupt_type ai,
         return false;
     else
     {
-        ash_id_monster_equipment(mon);
-        mark_mon_equipment_seen(mon);
+        // XXX: This needs to be here to ensure correct messaging for
+        // autoexplore, even though the correct place to process it is
+        // seen_monster
+        view_monster_equipment(mon);
 
         string text = getMiscString(mon->name(DESC_DBNAME) + " title");
         if (text.empty())
@@ -1164,7 +1241,6 @@ static inline bool _monster_warning(activity_interrupt_type ai,
         else
             text += " comes into view.";
 
-        bool ash_id = mon->props.exists("ash_id") && mon->props["ash_id"];
         bool zin_id = false;
         string god_warning;
 
@@ -1172,14 +1248,15 @@ static inline bool _monster_warning(activity_interrupt_type ai,
             && mon->is_shapeshifter()
             && !(mon->flags & MF_KNOWN_SHIFTER))
         {
-            ASSERT(!ash_id);
             zin_id = true;
             mon->props["zin_id"] = true;
             discover_shifter(*mon);
             god_warning = uppercase_first(god_name(you.religion))
                           + " warns you: "
                           + uppercase_first(mon->pronoun(PRONOUN_SUBJECTIVE))
-                          + " is a foul ";
+                          + " "
+                          + conjugate_verb("are", mon->pronoun_plurality())
+                          + " a foul ";
             if (mon->has_ench(ENCH_GLOWING_SHAPESHIFTER))
                 god_warning += "glowing ";
             god_warning += "shapeshifter.";
@@ -1187,22 +1264,14 @@ static inline bool _monster_warning(activity_interrupt_type ai,
 
         monster_info mi(mon);
 
-        const string mweap = get_monster_equipment_desc(mi,
-                                                        ash_id ? DESC_IDENTIFIED
-                                                               : DESC_WEAPON,
+        const string mweap = get_monster_equipment_desc(mi, DESC_IDENTIFIED,
                                                         DESC_NONE);
 
         if (!mweap.empty())
         {
-            if (ash_id)
-            {
-                god_warning = uppercase_first(god_name(you.religion))
-                              + " warns you:";
-            }
-
-            (ash_id ? god_warning : text) +=
-                " " + uppercase_first(mon->pronoun(PRONOUN_SUBJECTIVE)) + " is"
-                + (ash_id ? " " : "")
+            text += " " + uppercase_first(mon->pronoun(PRONOUN_SUBJECTIVE))
+                + " " + conjugate_verb("are", mi.pronoun_plurality())
+                + (mweap[0] != ' ' ? " " : "")
                 + mweap + ".";
         }
 
@@ -1211,7 +1280,7 @@ static inline bool _monster_warning(activity_interrupt_type ai,
         else
         {
             mprf(MSGCH_MONSTER_WARNING, "%s", text.c_str());
-            if (ash_id || zin_id)
+            if (zin_id)
                 mprf(MSGCH_GOD, "%s", god_warning.c_str());
 #ifndef USE_TILE_LOCAL
             if (zin_id)
@@ -1238,7 +1307,7 @@ static inline bool _monster_warning(activity_interrupt_type ai,
         {
             yell(mon);
         }
-        mon->seen_context = SC_JUST_SEEN;
+        mons_set_just_seen(mon);
     }
 
     if (crawl_state.game_is_hints())
@@ -1276,7 +1345,7 @@ void autotoggle_autopickup(bool off)
 }
 
 // Returns true if any activity was stopped. Not reentrant.
-bool interrupt_activity(activity_interrupt_type ai,
+bool interrupt_activity(activity_interrupt ai,
                         const activity_interrupt_data &at,
                         vector<string>* msgs_buf)
 {
@@ -1284,7 +1353,8 @@ bool interrupt_activity(activity_interrupt_type ai,
         return false;
 
     const interrupt_block block_recursive_interrupts;
-    if (ai == AI_HIT_MONSTER || ai == AI_MONSTER_ATTACKS)
+    if (ai == activity_interrupt::hit_monster
+        || ai == activity_interrupt::monster_attacks)
     {
         const monster* mon = at.mons_data;
         if (mon && !mon->visible_to(&you) && !mon->submerged())
@@ -1298,7 +1368,7 @@ bool interrupt_activity(activity_interrupt_type ai,
     {
         // Printing "[foo] comes into view." messages even when not
         // auto-exploring/travelling.
-        if (ai == AI_SEE_MONSTER)
+        if (ai == activity_interrupt::see_monster)
             return _monster_warning(ai, at, nullptr, msgs_buf);
         else
             return false;
@@ -1307,7 +1377,7 @@ bool interrupt_activity(activity_interrupt_type ai,
     const auto delay = current_delay();
 
     // If we get hungry while traveling, let's try to auto-eat a chunk.
-    if (ai == AI_HUNGRY && delay->want_autoeat() && _auto_eat()
+    if (ai == activity_interrupt::hungry && delay->want_autoeat() && _auto_eat()
         && prompt_eat_chunks(true) == 1)
     {
         return false;
@@ -1316,22 +1386,30 @@ bool interrupt_activity(activity_interrupt_type ai,
     dprf("Activity interrupt: %s", _activity_interrupt_name(ai));
 
     // First try to stop the current delay.
-    if (ai == AI_FULL_HP && !you.running.notified_hp_full)
+    if (ai == activity_interrupt::full_hp && !you.running.notified_hp_full)
     {
         you.running.notified_hp_full = true;
         mpr("HP restored.");
     }
-    else if (ai == AI_FULL_MP && !you.running.notified_mp_full)
+    else if (ai == activity_interrupt::full_mp && !you.running.notified_mp_full)
     {
         you.running.notified_mp_full = true;
         mpr("Magic restored.");
+    }
+    else if (ai == activity_interrupt::ancestor_hp
+             && !you.running.notified_ancestor_hp_full)
+    {
+        // This interrupt only triggers when the ancestor is in LOS,
+        // so this message does not leak information.
+        you.running.notified_ancestor_hp_full = true;
+        mpr("Ancestor HP restored.");
     }
 
     if (_should_stop_activity(delay.get(), ai, at))
     {
         _monster_warning(ai, at, delay, msgs_buf);
         // Teleport stops stair delays.
-        stop_delay(ai == AI_TELEPORT);
+        stop_delay(ai == activity_interrupt::teleport);
 
         return true;
     }
@@ -1366,31 +1444,31 @@ bool interrupt_activity(activity_interrupt_type ai,
     return false;
 }
 
-// Must match the order of activity_interrupt_type in enum.h!
+// Must match the order of activity_interrupt.h!
 static const char *activity_interrupt_names[] =
 {
-    "force", "keypress", "full_hp", "full_mp", "hungry", "message",
+    "force", "keypress", "full_hp", "full_mp", "ancestor_hp", "hungry", "message",
     "hp_loss", "stat", "monster", "monster_attack", "teleport", "hit_monster",
     "sense_monster", "mimic"
 };
 
-static const char *_activity_interrupt_name(activity_interrupt_type ai)
+static const char *_activity_interrupt_name(activity_interrupt ai)
 {
-    COMPILE_CHECK(ARRAYSZ(activity_interrupt_names) == NUM_AINTERRUPTS);
+    COMPILE_CHECK(ARRAYSZ(activity_interrupt_names) == NUM_ACTIVITY_INTERRUPTS);
 
-    if (ai == NUM_AINTERRUPTS)
+    if (ai == activity_interrupt::COUNT)
         return "";
 
-    return activity_interrupt_names[ai];
+    return activity_interrupt_names[static_cast<int>(ai)];
 }
 
-activity_interrupt_type get_activity_interrupt(const string &name)
+activity_interrupt get_activity_interrupt(const string &name)
 {
-    COMPILE_CHECK(ARRAYSZ(activity_interrupt_names) == NUM_AINTERRUPTS);
+    COMPILE_CHECK(ARRAYSZ(activity_interrupt_names) == NUM_ACTIVITY_INTERRUPTS);
 
-    for (int i = 0; i < NUM_AINTERRUPTS; ++i)
+    for (int i = 0; i < NUM_ACTIVITY_INTERRUPTS; ++i)
         if (name == activity_interrupt_names[i])
-            return activity_interrupt_type(i);
+            return activity_interrupt(i);
 
-    return NUM_AINTERRUPTS;
+    return activity_interrupt::COUNT;
 }

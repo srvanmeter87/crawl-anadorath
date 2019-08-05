@@ -13,6 +13,8 @@
 #include "mutant-beast.h"
 #include "species-type.h"
 
+#define MIRRORED_GHOST_KEY "mirrored_ghost"
+
 class ghost_demon
 {
 public:
@@ -51,12 +53,13 @@ public:
 
 
 public:
-    static vector<ghost_demon> find_ghosts();
+    static const vector<ghost_demon> find_ghosts(bool include_player=true);
+    static bool ghost_eligible();
+
 
 private:
-    static int n_extra_ghosts();
-    static void find_extra_ghosts(vector<ghost_demon> &ghosts, int n);
-    static void find_transiting_ghosts(vector<ghost_demon> &gs, int n);
+    static void find_extra_ghosts(vector<ghost_demon> &ghosts);
+    static void find_transiting_ghosts(vector<ghost_demon> &gs);
     static void announce_ghost(const ghost_demon &g);
 
 private:
@@ -66,8 +69,7 @@ private:
                                    attack_flavour u_att_flav);
 };
 
-bool debug_check_ghosts();
+bool debug_check_ghosts(vector<ghost_demon> &ghosts);
+bool debug_check_ghost(const ghost_demon &ghost);
 int ghost_level_to_rank(const int xl);
 int ghost_rank_to_level(const int rank);
-
-extern vector<ghost_demon> ghosts;

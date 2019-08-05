@@ -162,19 +162,7 @@ static bool _god_fits_artefact(const god_type which_god, const item_def &item,
         }
         break;
 
-    case GOD_ASHENZARI:
-        // Cursed god: no holy wrath (since that brand repels curses).
-        if (brand == SPWPN_HOLY_WRATH)
-            return false;
-        break;
-
     case GOD_DITHMENOS:
-        // No fiery weapons.
-        if (item.base_type == OBJ_WEAPONS
-            && brand == SPWPN_FLAMING)
-        {
-            return false;
-        }
         // No reducing stealth.
         if (artefact_property(item, ARTP_STEALTH) < 0)
             return false;
@@ -379,13 +367,14 @@ static map<jewellery_type, vector<jewellery_fake_artp>> jewellery_artps = {
     { RING_FLIGHT, { { ARTP_FLY, 1 } } },
     { RING_SEE_INVISIBLE, { { ARTP_SEE_INVISIBLE, 1 } } },
     { RING_STEALTH, { { ARTP_STEALTH, 1 } } },
-    { RING_LOUDNESS, { { ARTP_STEALTH, -1 } } },
+    { RING_ATTENTION, { { ARTP_STEALTH, -1 } } },
 
     { RING_PROTECTION_FROM_FIRE, { { ARTP_FIRE, 1 } } },
     { RING_PROTECTION_FROM_COLD, { { ARTP_COLD, 1 } } },
     { RING_POISON_RESISTANCE, { { ARTP_POISON, 1 } } },
     { RING_LIFE_PROTECTION, { { ARTP_NEGATIVE_ENERGY, 1 } } },
     { RING_PROTECTION_FROM_MAGIC, { { ARTP_MAGIC_RESISTANCE, 1 } } },
+    { RING_RESIST_CORROSION, { { ARTP_RCORR, 1 } } },
 
     { RING_FIRE, { { ARTP_FIRE, 1 }, { ARTP_COLD, -1 } } },
     { RING_ICE, { { ARTP_COLD, 1 }, { ARTP_FIRE, -1 } } },
@@ -415,7 +404,7 @@ static void _populate_jewel_intrinsic_artps(const item_def &item,
         return;
 
     const bool id_props = item_ident(item, ISFLAG_KNOW_PROPERTIES)
-                            || item_ident(item, ISFLAG_KNOW_TYPE);
+                          || item_ident(item, ISFLAG_KNOW_TYPE);
 
     for (const auto &fake_artp : *props)
     {
@@ -591,6 +580,9 @@ static bool _artp_can_go_on_item(artefact_prop_type prop, const item_def &item,
             return item_class != OBJ_ARMOUR
                    && (item_class != OBJ_JEWELLERY
                        || jewellery_is_amulet(item));
+        case ARTP_HARM:
+            return item_class != OBJ_JEWELLERY && extant_props[ARTP_DRAIN];
+            // only get harm with *Drain
         default:
             return true;
     }
@@ -663,6 +655,9 @@ static const artefact_prop_data artp_data[] =
         []() { return 1; }, nullptr, 0, 0 },
     { "+Fly", ARTP_VAL_BOOL, 15,    // ARTP_FLY,
         []() { return 1; }, nullptr, 0, 0 },
+#if TAG_MAJOR_VERSION > 34
+    { "+Fog", ARTP_VAL_BOOL, 0, nullptr, nullptr, 0, 0 }, // ARTP_FOG,
+#endif
     { "+Blink", ARTP_VAL_BOOL, 15,  // ARTP_BLINK,
         []() { return 1; }, nullptr, 0, 0 },
     { "+Rage", ARTP_VAL_BOOL, 15,   // ARTP_BERSERK,
@@ -687,7 +682,7 @@ static const artefact_prop_data artp_data[] =
 #endif
     { "Slay", ARTP_VAL_ANY, 30,     // ARTP_SLAYING,
       []() { return 2 + random2(2); },
-      []() { return -(2 + random2(3) + random2(3)); }, 3, 2 },
+      []() { return -(2 + random2(5)); }, 3, 2 },
     { "*Curse", ARTP_VAL_POS, 0, nullptr, nullptr, 0 }, // ARTP_CURSE,
     { "Stlth", ARTP_VAL_ANY, 40,    // ARTP_STEALTH,
         _gen_good_res_artp, _gen_bad_res_artp, 0, 0 },
@@ -725,6 +720,8 @@ static const artefact_prop_data artp_data[] =
     { "Fragile", ARTP_VAL_BOOL, 25, // ARTP_FRAGILE,
         nullptr, []() { return 1; }, 0, 0 },
     { "SH", ARTP_VAL_ANY, 0, nullptr, nullptr, 0, 0 }, // ARTP_SHIELDING,
+    { "Harm", ARTP_VAL_BOOL, 0, // ARTP_HARM,
+        []() {return 1;}, nullptr, 0, 0},
 };
 COMPILE_CHECK(ARRAYSZ(artp_data) == ARTP_NUM_PROPERTIES);
 // weights sum to 1000
@@ -851,7 +848,8 @@ static void _get_randart_properties(const item_def &item,
     // things get spammy. Extra "good" properties will be used to enhance
     // properties only, not to add more distinct properties. There is still a
     // small chance of >4 properties.
-    const int max_properties = 4 + one_chance_in(20) + one_chance_in(40);
+    int max_properties = 4 + one_chance_in(20);
+    max_properties += one_chance_in(40);
     int enhance = 0;
     if (good + bad > max_properties)
     {
@@ -1436,7 +1434,7 @@ static bool _randart_is_redundant(const item_def &item,
         break;
 
     case RING_SLAYING:
-        provides  = ARTP_SLAYING;
+        provides = ARTP_SLAYING;
         break;
 
     case RING_SEE_INVISIBLE:
@@ -1479,6 +1477,10 @@ static bool _randart_is_redundant(const item_def &item,
         provides = ARTP_MAGIC_RESISTANCE;
         break;
 
+    case RING_RESIST_CORROSION:
+        provides = ARTP_RCORR;
+        break;
+
     case AMU_RAGE:
         provides = ARTP_BERSERK;
         break;
@@ -1514,8 +1516,7 @@ static bool _randart_is_conflicting(const item_def &item,
 {
     if (item.base_type == OBJ_WEAPONS
         && get_weapon_brand(item) == SPWPN_HOLY_WRATH
-        && (is_demonic(item)
-            || proprt[ARTP_CURSE]))
+        && is_demonic(item))
     {
         return true;
     }
@@ -1530,7 +1531,7 @@ static bool _randart_is_conflicting(const item_def &item,
 
     switch (item.sub_type)
     {
-    case RING_LOUDNESS:
+    case RING_ATTENTION:
         conflicts = ARTP_STEALTH;
         break;
 
@@ -1541,8 +1542,14 @@ static bool _randart_is_conflicting(const item_def &item,
         conflicts = ARTP_PREVENT_SPELLCASTING;
         break;
 
+    case RING_RESIST_CORROSION:
+        conflicts = ARTP_CORRODE;
+        break;
+
     case RING_TELEPORTATION:
+#if TAG_MAJOR_VERSION == 34
     case RING_TELEPORT_CONTROL:
+#endif
         conflicts = ARTP_PREVENT_TELEPORTATION;
         break;
 
@@ -1708,7 +1715,9 @@ static void _make_faerie_armour(item_def &item)
     item.props = doodad.props;
 
     // On body armour, an enchantment of less than 0 is never viable.
-    item.plus = max(random2(6) + random2(6) - 2, random2(2));
+    int high_plus = random2(6) - 2;
+    high_plus += random2(6);
+    item.plus = max(high_plus, random2(2));
 }
 
 static jewellery_type octoring_types[8] =
@@ -1767,9 +1776,7 @@ bool make_item_unrandart(item_def &item, int unrand_index)
 
     _set_unique_item_status(unrand_index, UNIQ_EXISTS);
 
-    if (unrand_index == UNRAND_VARIABILITY)
-        item.plus = random_range(-4, 16);
-    else if (unrand_index == UNRAND_FAERIE)
+    if (unrand_index == UNRAND_FAERIE)
         _make_faerie_armour(item);
     else if (unrand_index == UNRAND_OCTOPUS_KING_RING)
         _make_octoring(item);

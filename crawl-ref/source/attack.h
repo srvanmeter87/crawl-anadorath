@@ -6,6 +6,7 @@
 #include "mon-enum.h"
 #include "ouch.h"
 #include "pronoun-type.h"
+#include "spl-util.h" // spschool type definition
 
 // Used throughout inheriting classes, define them here for universal access
 const int HIT_WEAK   = 7;
@@ -85,9 +86,9 @@ public:
 
     // Miscast to cause after special damage is done. If miscast_level == 0
     // the miscast is discarded if special_damage_message isn't empty.
-    int    miscast_level;
-    int    miscast_type;
-    actor* miscast_target;
+    int       miscast_level;
+    spschool  miscast_type;
+    actor*    miscast_target;
 
     bool      fake_chaos_attack;
 
@@ -130,7 +131,7 @@ protected:
     virtual bool handle_phase_end();
 
     /* Combat Calculations */
-    virtual bool using_weapon() = 0;
+    virtual bool using_weapon() const = 0;
     virtual int weapon_damage() = 0;
     virtual int get_weapon_plus();
     virtual int calc_base_unarmed_damage();
@@ -170,7 +171,6 @@ protected:
 
     /* Output */
     string debug_damage_number();
-    string attack_strength_punctuation(int dmg);
     string evasion_margin_adverb();
 
     virtual void set_attack_verb(int damage) = 0;
@@ -201,3 +201,5 @@ protected:
     virtual int  player_stab(int damage);
     virtual void player_stab_check();
 };
+
+string attack_strength_punctuation(int dmg);

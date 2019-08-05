@@ -22,14 +22,13 @@
 #include "ng-input.h"
 #include "skills.h"
 #include "spl-util.h"
+#include "state.h"
 #include "stringutil.h"
 #include "unwind.h"
 
 #define MAX_GHOST_DAMAGE     50
 #define MAX_GHOST_HP        400
 #define MAX_GHOST_EVASION    60
-
-vector<ghost_demon> ghosts;
 
 // Pan lord AOE conjuration spell list.
 static spell_type search_order_aoe_conj[] =
@@ -38,13 +37,11 @@ static spell_type search_order_aoe_conj[] =
     SPELL_FIRE_STORM,
     SPELL_GLACIATE,
     SPELL_CHAIN_LIGHTNING,
-    SPELL_SHATTER,
     SPELL_FREEZING_CLOUD,
     SPELL_POISONOUS_CLOUD,
     SPELL_METAL_SPLINTERS,
     SPELL_ENERGY_BOLT,
     SPELL_ORB_OF_ELECTRICITY,
-    SPELL_ELEMENTAL_BLAST,
 };
 
 // Pan lord conjuration spell list.
@@ -268,29 +265,8 @@ void ghost_demon::init_pandemonium_lord()
     colour = one_chance_in(10) ? ETC_RANDOM : random_monster_colour();
 }
 
-// Returns the movement speed for a player ghost. Note that this is a
-// a movement cost, so lower is better.
-//FIXME: deduplicate with player_movement_speed()
-static int _player_ghost_movement_energy()
-{
-    int energy = 10;
-
-    if (int fast = you.get_mutation_level(MUT_FAST, false))
-        energy -= fast + 1;
-    if (int slow = you.get_mutation_level(MUT_SLOW, false))
-        energy += slow + 2;
-
-    if (you.wearing_ego(EQ_BOOTS, SPARM_RUNNING))
-        energy -= 1;
-
-    if (you.wearing_ego(EQ_ALL_ARMOUR, SPARM_PONDEROUSNESS))
-        energy += 1;
-
-    if (energy < FASTEST_PLAYER_MOVE_SPEED)
-        energy = FASTEST_PLAYER_MOVE_SPEED;
-
-    return energy;
-}
+static const set<brand_type> ghost_banned_brands =
+                { SPWPN_HOLY_WRATH, SPWPN_CHAOS };
 
 void ghost_demon::init_player_ghost(bool actual_ghost)
 {
@@ -301,8 +277,8 @@ void ghost_demon::init_player_ghost(bool actual_ghost)
     unwind_var<bool> fishtail(you.fishtail, false);
 
     name   = you.your_name;
-    max_hp = min(get_real_hp(false), MAX_GHOST_HP);
-    ev     = min(you.evasion(EV_IGNORE_HELPLESS), MAX_GHOST_EVASION);
+    max_hp = min(get_real_hp(false, false), MAX_GHOST_HP);
+    ev     = min(you.evasion(ev_ignore::helpless), MAX_GHOST_EVASION);
     ac     = you.armour_class();
     dprf("ghost ac: %d, ev: %d", ac, ev);
 
@@ -321,7 +297,7 @@ void ghost_demon::init_player_ghost(bool actual_ghost)
     set_resist(resists, MR_RES_ROTTING, you.res_rotting());
     set_resist(resists, MR_RES_PETRIFY, you.res_petrify());
 
-    move_energy = _player_ghost_movement_energy();
+    move_energy = 10;
     speed       = 10;
 
     damage = 4;
@@ -346,9 +322,8 @@ void ghost_demon::init_player_ghost(bool actual_ghost)
             {
                 brand = static_cast<brand_type>(get_weapon_brand(weapon));
 
-                // Ghosts can't get holy wrath, but they get to keep
-                // the weapon.
-                if (brand == SPWPN_HOLY_WRATH)
+                // normalize banned weapon brands
+                if (ghost_banned_brands.count(brand) > 0)
                     brand = SPWPN_NORMAL;
 
                 // Don't copy ranged- or artefact-only brands (reaping etc.).
@@ -652,7 +627,7 @@ void ghost_demon::add_spells(bool actual_ghost)
         const int chance = max(0, 50 - failure_rate_to_int(raw_spell_fail(you.spells[i])));
         const spell_type spell = translate_spell(you.spells[i]);
         if (spell != SPELL_NO_SPELL
-            && !(get_spell_flags(spell) & SPFLAG_NO_GHOST)
+            && !(get_spell_flags(spell) & spflag::no_ghost)
             && is_valid_mon_spell(spell)
             && x_chance_in_y(chance*chance, 50*50))
         {
@@ -676,10 +651,6 @@ spell_type ghost_demon::translate_spell(spell_type spell) const
     {
     case SPELL_CONTROLLED_BLINK:
         return SPELL_BLINK;        // approximate
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_DELAYED_FIREBALL:
-        return SPELL_FIREBALL;
-#endif
     case SPELL_DRAGON_CALL:
         return SPELL_SUMMON_DRAGON;
     case SPELL_SWIFTNESS:
@@ -691,11 +662,11 @@ spell_type ghost_demon::translate_spell(spell_type spell) const
     return spell;
 }
 
-vector<ghost_demon> ghost_demon::find_ghosts()
+const vector<ghost_demon> ghost_demon::find_ghosts(bool include_player)
 {
     vector<ghost_demon> gs;
 
-    if (you.undead_state(false) == US_ALIVE)
+    if (include_player && you.undead_state(false) == US_ALIVE)
     {
         ghost_demon player;
         player.init_player_ghost();
@@ -706,30 +677,26 @@ vector<ghost_demon> ghost_demon::find_ghosts()
     // Pick up any other ghosts that happen to be on the level if we
     // have space. If the player is undead, add one to the ghost quota
     // for the level.
-    find_extra_ghosts(gs, n_extra_ghosts() + 1 - gs.size());
+    find_extra_ghosts(gs);
 
     return gs;
 }
 
 void ghost_demon::find_transiting_ghosts(
-    vector<ghost_demon> &gs, int n)
+    vector<ghost_demon> &gs)
 {
-    if (n <= 0)
-        return;
-
     const m_transit_list *mt = get_transit_list(level_id::current());
     if (mt)
     {
-        for (auto i = mt->begin(); i != mt->end() && n > 0; ++i)
+        for (auto i = mt->begin(); i != mt->end(); ++i)
         {
             if (i->mons.type == MONS_PLAYER_GHOST)
             {
                 const monster& m = i->mons;
-                if (m.ghost.get())
+                if (m.ghost && !m.props.exists(MIRRORED_GHOST_KEY))
                 {
                     announce_ghost(*m.ghost);
                     gs.push_back(*m.ghost);
-                    --n;
                 }
             }
         }
@@ -743,85 +710,99 @@ void ghost_demon::announce_ghost(const ghost_demon &g)
 #endif
 }
 
-void ghost_demon::find_extra_ghosts(vector<ghost_demon> &gs, int n)
+void ghost_demon::find_extra_ghosts(vector<ghost_demon> &gs)
 {
-    for (monster_iterator mi; mi && n > 0; ++mi)
+    for (monster_iterator mi; mi; ++mi)
     {
-        if (mi->type == MONS_PLAYER_GHOST && mi->ghost.get())
+        if (mi->type == MONS_PLAYER_GHOST
+            && mi->ghost
+            && !mi->props.exists(MIRRORED_GHOST_KEY))
         {
             // Bingo!
             announce_ghost(*(mi->ghost));
             gs.push_back(*(mi->ghost));
-            --n;
         }
     }
 
     // Check the transit list for the current level.
-    find_transiting_ghosts(gs, n);
+    find_transiting_ghosts(gs);
 }
 
-// Returns the number of extra ghosts allowed on the level.
-int ghost_demon::n_extra_ghosts()
-{
-    if (env.absdepth0 < 10)
-        return 0;
+static const set<branch_type> ghosts_nosave =
+            { BRANCH_ABYSS, BRANCH_WIZLAB, BRANCH_DESOLATION, BRANCH_TEMPLE,
+#if TAG_MAJOR_VERSION == 34
+              BRANCH_LABYRINTH,
+#endif
+            };
 
-    return MAX_GHOSTS - 1;
+
+/// Is the current location eligible for saving ghosts?
+bool ghost_demon::ghost_eligible()
+{
+    return !crawl_state.game_is_tutorial()
+        && (!player_in_branch(BRANCH_DUNGEON) || you.depth > 2)
+        && ghosts_nosave.count(you.where_are_you) == 0;
+}
+
+bool debug_check_ghost(const ghost_demon &ghost)
+{
+    // Values greater than the allowed maximum or less then the
+    // allowed minimum signalise bugginess.
+    if (ghost.damage < 0 || ghost.damage > MAX_GHOST_DAMAGE)
+        return false;
+    if (ghost.max_hp < 1 || ghost.max_hp > MAX_GHOST_HP)
+        return false;
+    if (ghost.xl < 1 || ghost.xl > 27)
+        return false;
+    if (ghost.ev > MAX_GHOST_EVASION)
+        return false;
+    if (get_resist(ghost.resists, MR_RES_ELEC) < 0)
+        return false;
+    if (ghost.brand < SPWPN_NORMAL || ghost.brand > MAX_GHOST_BRAND)
+        return false;
+    if (ghost.species < 0 || ghost.species >= NUM_SPECIES)
+        return false;
+    if (ghost.job < JOB_FIGHTER || ghost.job >= NUM_JOBS)
+        return false;
+    if (ghost.best_skill < SK_FIGHTING || ghost.best_skill >= NUM_SKILLS)
+        return false;
+    if (ghost.best_skill_level < 0 || ghost.best_skill_level > 27)
+        return false;
+    if (ghost.religion < GOD_NO_GOD || ghost.religion >= NUM_GODS)
+        return false;
+
+    if (ghost.brand == SPWPN_HOLY_WRATH)
+        return false;
+
+    // Only (very) ugly things get non-plain attack types and
+    // flavours.
+    if (ghost.att_type != AT_HIT || ghost.att_flav != AF_PLAIN)
+        return false;
+
+    // Name validation.
+    if (!validate_player_name(ghost.name, false))
+        return false;
+    // Many combining characters can come per every letter, but if there's
+    // that much, it's probably a maliciously forged ghost of some kind.
+    if (ghost.name.length() > MAX_NAME_LENGTH * 10 || ghost.name.empty())
+        return false;
+    if (ghost.name != trimmed_string(ghost.name))
+        return false;
+
+    // Check for non-existing spells.
+    for (const mon_spell_slot &slot : ghost.spells)
+        if (slot.spell < 0 || slot.spell >= NUM_SPELLS)
+            return false;
+
+    return true;
 }
 
 // Sanity checks for some ghost values.
-bool debug_check_ghosts()
+bool debug_check_ghosts(vector<ghost_demon> &ghosts)
 {
     for (const ghost_demon &ghost : ghosts)
-    {
-        // Values greater than the allowed maximum or less then the
-        // allowed minimum signalise bugginess.
-        if (ghost.damage < 0 || ghost.damage > MAX_GHOST_DAMAGE)
+        if (!debug_check_ghost(ghost))
             return false;
-        if (ghost.max_hp < 1 || ghost.max_hp > MAX_GHOST_HP)
-            return false;
-        if (ghost.xl < 1 || ghost.xl > 27)
-            return false;
-        if (ghost.ev > MAX_GHOST_EVASION)
-            return false;
-        if (get_resist(ghost.resists, MR_RES_ELEC) < 0)
-            return false;
-        if (ghost.brand < SPWPN_NORMAL || ghost.brand > MAX_GHOST_BRAND)
-            return false;
-        if (ghost.species < 0 || ghost.species >= NUM_SPECIES)
-            return false;
-        if (ghost.job < JOB_FIGHTER || ghost.job >= NUM_JOBS)
-            return false;
-        if (ghost.best_skill < SK_FIGHTING || ghost.best_skill >= NUM_SKILLS)
-            return false;
-        if (ghost.best_skill_level < 0 || ghost.best_skill_level > 27)
-            return false;
-        if (ghost.religion < GOD_NO_GOD || ghost.religion >= NUM_GODS)
-            return false;
-
-        if (ghost.brand == SPWPN_HOLY_WRATH)
-            return false;
-
-        // Only (very) ugly things get non-plain attack types and
-        // flavours.
-        if (ghost.att_type != AT_HIT || ghost.att_flav != AF_PLAIN)
-            return false;
-
-        // Name validation.
-        if (!validate_player_name(ghost.name, false))
-            return false;
-        // Many combining characters can come per every letter, but if there's
-        // that much, it's probably a maliciously forged ghost of some kind.
-        if (ghost.name.length() > MAX_NAME_LENGTH * 10 || ghost.name.empty())
-            return false;
-        if (ghost.name != trimmed_string(ghost.name))
-            return false;
-
-        // Check for non-existing spells.
-        for (const mon_spell_slot &slot : ghost.spells)
-            if (slot.spell < 0 || slot.spell >= NUM_SPELLS)
-                return false;
-    }
     return true;
 }
 

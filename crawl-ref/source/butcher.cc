@@ -43,28 +43,20 @@
  */
 static bool _start_butchering(item_def& corpse)
 {
-    const bool bottle_blood =
-        you.species == SP_VAMPIRE
-        && can_bottle_blood_from_corpse(corpse.mon_type);
-
     if (is_forbidden_food(corpse))
     {
-        mprf("It would be a sin to %sbutcher this!",
-             bottle_blood ? "bottle or " : "");
+        mprf("It would be a sin to butcher this!");
         return false;
     }
 
     // Yes, 0 is correct (no "continue butchering" stage).
-    if (bottle_blood)
-        start_delay<BottleBloodDelay>(0, corpse);
-    else
-        start_delay<ButcherDelay>(0, corpse);
+    start_delay<ButcherDelay>(0, corpse);
 
     you.turn_is_over = true;
     return true;
 }
 
-void finish_butchering(item_def& corpse, bool bottling)
+void finish_butchering(item_def& corpse)
 {
     ASSERT(corpse.base_type == OBJ_CORPSES);
     ASSERT(corpse.sub_type == CORPSE_BODY);
@@ -72,22 +64,10 @@ void finish_butchering(item_def& corpse, bool bottling)
     const bool was_intelligent = corpse_intelligence(corpse) >= I_HUMAN;
     const bool was_same_genus = is_player_same_genus(corpse.mon_type);
 
-    if (bottling)
-    {
-        mpr("You bottle the corpse's blood.");
+    mprf("You butcher %s.",
+         corpse.name(DESC_THE).c_str());
 
-        if (mons_skeleton(corpse.mon_type) && one_chance_in(3))
-            turn_corpse_into_skeleton_and_blood_potions(corpse);
-        else
-            turn_corpse_into_blood_potions(corpse);
-    }
-    else
-    {
-        mprf("You butcher %s.",
-             corpse.name(DESC_THE).c_str());
-
-        butcher_corpse(corpse);
-    }
+    butcher_corpse(corpse);
 
     if (was_same_genus)
         did_god_conduct(DID_CANNIBALISM, 2);
@@ -106,23 +86,9 @@ static string _butcher_menu_title(const Menu *menu, const string &oldt)
 }
 #endif
 
-static int _corpse_quality(const item_def &item, bool bottle_blood)
+static int _corpse_quality(const item_def &item)
 {
-    const corpse_effect_type ce = determine_chunk_effect(item);
-    // Being almost rotten away has 480 badness.
-    int badness = 3 * item.freshness;
-    if (ce == CE_MUTAGEN)
-        badness += 1000;
-    else if (ce == CE_NOXIOUS)
-        badness += 1000;
-
-    // Bottleable corpses first, unless forbidden
-    if (bottle_blood && !can_bottle_blood_from_corpse(item.mon_type))
-        badness += 4000;
-
-    if (is_forbidden_food(item))
-        badness += 10000;
-    return -badness;
+    return 3 * item.freshness;
 }
 
 /**
@@ -140,39 +106,84 @@ void butchery(item_def* specific_corpse)
         return;
     }
 
-    const bool bottle_blood = you.species == SP_VAMPIRE;
-    typedef pair<item_def *, int> corpse_quality;
-    vector<corpse_quality> corpses;
+    vector<item_def *> all_corpses;
 
-    // First determine which things there are to butcher.
-    for (stack_iterator si(you.pos(), true); si; ++si)
-    {
-        if (!si->is_type(OBJ_CORPSES, CORPSE_BODY))
-            continue;
-
-        corpses.emplace_back(&*si, _corpse_quality(*si, bottle_blood));
-    }
-
-    // If the pre-chosen corpse exists, pretend it was the only one.
     if (specific_corpse)
-        corpses = { { specific_corpse, 0 } };
+        all_corpses.push_back(specific_corpse); // doesn't check position
+    else
+        for (stack_iterator si(you.pos(), true); si; ++si)
+            if (si->is_type(OBJ_CORPSES, CORPSE_BODY))
+                all_corpses.push_back(&*si);
 
-    if (corpses.empty())
+    if (all_corpses.empty())
     {
-        mprf("There isn't anything to %sbutcher here.",
-             bottle_blood ? "bottle or " : "");
+        mprf("There isn't anything to butcher here.");
+        return;
+    }
+    if (you_foodless(false))
+    {
+        mprf("You can't eat.");
+        return;
+    }
+    if (you.get_mutation_level(MUT_HERBIVOROUS) > 0)
+    {
+        mprf("Sorry, you're a herbivore.");
         return;
     }
 
-    stable_sort(begin(corpses), end(corpses), greater_second<corpse_quality>());
+    vector<item_def *> edible_corpses;
+
+    // First determine the edible corpses.
+    for (item_def * c : all_corpses)
+        if (!is_inedible(*c, false))
+            edible_corpses.push_back(c);
+
+    const bool seen_inedible = (edible_corpses.size() != all_corpses.size());
+    if (edible_corpses.empty())
+    {
+        if (all_corpses.size() == 1)
+        {
+            mprf("%s %s.", all_corpses[0]->name(DESC_THE).c_str(),
+                "isn't edible");
+        }
+        else
+            mprf("There isn't anything edible to butcher here.");
+        return;
+    }
+
+    typedef pair<item_def *, int> corpse_quality;
+    vector<corpse_quality> corpse_qualities;
+
+    for (item_def *c : edible_corpses)
+        if (!is_forbidden_food(*c))
+            corpse_qualities.emplace_back(c, _corpse_quality(*c));
+
+    if (corpse_qualities.empty())
+    {
+        if (edible_corpses.size() == 1)
+        {
+            mprf("It would be a sin to butcher %s!",
+                                edible_corpses[0]->name(DESC_THE).c_str());
+        }
+        else
+        {
+            mprf("It would be a sin to butcher any of the %scorpses here!",
+                seen_inedible ?  "edible " : "");
+        }
+        return;
+    }
+
+    stable_sort(begin(corpse_qualities), end(corpse_qualities),
+                                            greater_second<corpse_quality>());
 
     // Butcher pre-chosen corpse, if found, or if there is only one corpse.
     if (specific_corpse
-        || corpses.size() == 1 && Options.confirm_butcher != CONFIRM_ALWAYS
-        || Options.confirm_butcher == CONFIRM_NEVER)
+        || corpse_qualities.size() == 1
+           && Options.confirm_butcher != confirm_butcher_type::always
+        || Options.confirm_butcher == confirm_butcher_type::never)
     {
         //XXX: this assumes that we're not being called from a delay ourselves.
-        if (_start_butchering(*corpses[0].first))
+        if (_start_butchering(*corpse_qualities[0].first))
             handle_delay();
         return;
     }
@@ -182,13 +193,12 @@ void butchery(item_def* specific_corpse)
     bool butchered_any = false;
 #ifdef TOUCH_UI
     vector<const item_def*> meat;
-    for (const corpse_quality &entry : corpses)
+    for (const corpse_quality &entry : corpse_qualities)
         meat.push_back(entry.first);
 
     vector<SelItem> selected =
-        select_items(meat, bottle_blood ? "Choose a corpse to bottle or butcher"
-                                        : "Choose a corpse to butcher",
-                     false, MT_ANY, _butcher_menu_title);
+        select_items(meat, "Choose a corpse to butcher",
+                     false, menu_type::any, _butcher_menu_title);
     redraw_screen();
     for (SelItem sel : selected)
         if (_start_butchering(const_cast<item_def &>(*sel.item)))
@@ -196,21 +206,14 @@ void butchery(item_def* specific_corpse)
 #else
     item_def* to_eat = nullptr;
     bool butcher_all    = false;
-    bool butcher_edible = false;
-    for (auto &entry : corpses)
+    bool all_done = false;
+    for (auto &entry : corpse_qualities)
     {
         item_def * const it = entry.first;
         to_eat = nullptr;
 
         if (butcher_all)
             to_eat = it;
-        else if (butcher_edible)
-        {
-            if (is_bad_food(*it))
-                continue;
-
-            to_eat = it;
-        }
         else
         {
             string corpse_name = it->name(DESC_A);
@@ -226,46 +229,28 @@ void butchery(item_def* specific_corpse)
             // Shall we butcher this corpse?
             do
             {
-                const bool can_bottle =
-                    can_bottle_blood_from_corpse(it->mon_type);
                 mprf(MSGCH_PROMPT,
-                     "%s %s? [(y)es/(c)hoosy/(n)o/(a)ll/(e)dible/(q)uit/?]",
-                     can_bottle ? "Bottle" : "Butcher",
+                     "Butcher %s? [(y)es/(n)o/(a)ll/(q)uit/?]",
                      corpse_name.c_str());
                 repeat_prompt = false;
 
                 switch (toalower(getchm(KMC_CONFIRM)))
                 {
                 case 'a':
+                case 'c': // legacy
+                case 'e': // legacy
                     butcher_all = true;
                 // fallthrough
                 case 'y':
-                case 'd':
-                    to_eat = it;
-                    break;
-
-                case 'c':
-                    // Since corpses are sorted by quality, we assume any
-                    // subequent ones will be bad, and quit immediately.
-                    if (is_bad_food(*it))
-                    {
-                        canned_msg(MSG_OK);
-                        goto done;
-                    }
-                    to_eat = it;
-                    break;
-
-                case 'e':
-                    butcher_edible = true;
-                    if (is_bad_food(*it))
-                        continue;
+                case 'd': // ??
                     to_eat = it;
                     break;
 
                 case 'q':
                 CASE_ESCAPE
                     canned_msg(MSG_OK);
-                    goto done;
+                    all_done = true;
+                    break;
 
                 case '?':
                     show_butchering_help();
@@ -278,28 +263,23 @@ void butchery(item_def* specific_corpse)
                     break;
                 }
             }
-            while (repeat_prompt);
+            while (repeat_prompt && !all_done);
         }
 
         if (to_eat && _start_butchering(*to_eat))
             butchered_any = true;
+        if (all_done)
+            break;
     }
 
     // No point in displaying this if the player pressed 'a' above.
-    if (!to_eat && !butcher_all)
-    {
-        mprf("There isn't anything %s to %sbutcher here.",
-             butcher_edible ? "edible" : "else",
-             bottle_blood ? "bottle or " : "");
-    }
+    if (!to_eat && !butcher_all && !all_done)
+        mprf("There isn't anything else to butcher here.");
 #endif
 
     //XXX: this assumes that we're not being called from a delay ourselves.
     // It's not a problem in the case of macros, though, because
     // delay.cc:_push_delay should handle them OK.
-#ifndef TOUCH_UI
-done:
-#endif
     if (butchered_any)
         handle_delay();
 
@@ -354,47 +334,37 @@ void turn_corpse_into_chunks(item_def &item, bool bloodspatter)
     item.quantity  = stepdown_value(item.quantity, 4, 4, 12, 12);
 
     // Don't mark it as dropped if we are forcing autopickup of chunks.
-    if (you.force_autopickup[OBJ_FOOD][FOOD_CHUNK] <= 0
+    if (you.force_autopickup[OBJ_FOOD][FOOD_CHUNK] <= AP_FORCE_NONE
         && is_bad_food(item))
     {
         item.flags |= ISFLAG_DROPPED;
     }
-    else if (you.species != SP_VAMPIRE)
+    else
         clear_item_pickup_flags(item);
 
     // Initialise timer depending on corpse age
     init_perishable_stack(item, item.freshness * ROT_TIME_FACTOR);
 }
 
-static void _turn_corpse_into_skeleton_and_chunks(item_def &item, bool prefer_chunks)
+static void _turn_corpse_into_skeleton_and_chunks(item_def &item)
 {
     item_def copy = item;
 
-    // Complicated logic, but unless we use the original, both could fail if
-    // mitm[] is overstuffed.
-    if (prefer_chunks)
-    {
-        turn_corpse_into_chunks(item);
-        turn_corpse_into_skeleton(copy);
-    }
-    else
-    {
-        turn_corpse_into_chunks(copy);
-        turn_corpse_into_skeleton(item);
-    }
+    turn_corpse_into_chunks(item);
+    turn_corpse_into_skeleton(copy);
 
     copy_item_to_grid(copy, item_pos(item));
 }
 
-void butcher_corpse(item_def &item, maybe_bool skeleton, bool chunks)
+void butcher_corpse(item_def &item, bool skeleton, bool chunks)
 {
     item_was_destroyed(item);
     if (!mons_skeleton(item.mon_type))
-        skeleton = MB_FALSE;
-    if (skeleton == MB_TRUE || skeleton == MB_MAYBE && one_chance_in(3))
+        skeleton = false;
+    if (skeleton)
     {
         if (chunks)
-            _turn_corpse_into_skeleton_and_chunks(item, skeleton != MB_TRUE);
+            _turn_corpse_into_skeleton_and_chunks(item);
         else
         {
             _bleed_monster_corpse(item);
@@ -410,63 +380,5 @@ void butcher_corpse(item_def &item, maybe_bool skeleton, bool chunks)
             _bleed_monster_corpse(item);
             destroy_item(item.index());
         }
-    }
-}
-
-bool can_bottle_blood_from_corpse(monster_type mons_class)
-{
-    return you.species == SP_VAMPIRE && mons_has_blood(mons_class);
-}
-
-int num_blood_potions_from_corpse(monster_type mons_class)
-{
-    // Max. amount is about one third of the max. amount for chunks.
-    const int max_chunks = max_corpse_chunks(mons_class);
-
-    // Max. amount is about one third of the max. amount for chunks.
-    int pot_quantity = max_chunks / 3;
-    pot_quantity = stepdown_value(pot_quantity, 2, 2, 6, 6);
-
-    if (pot_quantity < 1)
-        pot_quantity = 1;
-
-    return pot_quantity;
-}
-
-// If autopickup is active, the potions are auto-picked up after creation.
-void turn_corpse_into_blood_potions(item_def &item)
-{
-    ASSERT(item.base_type == OBJ_CORPSES);
-
-    const item_def corpse = item;
-    const monster_type mons_class = corpse.mon_type;
-
-    ASSERT(can_bottle_blood_from_corpse(mons_class));
-
-    item.base_type = OBJ_POTIONS;
-    item.sub_type  = POT_BLOOD;
-    item_colour(item);
-    clear_item_pickup_flags(item);
-    item.props.clear();
-
-    item.quantity = num_blood_potions_from_corpse(mons_class);
-
-    // Initialise timer depending on corpse age
-    init_perishable_stack(item,
-                          item.freshness * ROT_TIME_FACTOR + FRESHEST_BLOOD);
-}
-
-void turn_corpse_into_skeleton_and_blood_potions(item_def &item)
-{
-    item_def blood_potions = item;
-
-    if (mons_skeleton(item.mon_type))
-        turn_corpse_into_skeleton(item);
-
-    int o = get_mitm_slot();
-    if (o != NON_ITEM)
-    {
-        turn_corpse_into_blood_potions(blood_potions);
-        copy_item_to_grid(blood_potions, you.pos());
     }
 }

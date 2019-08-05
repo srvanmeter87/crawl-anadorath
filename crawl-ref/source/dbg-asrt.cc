@@ -25,6 +25,7 @@
 #include "jobs.h"
 #include "mapmark.h"
 #include "message.h"
+#include "misc.h"
 #include "mutation.h"
 #include "religion.h"
 #include "skills.h"
@@ -196,7 +197,8 @@ static void _dump_player(FILE *file)
     }
 
     fprintf(file, "Skills (mode: %s)\n", you.auto_training ? "auto" : "manual");
-    fprintf(file, "Name            | can_train | train | training | level | points | progress\n");
+    fprintf(file, "Name            | can_currently_train | train | training |"
+                  " level | points | progress\n");
     for (size_t i = 0; i < NUM_SKILLS; ++i)
     {
         const skill_type sk = skill_type(i);
@@ -209,9 +211,9 @@ static void _dump_player(FILE *file)
         if (sk >= 0 && you.skills[sk] < 27)
             needed_max = skill_exp_needed(you.skills[sk] + 1, sk);
 
-        fprintf(file, "%-16s|     %c     |   %u   |   %3u    |   %2d  | %6d | %d/%d\n",
+        fprintf(file, "%-16s|          %c          |   %u   |   %3u    |   %2d  | %6d | %d/%d\n",
                 skill_name(sk),
-                you.can_train[sk] ? 'X' : ' ',
+                you.can_currently_train[sk] ? 'X' : ' ',
                 you.train[sk],
                 you.training[sk],
                 you.skills[sk],
@@ -236,14 +238,14 @@ static void _dump_player(FILE *file)
             continue;
         }
 
-        const unsigned int flags = get_spell_flags(spell);
+        const spell_flags flags = get_spell_flags(spell);
 
-        if (flags & SPFLAG_MONSTER)
+        if (flags & spflag::monster)
         {
             fprintf(file, "    spell slot #%d: monster only spell %s\n",
                     (int)i, spell_title(spell));
         }
-        else if (flags & SPFLAG_TESTING)
+        else if (flags & spflag::testing)
             fprintf(file, "    spell slot #%d: testing spell %s\n",
                     (int)i, spell_title(spell));
         else if (count_bits(get_spell_disciplines(spell)) == 0)
@@ -485,8 +487,9 @@ static void _debug_dump_markers()
         if (marker == nullptr || marker->get_type() == MAT_LUA_MARKER)
             continue;
 
-        mprf(MSGCH_DIAGNOSTICS, "Marker %d at (%d, %d): %s",
-             i, marker->pos.x, marker->pos.y,
+        mprf(MSGCH_DIAGNOSTICS, "Marker #%d, type %d at (%d, %d): %s",
+             i, marker->get_type(),
+             marker->pos.x, marker->pos.y,
              marker->debug_describe().c_str());
     }
 }
@@ -578,11 +581,11 @@ static void _dump_options(FILE *file)
 {
     fprintf(file, "RC options:\n");
     fprintf(file, "restart_after_game = %s\n",
-            Options.restart_after_game? "true" : "false");
+            maybe_to_string(Options.restart_after_game).c_str());
     fprintf(file, "\n\n");
 }
 
-// Defined in stuff.cc. Not a part of crawl_state, since that's a
+// Defined in end.cc. Not a part of crawl_state, since that's a
 // global C++ instance which is free'd by exit() hooks when exit()
 // is called, and we don't want to reference free'd memory.
 extern bool CrawlIsExiting;
@@ -600,7 +603,7 @@ void do_crash_dump()
 
         _dump_ver_stuff(stderr);
 
-        dump_crash_info(stderr);
+        fprintf(stderr, "%s\n\n", crash_signal_info().c_str());
         write_stack_trace(stderr, 0);
         call_gdb(stderr);
 
@@ -622,8 +625,11 @@ void do_crash_dump()
     snprintf(name, sizeof(name), "%scrash-%s-%s.txt", dir.c_str(),
             you.your_name.c_str(), make_file_time(t).c_str());
 
-    if (!crawl_state.test && !_assert_msg.empty())
-        fprintf(stderr, "\n%s", _assert_msg.c_str());
+    const string signal_info = crash_signal_info();
+    const string cause_msg = _assert_msg.empty() ? signal_info : _assert_msg;
+
+    if (!crawl_state.test && !cause_msg.empty())
+        fprintf(stderr, "\n%s", cause_msg.c_str());
     // This message is parsed by the WebTiles server.
     fprintf(stderr,
             "\n\nWe crashed! This is likely due to a bug in Crawl. "
@@ -652,8 +658,8 @@ void do_crash_dump()
 
     set_msg_dump_file(file);
 
-    if (!_assert_msg.empty())
-        fprintf(file, "%s\n\n", _assert_msg.c_str());
+    if (!cause_msg.empty())
+        fprintf(file, "%s\n\n", cause_msg.c_str());
 
     _dump_ver_stuff(file);
 
@@ -664,7 +670,8 @@ void do_crash_dump()
     // First get the immediate cause of the crash and the stack trace,
     // since that's most important and later attempts to get more information
     // might themselves cause crashes.
-    dump_crash_info(file);
+    if (!signal_info.empty())
+        fprintf(file, "%s\n\n", signal_info.c_str());
     write_stack_trace(file, 0);
     fprintf(file, "\n");
 
@@ -698,16 +705,23 @@ void do_crash_dump()
 
     // Dumping the player state and crawl state is next least likely to cause
     // another crash, so do that next.
+    fprintf(file, "\nVersion history:\n%s\n", Version::history().c_str());
     crawl_state.dump();
     _dump_player(file);
 
     // Next item and monster scans. Any messages will be sent straight to
     // the file because of set_msg_dump_file()
 #ifdef DEBUG_ITEM_SCAN
-    debug_item_scan();
+    if (crawl_state.crash_debug_scans_safe)
+        debug_item_scan();
+    else
+        fprintf(file, "\nCrashed while loading a save; skipping debug_item_scan.\n");
 #endif
 #ifdef DEBUG_MONS_SCAN
-    debug_mons_scan();
+    if (crawl_state.crash_debug_scans_safe)
+        debug_mons_scan();
+    else
+        fprintf(file, "\nCrashed while loading a save; skipping debug_mons_scan.\n");
 #endif
 
     // Dump Webtiles message buffer.
@@ -749,7 +763,7 @@ void do_crash_dump()
 
     set_msg_dump_file(nullptr);
 
-    mark_milestone("crash", _assert_msg, "", t);
+    mark_milestone("crash", cause_msg, "", t);
 
     if (file != stderr)
         fclose(file);
@@ -822,7 +836,7 @@ NORETURN void AssertFailed(const char *expr, const char *file, int line,
         vsnprintf(detail, sizeof(detail), text, args);
         va_end(args);
         // Build the final result
-        char final_mesg[1024];
+        char final_mesg[1026];
         snprintf(final_mesg, sizeof(final_mesg), "%s (%s)", mesg, detail);
         _assert_msg = final_mesg;
         _BreakStrToDebugger(final_mesg, true);
@@ -839,7 +853,7 @@ NORETURN void AssertFailed(const char *expr, const char *file, int line,
 NORETURN void die(const char *file, int line, const char *format, ...)
 {
     char tmp[2048] = {};
-    char mesg[2048] = {};
+    char mesg[2071] = {};
 
     va_list args;
 
@@ -858,7 +872,7 @@ NORETURN void die(const char *file, int line, const char *format, ...)
 NORETURN void die_noline(const char *format, ...)
 {
     char tmp[2048] = {};
-    char mesg[2048] = {};
+    char mesg[2055] = {};
 
     va_list args;
 
