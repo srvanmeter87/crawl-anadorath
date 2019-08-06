@@ -11,7 +11,6 @@
 
 #include "areas.h"
 #include "art-enum.h"
-#include "butcher.h" // butcher_corpse
 #include "coordit.h" // radius_iterator
 #include "god-conduct.h"
 #include "god-passive.h"
@@ -21,37 +20,33 @@
 #include "macro.h"
 #include "message.h"
 #include "output.h"
+#include "prompt.h"
 #include "religion.h"
 #include "showsymb.h"
 #include "spl-transloc.h"
 #include "spl-util.h"
+#include "stringutil.h"
 #include "transform.h"
 #include "tilepick.h"
 #include "view.h"
 #include "viewchar.h"
 
-int allowed_deaths_door_hp()
-{
-    int hp = calc_spell_power(SPELL_DEATHS_DOOR, true) / 10;
-
-    return max(hp, 1);
-}
-
-spret_type cast_deaths_door(int pow, bool fail)
+spret cast_deaths_door(int pow, bool fail)
 {
     fail_check();
     mpr("You stand defiantly in death's doorway!");
     mprf(MSGCH_SOUND, "You seem to hear sand running through an hourglass...");
 
-    set_hp(allowed_deaths_door_hp());
-    deflate_hp(you.hp_max, false);
-
     you.set_duration(DUR_DEATHS_DOOR, 10 + random2avg(13, 3)
                                        + (random2(pow) / 10));
 
+    const int hp = max(calc_spell_power(SPELL_DEATHS_DOOR, true) / 10, 1);
+    you.attribute[ATTR_DEATHS_DOOR_HP] = hp;
+    set_hp(hp);
+
     if (you.duration[DUR_DEATHS_DOOR] > 25 * BASELINE_DELAY)
         you.duration[DUR_DEATHS_DOOR] = (23 + random2(5)) * BASELINE_DELAY;
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 void remove_ice_armour()
@@ -61,7 +56,7 @@ void remove_ice_armour()
     you.duration[DUR_ICY_ARMOUR] = 0;
 }
 
-spret_type ice_armour(int pow, bool fail)
+spret ice_armour(int pow, bool fail)
 {
     fail_check();
 
@@ -72,141 +67,32 @@ spret_type ice_armour(int pow, bool fail)
     else
         mpr("A film of ice covers your body!");
 
-    if (you.attribute[ATTR_BONE_ARMOUR] > 0)
-    {
-        you.attribute[ATTR_BONE_ARMOUR] = 0;
-        mpr("Your corpse armour falls away.");
-    }
-
     you.increase_duration(DUR_ICY_ARMOUR, random_range(40, 50), 50);
     you.props[ICY_ARMOUR_KEY] = pow;
     you.redraw_armour_class = true;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-/**
- * Iterate over all corpses in LOS and harvest them (unless it's just a test
- * run)
- *
- * @param harvester   The entity planning to do the harvesting.
- * @param dry_run     Whether this is a test run & no corpses should be
- *                    actually destroyed.
- * @param defy_god    Whether to ignore religious restrictions on defiling
- *                    corpses.
- * @return            The total number of corpses (available to be) destroyed.
- */
-int harvest_corpses(const actor &harvester, bool dry_run, bool defy_god)
-{
-    int harvested = 0;
-
-    for (radius_iterator ri(harvester.pos(), LOS_NO_TRANS); ri; ++ri)
-    {
-        for (stack_iterator si(*ri, true); si; ++si)
-        {
-            item_def &item = *si;
-            if (item.base_type != OBJ_CORPSES)
-                continue;
-
-            // forbid harvesting orcs under Beogh
-            if (you.religion == GOD_BEOGH && !defy_god)
-            {
-                const monster_type monnum
-                    = static_cast<monster_type>(item.orig_monnum);
-                if (mons_genus(monnum) == MONS_ORC)
-                    continue;
-            }
-
-            ++harvested;
-
-            if (dry_run)
-                continue;
-
-            // don't spam animations
-            if (harvested <= 5)
-            {
-                bolt beam;
-                beam.source = *ri;
-                beam.target = harvester.pos();
-                beam.glyph = get_item_glyph(item).ch;
-                beam.colour = item.get_colour();
-                beam.range = LOS_RADIUS;
-                beam.aimed_at_spot = true;
-                beam.item = &item;
-                beam.flavour = BEAM_VISUAL;
-                beam.draw_delay = 3;
-                beam.fire();
-                viewwindow();
-            }
-
-            destroy_item(item.index());
-        }
-    }
-
-    return harvested;
-}
-
-/**
- * Casts the player spell "Cigotuvi's Embrace", pulling all corpses into LOS
- * around the caster to serve as armour.
- *
- * @param pow   The spellpower at which the spell is being cast.
- * @param fail  Whether the casting failed.
- * @return      SPRET_ABORT if you already have an incompatible buff running,
- *              SPRET_FAIL if fail is true, and SPRET_SUCCESS otherwise.
- */
-spret_type corpse_armour(int pow, bool fail)
-{
-    // Could check carefully to see if it's even possible that there are any
-    // valid corpses/skeletons in LOS (any piles with stuff under them, etc)
-    // before failing, but it's better to be simple + predictable from the
-    // player's perspective.
-    fail_check();
-
-    const int harvested = harvest_corpses(you);
-    dprf("Harvested: %d", harvested);
-
-    if (!harvested)
-    {
-        if (harvest_corpses(you, true, true))
-            mpr("It would be a sin to defile those corpses!");
-        else
-            canned_msg(MSG_NOTHING_HAPPENS);
-        return SPRET_SUCCESS; // still takes a turn, etc
-    }
-
-    if (you.attribute[ATTR_BONE_ARMOUR] <= 0)
-        mpr("The bodies of the dead rush to embrace you!");
-    else
-        mpr("Your shell of carrion and bone grows thicker.");
-
-    // value of ATTR_BONE_ARMOUR will be sqrt(9*harvested), rounded randomly
-    int squared = sqr(you.attribute[ATTR_BONE_ARMOUR]) + 9 * harvested;
-    you.attribute[ATTR_BONE_ARMOUR] = sqrt(squared) + random_real();
-    you.redraw_armour_class = true;
-
-    return SPRET_SUCCESS;
-}
-
-spret_type deflection(int pow, bool fail)
+spret deflection(int pow, bool fail)
 {
     fail_check();
     you.attribute[ATTR_DEFLECT_MISSILES] = 1;
     mpr("You feel very safe from missiles.");
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_regen(int pow, bool fail)
+spret cast_regen(int pow, bool fail)
 {
     fail_check();
     you.increase_duration(DUR_REGENERATION, 5 + roll_dice(2, pow / 3 + 1), 100,
                           "Your skin crawls.");
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_revivification(int pow, bool fail)
+spret cast_revivification(int pow, bool fail)
 {
     fail_check();
     mpr("Your body is healed in an amazingly painful way.");
@@ -222,10 +108,10 @@ spret_type cast_revivification(int pow, bool fail)
         paralyse_player("Death's Door abortion");
         you.duration[DUR_DEATHS_DOOR] = 0;
     }
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_swiftness(int power, bool fail)
+spret cast_swiftness(int power, bool fail)
 {
     fail_check();
 
@@ -240,7 +126,7 @@ spret_type cast_swiftness(int power, bool fail)
                      "You feel quick.");
     you.attribute[ATTR_SWIFTNESS] = you.duration[DUR_SWIFTNESS];
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 int cast_selective_amnesia(const string &pre_msg)
@@ -256,54 +142,38 @@ int cast_selective_amnesia(const string &pre_msg)
     int slot;
 
     // Pick a spell to forget.
-    mprf(MSGCH_PROMPT, "Forget which spell ([?*] list [ESC] exit)? ");
     keyin = list_spells(false, false, false, "Forget which spell?");
     redraw_screen();
 
-    while (true)
+    if (isaalpha(keyin))
     {
-        if (key_is_escape(keyin))
-        {
-            canned_msg(MSG_OK);
-            return -1;
-        }
-
-        if (keyin == '?' || keyin == '*')
-        {
-            keyin = list_spells(false, false, false, "Forget which spell?");
-            redraw_screen();
-        }
-
-        if (!isaalpha(keyin))
-        {
-            clear_messages();
-            mprf(MSGCH_PROMPT, "Forget which spell ([?*] list [ESC] exit)? ");
-            keyin = get_ch();
-            continue;
-        }
-
         spell = get_spell_by_letter(keyin);
         slot = get_spell_slot_by_letter(keyin);
 
-        if (spell == SPELL_NO_SPELL)
+        if (spell != SPELL_NO_SPELL)
         {
-            mpr("You don't know that spell.");
-            mprf(MSGCH_PROMPT, "Forget which spell ([?*] list [ESC] exit)? ");
-            keyin = get_ch();
+            const string prompt = make_stringf(
+                    "Forget %s, freeing %d spell level%s for a total of %d?%s",
+                    spell_title(spell), spell_levels_required(spell),
+                    spell_levels_required(spell) != 1 ? "s" : "",
+                    player_spell_levels() + spell_levels_required(spell),
+                    you.spell_library[spell] ? "" :
+                    " This spell is not in your library!");
+
+            if (yesno(prompt.c_str(), true, 'n', false))
+            {
+                if (!pre_msg.empty())
+                    mpr(pre_msg);
+                del_spell_from_memory_by_slot(slot);
+                return 1;
+            }
         }
-        else
-            break;
     }
 
-    if (!pre_msg.empty())
-        mpr(pre_msg);
-
-    del_spell_from_memory_by_slot(slot);
-
-    return 1;
+    return -1;
 }
 
-spret_type cast_infusion(int pow, bool fail)
+spret cast_infusion(int pow, bool fail)
 {
     fail_check();
     if (!you.duration[DUR_INFUSION])
@@ -314,10 +184,10 @@ spret_type cast_infusion(int pow, bool fail)
     you.increase_duration(DUR_INFUSION,  8 + roll_dice(2, pow), 100);
     you.props["infusion_power"] = pow;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_song_of_slaying(int pow, bool fail)
+spret cast_song_of_slaying(int pow, bool fail)
 {
     fail_check();
 
@@ -329,10 +199,10 @@ spret_type cast_song_of_slaying(int pow, bool fail)
     you.set_duration(DUR_SONG_OF_SLAYING, 20 + random2avg(pow, 2));
 
     you.props[SONG_OF_SLAYING_KEY] = 0;
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_silence(int pow, bool fail)
+spret cast_silence(int pow, bool fail)
 {
     fail_check();
     mpr("A profound silence engulfs you.");
@@ -344,10 +214,10 @@ spret_type cast_silence(int pow, bool fail)
         you.update_beholders();
 
     learned_something_new(HINT_YOU_SILENCE);
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_liquefaction(int pow, bool fail)
+spret cast_liquefaction(int pow, bool fail)
 {
     fail_check();
     flash_view_delay(UA_PLAYER, BROWN, 80);
@@ -358,10 +228,10 @@ spret_type cast_liquefaction(int pow, bool fail)
 
     you.increase_duration(DUR_LIQUEFYING, 10 + random2avg(pow, 2), 100);
     invalidate_agrid(true);
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_shroud_of_golubria(int pow, bool fail)
+spret cast_shroud_of_golubria(int pow, bool fail)
 {
     fail_check();
     if (you.duration[DUR_SHROUD_OF_GOLUBRIA])
@@ -370,18 +240,18 @@ spret_type cast_shroud_of_golubria(int pow, bool fail)
         mpr("Space distorts slightly along a thin shroud covering your body.");
 
     you.increase_duration(DUR_SHROUD_OF_GOLUBRIA, 7 + roll_dice(2, pow), 50);
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_transform(int pow, transformation which_trans, bool fail)
+spret cast_transform(int pow, transformation which_trans, bool fail)
 {
     if (!transform(pow, which_trans, false, true)
         || !check_form_stat_safety(which_trans))
     {
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
     transform(pow, which_trans);
-    return SPRET_SUCCESS;
+    return spret::success;
 }

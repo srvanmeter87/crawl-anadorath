@@ -15,8 +15,8 @@
 #include "art-enum.h"
 #include "cio.h"
 #include "coordit.h"
-#include "dbg-util.h"
 #include "decks.h"
+#include "dbg-util.h"
 #include "env.h"
 #include "god-passive.h"
 #include "invent.h"
@@ -65,7 +65,6 @@ static void _make_all_books()
 
         item_def book(mitm[thing]);
 
-        mark_had_book(book);
         set_ident_flags(book, ISFLAG_KNOW_TYPE);
         set_ident_flags(book, ISFLAG_IDENT_MASK);
 
@@ -272,11 +271,13 @@ static void _tweak_randart(item_def &item)
         char buf[80];
 
         if (choice_num < 26)
-            choice = 'A' + choice_num;
-        else if (choice_num < 'A' - '0' + 26)
+            choice = 'a' + choice_num;
+        else if (choice_num < 52)
+            choice = 'A' + choice_num - 26;
+        else if (choice_num < 'A' - '0' + 52)
         {
             // 0-9 then :;<=>?@ . Any higher would collide with letters.
-            choice = '0' + choice_num - 26;
+            choice = '0' + choice_num - 52;
         }
         else
             choice = '-'; // Too many choices!
@@ -291,17 +292,19 @@ static void _tweak_randart(item_def &item)
 
         choice_num++;
     }
-    mprf(MSGCH_PROMPT, "%s", prompt.c_str());
+    mprf_nocap(MSGCH_PROMPT, "%s", prompt.c_str());
 
     mprf(MSGCH_PROMPT, "Change which field? ");
 
-    int keyin = toalower(get_ch());
+    int keyin = get_ch();
     unsigned int  choice;
 
-    if (isaalpha(keyin))
+    if (isaalpha(keyin) && islower(keyin))
         choice = keyin - 'a';
+    else if (isaalpha(keyin) && isupper(keyin))
+        choice = keyin - 'A' + 26;
     else if (keyin >= '0' && keyin < 'A')
-        choice = keyin - '0' + 26;
+        choice = keyin - '0' + 52;
     else
     {
         canned_msg(MSG_OK);
@@ -389,7 +392,7 @@ void wizard_tweak_object()
     char specs[50];
     int keyin;
 
-    int item = prompt_invent_item("Tweak which item? ", MT_INVLIST, -1);
+    int item = prompt_invent_item("Tweak which item? ", menu_type::invlist, OSEL_ANY);
 
     if (prompt_failed(item))
         return;
@@ -518,7 +521,8 @@ static bool _make_book_randart(item_def &book)
 /// Prompt for an item in inventory & print its base shop value.
 void wizard_value_item()
 {
-    const int i = prompt_invent_item("Value of which item?", MT_INVLIST, -1);
+    const int i = prompt_invent_item("Value of which item?",
+                                     menu_type::invlist, OSEL_ANY);
 
     if (prompt_failed(i))
         return;
@@ -588,7 +592,7 @@ void wizard_create_all_artefacts()
 void wizard_make_object_randart()
 {
     int i = prompt_invent_item("Make an artefact out of which item?",
-                                MT_INVLIST, -1);
+                                menu_type::invlist, OSEL_ANY);
 
     if (prompt_failed(i))
         return;
@@ -678,7 +682,8 @@ static bool _item_type_can_be_cursed(int type)
 
 void wizard_uncurse_item()
 {
-    const int i = prompt_invent_item("(Un)curse which item?", MT_INVLIST, -1);
+    const int i = prompt_invent_item("(Un)curse which item?",
+                                     menu_type::invlist, OSEL_ANY);
 
     if (!prompt_failed(i))
     {
@@ -911,7 +916,7 @@ static void _debug_acquirement_stats(FILE *ostat)
                 else if (item.sub_type == BOOK_RANDART_LEVEL)
                 {
                     const int level = item.plus;
-                    ego_quants[SPTYP_LAST_EXPONENT + level]++;
+                    ego_quants[SPSCHOOL_LAST_EXPONENT + level]++;
                 }
             }
         }
@@ -1009,8 +1014,8 @@ static void _debug_acquirement_stats(FILE *ostat)
     {
         // For spellbooks, for each spell discipline, list the number of
         // unseen and total spells available.
-        vector<int> total_spells(SPTYP_LAST_EXPONENT + 1);
-        vector<int> unseen_spells(SPTYP_LAST_EXPONENT + 1);
+        vector<int> total_spells(SPSCHOOL_LAST_EXPONENT + 1);
+        vector<int> unseen_spells(SPSCHOOL_LAST_EXPONENT + 1);
 
         for (int i = 0; i < NUM_SPELLS; ++i)
         {
@@ -1027,10 +1032,10 @@ static void _debug_acquirement_stats(FILE *ostat)
             if (spell_rarity(spell) == -1)
                 continue;
 
-            const bool seen = you.seen_spell[spell];
+            const bool seen = you.spell_library[spell];
 
             const spschools_type disciplines = get_spell_disciplines(spell);
-            for (int d = 0; d <= SPTYP_LAST_EXPONENT; ++d)
+            for (int d = 0; d <= SPSCHOOL_LAST_EXPONENT; ++d)
             {
                 const auto disc = spschools_type::exponent(d);
 
@@ -1042,7 +1047,7 @@ static void _debug_acquirement_stats(FILE *ostat)
                 }
             }
         }
-        for (int d = 0; d <= SPTYP_LAST_EXPONENT; ++d)
+        for (int d = 0; d <= SPSCHOOL_LAST_EXPONENT; ++d)
         {
             const auto disc = spschools_type::exponent(d);
 
@@ -1095,8 +1100,8 @@ static void _debug_acquirement_stats(FILE *ostat)
             "returning",
 #endif
             "chaos",
-            "evasion",
 #if TAG_MAJOR_VERSION == 34
+            "evasion",
             "confusion",
 #endif
             "penetration",
@@ -1194,9 +1199,9 @@ static void _debug_acquirement_stats(FILE *ostat)
                 "earth magic",
                 "air magic",
             };
-            COMPILE_CHECK(ARRAYSZ(names) == SPTYP_LAST_EXPONENT + 1);
+            COMPILE_CHECK(ARRAYSZ(names) == SPSCHOOL_LAST_EXPONENT + 1);
 
-            for (int i = 0; i <= SPTYP_LAST_EXPONENT; ++i)
+            for (int i = 0; i <= SPSCHOOL_LAST_EXPONENT; ++i)
             {
                 if (ego_quants[i] > 0)
                 {
@@ -1207,7 +1212,7 @@ static void _debug_acquirement_stats(FILE *ostat)
             // List levels for fixed level randarts.
             for (int i = 1; i < 9; ++i)
             {
-                const int k = SPTYP_LAST_EXPONENT + i;
+                const int k = SPSCHOOL_LAST_EXPONENT + i;
                 if (ego_quants[k] > 0)
                 {
                     fprintf(ostat, "%15s %d: %5.2f\n", "level", i,
@@ -1297,7 +1302,7 @@ static void _debug_rap_stats(FILE *ostat)
 {
     const int inv_index
         = prompt_invent_item("Generate randart stats on which item?",
-                             MT_INVLIST, -1);
+                             menu_type::invlist, OSEL_ANY);
 
     if (prompt_failed(inv_index))
         return;
@@ -1458,6 +1463,9 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_SEE_INVISIBLE",
         "ARTP_INVISIBLE",
         "ARTP_FLY",
+#if TAG_MAJOR_VERSION > 34
+        "ARTP_FOG",
+#endif
         "ARTP_BLINK",
         "ARTP_BERSERK",
         "ARTP_NOISE",
@@ -1500,6 +1508,7 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_SLOW",
         "ARTP_FRAGILE",
         "ARTP_SHIELDING",
+        "ARTP_HARM",
     };
     COMPILE_CHECK(ARRAYSZ(rap_names) == ARTP_NUM_PROPERTIES);
 
@@ -1581,7 +1590,7 @@ void wizard_draw_card()
         lowercase(card);
         if (card.find(wanted) != string::npos)
         {
-            card_effect(c, DECK_RARITY_LEGENDARY);
+            card_effect(c);
             found_card = true;
             break;
         }
@@ -1595,6 +1604,9 @@ void wizard_identify_all_items()
     wizard_identify_pack();
     for (auto &item : mitm)
         if (item.defined())
+            set_ident_flags(item, ISFLAG_IDENT_MASK);
+    for (auto& entry : env.shop)
+        for (auto &item : entry.second.stock)
             set_ident_flags(item, ISFLAG_IDENT_MASK);
     for (int ii = 0; ii < NUM_OBJECT_CLASSES; ii++)
     {
@@ -1611,6 +1623,9 @@ void wizard_unidentify_all_items()
     wizard_unidentify_pack();
     for (auto &item : mitm)
         if (item.defined())
+            _forget_item(item);
+    for (auto& entry : env.shop)
+        for (auto &item : entry.second.stock)
             _forget_item(item);
     for (int ii = 0; ii < NUM_OBJECT_CLASSES; ii++)
     {

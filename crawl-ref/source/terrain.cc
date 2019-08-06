@@ -374,6 +374,7 @@ bool feat_can_wall_jump_against(dungeon_feature_type feat)
 {
     return feat_is_wall(feat)
            || feat == DNGN_GRATE
+           || feat_is_closed_door(feat)
            || feat_is_tree(feat)
            || feat_is_statuelike(feat);
 }
@@ -404,24 +405,50 @@ bool feat_has_dry_floor(dungeon_feature_type feat)
  */
 bool feat_is_door(dungeon_feature_type feat)
 {
-    return feat == DNGN_CLOSED_DOOR || feat == DNGN_RUNED_DOOR
-           || feat == DNGN_OPEN_DOOR || feat == DNGN_SEALED_DOOR;
+    return feat_is_closed_door(feat) || feat_is_open_door(feat);
 }
 
 /** Is this feature a variety of closed door?
  */
 bool feat_is_closed_door(dungeon_feature_type feat)
 {
-    return feat == DNGN_CLOSED_DOOR || feat == DNGN_RUNED_DOOR
-           || feat == DNGN_SEALED_DOOR;
+    return feat == DNGN_CLOSED_DOOR
+           || feat == DNGN_CLOSED_CLEAR_DOOR
+           || feat_is_runed(feat)
+           || feat == DNGN_SEALED_DOOR
+           || feat == DNGN_SEALED_CLEAR_DOOR;
+}
+
+/** Is this feature a variety of open door?
+ */
+bool feat_is_open_door(dungeon_feature_type feat)
+{
+    return feat == DNGN_OPEN_DOOR || feat == DNGN_OPEN_CLEAR_DOOR;
 }
 
 /** Has this feature been sealed by a vault warden?
  */
 bool feat_is_sealed(dungeon_feature_type feat)
 {
-    return feat == DNGN_SEALED_STAIRS_DOWN || feat == DNGN_SEALED_STAIRS_UP
-           || feat == DNGN_SEALED_DOOR;
+    return feat == DNGN_SEALED_STAIRS_DOWN
+        || feat == DNGN_SEALED_STAIRS_UP
+        || feat == DNGN_SEALED_DOOR
+        || feat == DNGN_SEALED_CLEAR_DOOR;
+}
+
+/** Is this feature a type of runed door?
+ */
+bool feat_is_runed(dungeon_feature_type feat)
+{
+    return feat == DNGN_RUNED_DOOR || feat == DNGN_RUNED_CLEAR_DOOR;
+}
+
+/** Is the original feature at this position runed, as in a runed door?
+ */
+bool cell_is_runed(const coord_def &p)
+{
+    // the orig_terrain call will check the actual terrain if there's no change
+    return feat_is_runed(orig_terrain(p));
 }
 
 /** Is this feature a type of statue, i.e., granite or an idol?
@@ -458,15 +485,12 @@ bool feat_is_diggable(dungeon_feature_type feat)
 /** Is this feature a type of trap?
  *
  *  @param feat the feature.
- *  @param undiscovered_too whether a trap not yet found counts.
  *  @returns true if it's a trap.
  */
-bool feat_is_trap(dungeon_feature_type feat, bool undiscovered_too)
+bool feat_is_trap(dungeon_feature_type feat)
 {
     if (!is_valid_feature_type(feat))
         return false; // ???
-    if (feat == DNGN_UNDISCOVERED_TRAP)
-        return undiscovered_too;
     return get_feature_def(feat).flags & FFT_TRAP;
 }
 
@@ -517,7 +541,9 @@ static const pair<god_type, dungeon_feature_type> _god_altars[] =
     { GOD_GOZAG, DNGN_ALTAR_GOZAG },
     { GOD_QAZLAL, DNGN_ALTAR_QAZLAL },
     { GOD_RU, DNGN_ALTAR_RU },
+#if TAG_MAJOR_VERSION == 34
     { GOD_PAKELLAS, DNGN_ALTAR_PAKELLAS },
+#endif
     { GOD_USKAYAW, DNGN_ALTAR_USKAYAW },
     { GOD_HEPLIAKLQANA, DNGN_ALTAR_HEPLIAKLQANA },
     { GOD_WU_JIAN, DNGN_ALTAR_WU_JIAN },
@@ -695,9 +721,10 @@ int count_neighbours_with_func(const coord_def& c, bool (*checker)(dungeon_featu
 // For internal use by find_connected_identical only.
 static void _find_connected_identical(const coord_def &d,
                                       dungeon_feature_type ft,
-                                      set<coord_def>& out)
+                                      set<coord_def>& out,
+                                      bool known_only)
 {
-    if (grd(d) != ft)
+    if (grd(d) != ft || (known_only && !env.map_knowledge(d).known()))
         return;
 
     string prop = env.markers.property_at(d, MAT_ANY, "connected_exclude");
@@ -711,22 +738,22 @@ static void _find_connected_identical(const coord_def &d,
 
     if (out.insert(d).second)
     {
-        _find_connected_identical(coord_def(d.x+1, d.y), ft, out);
-        _find_connected_identical(coord_def(d.x-1, d.y), ft, out);
-        _find_connected_identical(coord_def(d.x, d.y+1), ft, out);
-        _find_connected_identical(coord_def(d.x, d.y-1), ft, out);
+        _find_connected_identical(coord_def(d.x+1, d.y), ft, out, known_only);
+        _find_connected_identical(coord_def(d.x-1, d.y), ft, out, known_only);
+        _find_connected_identical(coord_def(d.x, d.y+1), ft, out, known_only);
+        _find_connected_identical(coord_def(d.x, d.y-1), ft, out, known_only);
     }
 }
 
 // Find all connected cells containing ft, starting at d.
-void find_connected_identical(const coord_def &d, set<coord_def>& out)
+void find_connected_identical(const coord_def &d, set<coord_def>& out, bool known_only)
 {
     string prop = env.markers.property_at(d, MAT_ANY, "connected_exclude");
 
     if (!prop.empty())
         out.insert(d);
     else
-        _find_connected_identical(d, grd(d), out);
+        _find_connected_identical(d, grd(d), out, known_only);
 }
 
 void get_door_description(int door_size, const char** adjective, const char** noun)
@@ -769,7 +796,7 @@ static unique_ptr<map_mask_boolean> _slime_wall_precomputed_neighbour_mask;
 
 static void _precompute_slime_wall_neighbours()
 {
-    map_mask_boolean &mask(*_slime_wall_precomputed_neighbour_mask.get());
+    map_mask_boolean &mask(*_slime_wall_precomputed_neighbour_mask);
     for (rectangle_iterator ri(1); ri; ++ri)
     {
         if (grd(*ri) == DNGN_SLIMY_WALL)
@@ -786,7 +813,7 @@ unwind_slime_wall_precomputer::unwind_slime_wall_precomputer(bool docompute)
     if (!(env.level_state & LSTATE_SLIMY_WALL))
         return;
 
-    if (docompute && !_slime_wall_precomputed_neighbour_mask.get())
+    if (docompute && !_slime_wall_precomputed_neighbour_mask)
     {
         did_compute_mask = true;
         _slime_wall_precomputed_neighbour_mask.reset(
@@ -806,7 +833,7 @@ bool slime_wall_neighbour(const coord_def& c)
     if (!(env.level_state & LSTATE_SLIMY_WALL))
         return false;
 
-    if (_slime_wall_precomputed_neighbour_mask.get())
+    if (_slime_wall_precomputed_neighbour_mask)
         return (*_slime_wall_precomputed_neighbour_mask)(c);
 
     // Not using count_adjacent_slime_walls because the early return might
@@ -1009,7 +1036,7 @@ void dgn_move_entities_at(coord_def src, coord_def dst,
         env.shop.erase(src);
         grd(src) = DNGN_FLOOR;
     }
-    else if (feat_is_trap(dfeat, true))
+    else if (feat_is_trap(dfeat))
     {
         ASSERT(trap_at(src));
         env.trap[dst] = env.trap[src];
@@ -1118,10 +1145,15 @@ static void _dgn_check_terrain_items(const coord_def &pos, bool preserve_items)
     }
 }
 
-static void _dgn_check_terrain_monsters(const coord_def &pos)
+static bool _dgn_check_terrain_monsters(const coord_def &pos)
 {
     if (monster* m = monster_at(pos))
+    {
         m->apply_location_effects(pos);
+        return true;
+    }
+    else
+        return false;
 }
 
 // Clear blood or mold off of terrain that shouldn't have it. Also clear
@@ -1197,6 +1229,8 @@ void dungeon_terrain_changed(const coord_def &pos,
 {
     if (grd(pos) == nfeat)
         return;
+    if (_dgn_check_terrain_monsters(pos) && feat_is_wall(nfeat))
+        return;
 
     _dgn_check_terrain_covering(pos, grd(pos), nfeat);
 
@@ -1222,7 +1256,6 @@ void dungeon_terrain_changed(const coord_def &pos,
     }
 
     _dgn_check_terrain_items(pos, preserve_items);
-    _dgn_check_terrain_monsters(pos);
     if (!wizmode)
         _dgn_check_terrain_player(pos);
     if (!temporary && feature_mimic_at(pos))
@@ -1301,7 +1334,6 @@ static void _announce_swap(coord_def pos1, coord_def pos2)
 
     const bool notable_seen1 = is_notable_terrain(feat1) && you.see_cell(pos1);
     const bool notable_seen2 = is_notable_terrain(feat2) && you.see_cell(pos2);
-    coord_def orig_pos, dest_pos;
 
     if (notable_seen1 && notable_seen2)
     {
@@ -1489,12 +1521,12 @@ bool swap_features(const coord_def &pos1, const coord_def &pos2,
     if (monster_at(pos1))
     {
         menv[mgrd(pos1)].set_position(pos1);
-        menv[mgrd(pos1)].clear_far_constrictions();
+        menv[mgrd(pos1)].clear_invalid_constrictions();
     }
     if (monster_at(pos2))
     {
         menv[mgrd(pos2)].set_position(pos2);
-        menv[mgrd(pos2)].clear_far_constrictions();
+        menv[mgrd(pos2)].clear_invalid_constrictions();
     }
 
     swap_clouds(pos1, pos2);
@@ -1502,13 +1534,13 @@ bool swap_features(const coord_def &pos1, const coord_def &pos2,
     if (pos1 == you.pos())
     {
         you.set_position(pos2);
-        you.clear_far_constrictions();
+        you.clear_invalid_constrictions();
         viewwindow();
     }
     else if (pos2 == you.pos())
     {
         you.set_position(pos1);
-        you.clear_far_constrictions();
+        you.clear_invalid_constrictions();
         viewwindow();
     }
 
@@ -1649,6 +1681,13 @@ dungeon_feature_type feat_by_desc(string desc)
 
     if (desc[desc.size() - 1] != '.')
         desc += ".";
+
+#if TAG_MAJOR_VERSION == 34
+    // hard-coded because all the dry fountain variants match this description,
+    // and they have a lower enum value, so the first is incorrectly returned
+    if (desc == "a dry fountain.")
+        return DNGN_DRY_FOUNTAIN;
+#endif
 
     return lookup(feat_desc_cache, desc, DNGN_UNSEEN);
 }
@@ -1959,6 +1998,20 @@ void set_terrain_changed(const coord_def p)
             act->check_clinging(false, feat_is_door(grd(p)));
 }
 
+/**
+ * Does this cell count for exploraation piety?
+ *
+ * Don't count: endless map borders, deep water, lava, and cells explicitly
+ * marked. (player_view_update_at in view.cc updates the flags)
+ */
+bool cell_triggers_conduct(const coord_def p)
+{
+    return !(feat_is_endless(grd(p))
+             || grd(p) == DNGN_LAVA
+             || grd(p) == DNGN_DEEP_WATER
+             || env.pgrid(p) & FPROP_SEEN_OR_NOEXP);
+}
+
 bool is_boring_terrain(dungeon_feature_type feat)
 {
     if (!is_notable_terrain(feat))
@@ -2086,8 +2139,12 @@ static bool _revert_terrain_to_floor(coord_def pos)
         }
     }
 
-    if (grd(pos) == DNGN_RUNED_DOOR && newfeat != DNGN_RUNED_DOOR)
-        explored_tracked_feature(DNGN_RUNED_DOOR);
+    if (grd(pos) == DNGN_RUNED_DOOR && newfeat != DNGN_RUNED_DOOR
+        || grd(pos) == DNGN_RUNED_CLEAR_DOOR
+           && newfeat != DNGN_RUNED_CLEAR_DOOR)
+    {
+        explored_tracked_feature(grd(pos));
+    }
 
     grd(pos) = newfeat;
     set_terrain_changed(pos);
@@ -2206,4 +2263,171 @@ bool plant_forbidden_at(const coord_def &p, bool connectivity_only)
     //      were it not for the previous check.
 
     return passable <= 1 && !connectivity_only;
+}
+
+/*
+ * Find an adjacent space to displace a stack of items or a creature.
+ *
+ * @param pos the starting position to displace from.
+ * @param push_actor true if the goal is to move an actor, false if items
+ * @param excluded any spots to rule out a priori. Used for e.g. imprison and
+ *                       for multi-space doors.
+ *
+ * @return a (possibly empty) vector of positions where displacement is
+ *                       possible. If `push_actor` is true but there is no
+ *                       actor at the position, will return an empty list.
+ */
+vector<coord_def> get_push_spaces(const coord_def& pos, bool push_actor,
+                    const vector<coord_def>* excluded)
+{
+    vector<coord_def> results;
+    actor *act = nullptr;
+    if (push_actor)
+    {
+        act = actor_at(pos);
+        if (!act || act->is_stationary())
+            return results;
+    }
+
+    dungeon_feature_type starting_feat = grd(pos);
+    vector<coord_def> bad_spots; // used for items
+
+    for (adjacent_iterator ai(pos); ai; ++ai)
+    {
+        dungeon_feature_type feat = grd(*ai);
+
+        // Make sure the spot wasn't already vetoed. This is used e.g. for
+        // imprison, to pre-exclude all the spots where a wall will be.
+        if (excluded && find(begin(*excluded), end(*excluded), *ai)
+                            != end(*excluded))
+        {
+            continue;
+        }
+
+        // can never push to a solid space
+        if (feat_is_solid(feat))
+            continue;
+
+        // Extra checks if we're moving a monster instead of an item
+        if (push_actor)
+        {
+            // these should get deep water and lava for cases where they matter
+            if (actor_at(*ai)
+                || !act->can_pass_through(*ai)
+                || !act->is_habitable(*ai))
+            {
+                continue;
+            }
+            results.push_back(*ai);
+        }
+        else
+        {
+            if (feat_has_solid_floor(feat))
+                results.push_back(*ai);
+            else if (starting_feat == DNGN_DEEP_WATER
+                && feat == DNGN_DEEP_WATER)
+            {
+                // Dispreferentially allow pushing items from deep water to
+                // deep water. Without this, zin imprison fails over deep
+                // water if there are items, even if the player can't see
+                // them.
+                bad_spots.push_back(*ai);
+            }
+            // otherwise, can't position an item on this spot
+        }
+    }
+    if (!results.empty())
+        return results;
+    return bad_spots;
+}
+
+bool has_push_spaces(const coord_def& pos, bool push_actor,
+                    const vector<coord_def>* excluded)
+{
+    return !get_push_spaces(pos, push_actor, excluded).empty();
+}
+
+/**
+ * Push items from `pos`, splashing them around whatever available spaces
+ * there are.
+ * @param pos the source position.
+ * @param excluded positions that are a priori unavailable.
+ *
+ * @return true if any items moved, false otherwise. (Will return false if there
+ *         were no items.)
+ */
+bool push_items_from(const coord_def& pos, const vector<coord_def>* excluded)
+{
+    vector<coord_def> targets = get_push_spaces(pos, false, excluded);
+    bool result = false;
+    if (targets.empty())
+        return false;
+    // TODO: splashing is flavorful, but how annoying is it in practice?
+    while (igrd(pos) != NON_ITEM)
+        result |= move_top_item(pos, targets[random2(targets.size())]);
+    return result;
+}
+
+/**
+ * Push an actor from `pos` to some available space, if possible.
+ *
+ * @param pos the source position.
+ * @param excluded excluded positions that are a priori unavailable.
+ * @param random whether to chose the position randomly, or deterministically.
+ *        (Useful for systematically moving a bunch of actors at once, when you
+ *        need to worry about domino effects.)
+ *
+ * @return the new coordinates for the actor.
+ */
+coord_def push_actor_from(const coord_def& pos,
+                          const vector<coord_def>* excluded, bool random)
+{
+    actor* act = actor_at(pos);
+    if (!act)
+        return coord_def(0,0);
+    vector<coord_def> targets = get_push_spaces(pos, true, excluded);
+    if (targets.empty())
+        return coord_def(0,0);
+    const coord_def newpos = random ? targets[random2(targets.size())]
+                                    : targets.front();
+    ASSERT(!newpos.origin());
+    act->move_to_pos(newpos);
+    // The new position of the monster is now an additional veto spot for
+    // monsters.
+    return newpos;
+}
+
+/** Close any door at the given position. Handles the grid change, but does not
+ * mark terrain or do any event handling.
+ *
+ * @param dest The location of the door.
+ */
+void dgn_close_door(const coord_def &dest)
+{
+    if (!feat_is_open_door(grd(dest)))
+        return;
+
+    if (grd(dest) == DNGN_OPEN_CLEAR_DOOR)
+        grd(dest) = DNGN_CLOSED_CLEAR_DOOR;
+    else
+        grd(dest) = DNGN_CLOSED_DOOR;
+}
+
+/** Open any door at the given position. Handles the grid change, but does not
+ * mark terrain or do any event handling.
+ *
+ * @param dest The location of the door.
+ */
+void dgn_open_door(const coord_def &dest)
+{
+    if (!feat_is_closed_door(grd(dest)))
+        return;
+
+    if (grd(dest) == DNGN_CLOSED_CLEAR_DOOR
+        || grd(dest) == DNGN_RUNED_CLEAR_DOOR)
+    {
+        grd(dest) = DNGN_OPEN_CLEAR_DOOR;
+    }
+    else
+        grd(dest) = DNGN_OPEN_DOOR;
 }

@@ -381,7 +381,6 @@ bool mcache_monster::get_weapon_offset(tileidx_t mon_tile,
         *ofs_y = 0;
         break;
     case TILEP_MONS_YAKTAUR_MELEE:
-    case TILEP_MONS_WIGHT:
         *ofs_x = 2;
         *ofs_y = 0;
         break;
@@ -466,6 +465,7 @@ bool mcache_monster::get_weapon_offset(tileidx_t mon_tile,
     case TILEP_MONS_SALAMANDER:
     case TILEP_MONS_VINE_STALKER:
     case TILEP_MONS_NECROPHAGE:
+    case TILEP_MONS_WIGHT:
         *ofs_x = -2;
         *ofs_y = -2;
         break;
@@ -531,6 +531,7 @@ bool mcache_monster::get_weapon_offset(tileidx_t mon_tile,
         *ofs_y = -1;
         break;
     case TILEP_MONS_MARGERY:
+    case TILEP_MONS_ERICA_SWORDLESS:
     case TILEP_MONS_FAUN:
         *ofs_x = 1;
         *ofs_y = -3;
@@ -779,6 +780,27 @@ bool mcache_monster::get_weapon_offset(tileidx_t mon_tile,
         *ofs_x = -5;
         *ofs_y = 5;
         break;
+    case TILEP_MONS_KILLER_KLOWN:
+        *ofs_x = 0;
+        *ofs_y = 4;
+        break;
+    case TILEP_MONS_KILLER_KLOWN_1:
+        *ofs_x = -4;
+        *ofs_y = -1;
+        break;
+    case TILEP_MONS_KILLER_KLOWN_2:
+        *ofs_x = -2;
+        *ofs_y = 4;
+        break;
+    case TILEP_MONS_KILLER_KLOWN_3:
+        *ofs_x = -2;
+        *ofs_y = -5;
+        break;
+    case TILEP_MONS_KILLER_KLOWN_4:
+        *ofs_x = 20;
+        *ofs_y = -10;
+        break;
+
     default:
         // This monster cannot be displayed with a weapon.
         return false;
@@ -810,7 +832,7 @@ bool mcache_monster::get_shield_offset(tileidx_t mon_tile,
 
     case TILEP_MONS_SAINT_ROKA:
     case TILEP_MONS_MINOTAUR:
-        *ofs_x = 3;
+        *ofs_x = 2;
         *ofs_y = 0;
         break;
 
@@ -1241,8 +1263,14 @@ bool mcache_monster::valid(const monster_info& mon)
     bool have_shield_offs = (mon.type == MONS_PLAYER
                              && Options.tile_shield_offsets.first != INT_MAX)
         || get_shield_offset(mon_tile, &ox, &oy);
-    return (mon.inv[MSLOT_WEAPON].get() != nullptr && have_weapon_offs)
-        || (mon.inv[MSLOT_SHIELD].get() != nullptr && have_shield_offs);
+    // Return true if the tile has a weapon offset and has a weapon,
+    // a shield offset and a shield, or is a dual-wielder and has a
+    // shield offset and an off-hand weapon (a valid edge case)
+    return have_weapon_offs && mon.inv[MSLOT_WEAPON]
+           || have_shield_offs
+              && (mon.inv[MSLOT_SHIELD]
+                  || mon.inv[MSLOT_ALT_WEAPON]
+                     && mons_class_wields_two_weapons(mon.type));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -1298,6 +1326,7 @@ mcache_ghost::mcache_ghost(const monster_info& mon)
     const uint32_t seed = hash32(&mon.mname[0], mon.mname.size())
                         ^ hash32(&mon.i_ghost, sizeof(mon.i_ghost));
 
+    m_doll.parts[TILEP_PART_BASE] = TILEP_SHOW_EQUIP;
     tilep_race_default(mon.i_ghost.species, 0, &m_doll);
     tilep_job_default(mon.i_ghost.job, &m_doll);
 
@@ -1305,18 +1334,21 @@ mcache_ghost::mcache_ghost(const monster_info& mon)
     {
         if (m_doll.parts[p] == TILEP_SHOW_EQUIP)
         {
-            int part_offset = hash_rand(tile_player_part_count[p], seed, p);
+            int part_offset = hash_with_seed(tile_player_part_count[p], seed, p);
             m_doll.parts[p] = tile_player_part_start[p] + part_offset;
         }
     }
 
     int ac = mon.i_ghost.ac;
-    ac *= (5 + hash_rand(11, seed, 1000));
+    ac *= (5 + hash_with_seed(11, seed, 1000));
     ac /= 10;
 
     // Become uncannily spooky!
     if (today_is_halloween())
         m_doll.parts[TILEP_PART_HELM] = TILEP_HELM_PUMPKIN;
+    else if (m_doll.parts[TILEP_PART_HELM] == TILEP_HELM_PUMPKIN)
+        m_doll.parts[TILEP_PART_HELM] = TILEP_HELM_FIRST_NORM; // every day is *not* halloween
+
 
     if (ac > 25)
         m_doll.parts[TILEP_PART_BODY] = TILEP_BODY_PLATE_BLACK;
@@ -1331,7 +1363,7 @@ mcache_ghost::mcache_ghost(const monster_info& mon)
 
     int sk = mon.i_ghost.best_skill;
     int dam = mon.i_ghost.damage;
-    dam *= (5 + hash_rand(11, seed, 1001));
+    dam *= (5 + hash_with_seed(11, seed, 1001));
     dam /= 10;
 
     switch (sk)
@@ -1446,16 +1478,16 @@ mcache_demon::mcache_demon(const monster_info& minf)
 
     m_demon.head = tile_player_coloured(TILEP_DEMON_HEAD,
                                         element_colour(minf.colour()))
-        + hash_rand(tile_player_count(TILEP_DEMON_HEAD), seed, 1);
+        + hash_with_seed(tile_player_count(TILEP_DEMON_HEAD), seed, 1);
     m_demon.body = tile_player_coloured(TILEP_DEMON_BODY,
                                         element_colour(minf.colour()))
-        + hash_rand(tile_player_count(TILEP_DEMON_BODY), seed, 2);
+        + hash_with_seed(tile_player_count(TILEP_DEMON_BODY), seed, 2);
 
     if (minf.is(MB_AIRBORNE))
     {
         m_demon.wings = tile_player_coloured(TILEP_DEMON_WINGS,
                                              element_colour(minf.colour()))
-            + hash_rand(tile_player_count(TILEP_DEMON_WINGS), seed, 3);
+            + hash_with_seed(tile_player_count(TILEP_DEMON_WINGS), seed, 3);
     }
     else
         m_demon.wings = 0;

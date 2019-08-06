@@ -5,11 +5,12 @@
 #include "tilereg-skl.h"
 
 #include "cio.h"
+#include "describe.h"
 #include "libutil.h"
 #include "options.h"
 #include "output.h"
-#include "process-desc.h"
 #include "skills.h"
+#include "stringutil.h"
 #include "tile-inventory-flags.h"
 #include "tiledef-icons.h"
 #include "tilepick.h"
@@ -71,8 +72,10 @@ int SkillRegion::handle_mouse(MouseEvent &event)
         }
 #endif
         m_last_clicked_item = item_idx;
-        if (!you.can_train[skill])
+        if (!you.can_currently_train[skill])
             mpr("You cannot train this skill.");
+        else if (you.species == SP_GNOLL)
+            mpr("Gnolls can't change their training allocations!");
         else if (you.skills[skill] >= 27)
             mpr("There's no point to toggling this skill anymore.");
         else
@@ -119,7 +122,7 @@ bool SkillRegion::update_tip_text(string& tip)
     const int flag = m_items[item_idx].flag;
     if (flag & TILEI_FLAG_INVALID)
         tip = "You cannot train this skill now.";
-    else
+    else if (you.species != SP_GNOLL)
     {
         const skill_type skill = (skill_type) m_items[item_idx].idx;
 
@@ -162,10 +165,7 @@ bool SkillRegion::update_alt_text(string &alt)
     // TODO: Nicer display for level, aptitude and crosstraining.
     inf.body << get_skill_description(skill, true);
 
-    alt_desc_proc proc(crawl_view.msgsz.x, crawl_view.msgsz.y);
-    process_description<alt_desc_proc>(proc, inf);
-    proc.get_string(alt);
-
+    alt = process_description(inf);
     return true;
 }
 
@@ -248,7 +248,7 @@ void SkillRegion::update()
         desc.idx      = idx;
         desc.quantity = you.skills[skill];
 
-        if (!you.can_train[skill] || you.skills[skill] >= 27)
+        if (!you.can_currently_train[skill] || you.skills[skill] >= 27)
             desc.flag |= TILEI_FLAG_INVALID;
 
         m_items.push_back(desc);

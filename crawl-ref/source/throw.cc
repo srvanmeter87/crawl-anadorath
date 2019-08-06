@@ -10,9 +10,11 @@
 #include <cmath>
 #include <sstream>
 
+#include "art-enum.h"
 #include "artefact.h"
 #include "chardump.h"
 #include "command.h"
+#include "coordit.h"
 #include "directn.h"
 #include "english.h"
 #include "env.h"
@@ -49,16 +51,18 @@
 
 static int  _fire_prompt_for_item();
 static bool _fire_validate_item(int selected, string& err);
+static int  _get_dart_chance(const int hd);
 
 bool is_penetrating_attack(const actor& attacker, const item_def* weapon,
                            const item_def& projectile)
 {
     return is_launched(&attacker, weapon, projectile) != launch_retval::FUMBLED
             && projectile.base_type == OBJ_MISSILES
-            && get_ammo_brand(projectile) == SPMSL_PENETRATION
+            && projectile.sub_type == MI_JAVELIN
            || weapon
               && is_launched(&attacker, weapon, projectile) == launch_retval::LAUNCHED
-              && get_weapon_brand(*weapon) == SPWPN_PENETRATION;
+              && (get_weapon_brand(*weapon) == SPWPN_PENETRATION
+                  || is_unrandom_artefact(*weapon, UNRAND_STORM_BOW));
 }
 
 bool item_is_quivered(const item_def &item)
@@ -167,9 +171,14 @@ void fire_target_behaviour::set_prompt()
     }
 
     // And a key hint.
-    msg << (no_other_items ? "(i - inventory)"
-                           : "(i - inventory. (,) - cycle)")
-        << ": ";
+    string key_hint = no_other_items
+                        ? "(<w>%</w> - inventory) "
+                        : "(<w>%</w> - inventory. <w>%</w>/<w>%</w> - cycle) ";
+    insert_commands(key_hint,
+                    { CMD_DISPLAY_INVENTORY,
+                      CMD_CYCLE_QUIVER_BACKWARD,
+                      CMD_CYCLE_QUIVER_FORWARD });
+    msg << key_hint;
 
     // Describe the selected item for firing.
     if (!active_item())
@@ -237,13 +246,25 @@ command_type fire_target_behaviour::get_command(int key)
     if (key == -1)
         key = get_key();
 
-    switch (key)
+    if (key == CMD_TARGET_CANCEL)
+        chosen_ammo = false;
+    else if (!(-key > CMD_NO_CMD && -key < CMD_MIN_SYNTHETIC)
+                    || context_for_command((command_type) -key) == KMC_DEFAULT)
     {
-    case '(': case CONTROL('N'): cycle_fire_item(true);  return CMD_NO_CMD;
-    case ')': case CONTROL('P'): cycle_fire_item(false); return CMD_NO_CMD;
-    case 'i': pick_fire_item_from_inventory(); return CMD_NO_CMD;
-    case '?': display_help(); return CMD_NO_CMD;
-    case CMD_TARGET_CANCEL: chosen_ammo = false; break;
+        // that check is really hacky, but if we don't do it mouse targeting
+        // produces all sorts of errors in the call below because the context
+        // isn't right; really we are in a targeting context now, and the use of
+        // KMC_DEFAULT below is also a hack. This whole context system could use
+        // some serious refactoring if commands are really supposed to work in
+        // multiple contexts.
+        switch (key_to_command(key, KMC_DEFAULT))
+        {
+        case CMD_CYCLE_QUIVER_BACKWARD: cycle_fire_item(true);  return CMD_NO_CMD;
+        case CMD_CYCLE_QUIVER_FORWARD: cycle_fire_item(false); return CMD_NO_CMD;
+        case CMD_DISPLAY_INVENTORY: pick_fire_item_from_inventory(); return CMD_NO_CMD;
+        case CMD_DISPLAY_COMMANDS: display_help(); return CMD_NO_CMD;
+        default: break;
+        }
     }
 
     return targeting_behaviour::get_command(key);
@@ -263,12 +284,79 @@ vector<string> fire_target_behaviour::get_monster_desc(const monster_info& mi)
         {
             descs.emplace_back("immune to nets");
         }
+
+        // Display the chance for a dart of para/confuse/sleep/frenzy
+        // to affect monster
+        if (item->is_type(OBJ_MISSILES, MI_DART))
+        {
+            special_missile_type brand = get_ammo_brand(*item);
+            if (brand == SPMSL_FRENZY || brand == SPMSL_BLINDING)
+            {
+                int chance = _get_dart_chance(mi.hd);
+                bool immune = false;
+                if (mi.holi & (MH_UNDEAD | MH_NONLIVING))
+                    immune = true;
+
+                string verb = brand == SPMSL_FRENZY ? "frenzy" : "blind";
+
+                string chance_string = immune ? "immune to darts" :
+                                       make_stringf("chance to %s on hit: %d%%",
+                                                    verb.c_str(), chance);
+                descs.emplace_back(chance_string);
+            }
+        }
     }
     return descs;
 }
 
+/**
+ *  Chance for a dart fired by the player to affect a monster of a particular
+ *  hit dice, given the player's throwing skill.
+ *
+ *    @param hd     The monster's hit dice.
+ *    @return       The percentage chance for the player to affect the monster,
+ *                  rounded down.
+ *
+ *  This chance is rolled in ranged_attack::dart_check using this formula for
+ *  success:
+ *      if hd < 15, fixed 3% chance to succeed regardless of roll
+ *      else, or if the 3% chance fails,
+ *            succeed if 2 + random2(4 + (2/3)*(throwing + stealth) ) >= hd
+ */
+static int _get_dart_chance(const int hd)
+{
+    const int pow = (2 * (you.skill_rdiv(SK_THROWING)
+                          + you.skill_rdiv(SK_STEALTH))) / 3;
+
+    int chance = 10000 - 10000 * (hd - 2) / (4 + pow);
+    chance = min(max(chance, 0), 10000);
+    if (hd < 15)
+    {
+        chance *= 97;
+        chance /= 100;
+        chance += 300; // 3% chance to ignore HD and affect enemy anyway
+    }
+    return chance / 100;
+}
+
+/**
+ *  Validate any item selected to be fired, and choose a target to fire at.
+ *
+ *  @param slot         The slot the item to be fired is in, or -1 if
+ *                      an item has not yet been chosen.
+ *  @param target       An empty variable of the dist class to store the
+ *                      target information in.
+ *  @param teleport     Does the player have portal projectile active?
+ *  @param fired_normally  True if the projectile was fired through the f
+ *                      command, false if fired through the F command.
+ *                      If true, if the player changes their mind about which
+ *                      item to fire, update the quivered item accordingly.
+ *  @return             Whether the item validation and target selection
+ *                      was successful.
+ */
 static bool _fire_choose_item_and_target(int& slot, dist& target,
-                                         bool teleport = false)
+                                         bool teleport = false,
+                                         bool fired_normally = true)
 {
     fire_target_behaviour beh;
     const bool was_chosen = (slot != -1);
@@ -310,8 +398,11 @@ static bool _fire_choose_item_and_target(int& slot, dist& target,
         return false;
     }
 
-    you.m_quiver.on_item_fired(*beh.active_item(), beh.chosen_ammo);
-    you.redraw_quiver = true;
+    if (fired_normally)
+    {
+        you.m_quiver.on_item_fired(*beh.active_item(), beh.chosen_ammo);
+        you.redraw_quiver = true;
+    }
     slot = beh.m_slot;
 
     return true;
@@ -326,7 +417,7 @@ static int _fire_prompt_for_item()
         return -1;
 
     int slot = prompt_invent_item("Fire/throw which item? (* to show all)",
-                                   MT_INVLIST,
+                                   menu_type::invlist,
                                    OSEL_THROWABLE, OPER_FIRE);
 
     if (slot == PROMPT_ABORT || slot == PROMPT_NOTHING)
@@ -380,7 +471,10 @@ bool fire_warn_if_impossible(bool silent)
                 mprf("You cannot throw anything while %s.", held_status());
             return true;
         }
-        else if (weapon->sub_type != WPN_BLOWGUN)
+        else
+#if TAG_MAJOR_VERSION == 34
+             if (weapon->sub_type != WPN_BLOWGUN)
+#endif
         {
             if (!silent)
             {
@@ -515,8 +609,12 @@ void throw_item_no_quiver()
         return;
     }
 
+    dist target;
+    if (!_fire_choose_item_and_target(slot, target, is_pproj_active(), false))
+        return;
+
     bolt beam;
-    throw_it(beam, slot);
+    throw_it(beam, slot, &target);
 }
 
 static bool _setup_missile_beam(const actor *agent, bolt &beam, item_def &item,
@@ -576,7 +674,7 @@ static bool _setup_missile_beam(const actor *agent, bolt &beam, item_def &item,
     }
 
     returning = item.base_type == OBJ_MISSILES
-                && get_ammo_brand(item) == SPMSL_RETURNING;
+                && item.sub_type == MI_BOOMERANG;
 
     if (item.base_type == OBJ_MISSILES
         && get_ammo_brand(item) == SPMSL_EXPLODING)
@@ -623,15 +721,11 @@ static void _throw_noise(actor* act, const bolt &pbolt, const item_def &ammo)
     if (is_launched(act, launcher, ammo) != launch_retval::LAUNCHED)
         return;
 
-    // Throwing and blowguns are silent...
     int         level = 0;
     const char* msg   = nullptr;
 
     switch (launcher->sub_type)
     {
-    case WPN_BLOWGUN:
-        return;
-
     case WPN_HUNTING_SLING:
         level = 1;
         msg   = "You hear a whirring sound.";
@@ -688,7 +782,9 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
 
     if (you.confused())
     {
-        thr.target = you.pos() + coord_def(random2(13)-6, random2(13)-6);
+        thr.target = you.pos();
+        thr.target.x += random2(13) - 6;
+        thr.target.y += random2(13) - 6;
         thr.isValid = true;
     }
     else if (target)
@@ -745,10 +841,21 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
         {
             // This block is roughly equivalent to bolt::affect_cell for
             // normal projectiles.
-            // FIXME: this does not handle exploding ammo!
             monster *m = monster_at(thr.target);
             if (m)
                 cancelled = stop_attack_prompt(m, false, thr.target);
+
+            if (!cancelled && (pbolt.is_explosion || pbolt.special_explosion))
+            {
+                for (adjacent_iterator ai(thr.target); ai; ++ai)
+                {
+                    if (cancelled)
+                        break;
+                    monster *am = monster_at(*ai);
+                    if (am)
+                        cancelled = stop_attack_prompt(am, false, *ai);
+                }
+            }
         }
         else
         {
@@ -847,15 +954,6 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
     if (teleport)
         returning = false;
 
-    if (returning && projected != launch_retval::FUMBLED)
-    {
-        const skill_type sk =
-            projected == launch_retval::THROWN ? SK_THROWING
-                                     : item_attack_skill(*you.weapon());
-        if (!one_chance_in(1 + skill_bump(sk)))
-            did_return = true;
-    }
-
     you.time_taken = you.attack_delay(&item).roll();
 
     // Create message.
@@ -899,14 +997,14 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
             Hints.hints_throw_counter++;
 
         // Dropping item copy, since the launched item might be different.
-        pbolt.drop_item = !did_return;
+        pbolt.drop_item = !returning;
         pbolt.fire();
 
         hit = !pbolt.hit_verb.empty();
 
         // The item can be destroyed before returning.
-        if (did_return && thrown_object_destroyed(&item, pbolt.target))
-            did_return = false;
+        if (returning && thrown_object_destroyed(&item, pbolt.target))
+            returning = false;
     }
 
     if (bow_brand == SPWPN_CHAOS || ammo_brand == SPMSL_CHAOS)
@@ -918,28 +1016,15 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
     if (ammo_brand == SPMSL_FRENZY)
         did_god_conduct(DID_HASTY, 6 + random2(3), true);
 
-    if (did_return)
+    if (returning)
     {
         // Fire beam in reverse.
         pbolt.setup_retrace();
         viewwindow();
         pbolt.fire();
-
-        msg::stream << item.name(DESC_THE) << " returns to your pack!"
-                    << endl;
-
-        // Player saw the item return.
-        if (!is_artefact(you.inv[throw_2]))
-            set_ident_flags(you.inv[throw_2], ISFLAG_KNOW_TYPE);
     }
     else
     {
-        // Should have returned but didn't.
-        if (returning && item_type_known(you.inv[throw_2]))
-        {
-            msg::stream << item.name(DESC_THE)
-                        << " fails to return to your pack!" << endl;
-        }
         dec_inv_item_quantity(throw_2, 1);
         if (unwielded)
             canned_msg(MSG_EMPTY_HANDED_NOW);
@@ -960,7 +1045,7 @@ bool throw_it(bolt &pbolt, int throw_2, dist *target)
         && projected != launch_retval::FUMBLED
         && will_have_passive(passive_t::shadow_attacks)
         && thrown.base_type == OBJ_MISSILES
-        && thrown.sub_type != MI_NEEDLE)
+        && thrown.sub_type != MI_DART)
     {
         dithmenos_shadow_throw(thr, item);
     }
@@ -1063,14 +1148,7 @@ bool mons_throw(monster* mons, bolt &beam, int msl, bool teleport)
 
     _throw_noise(mons, beam, item);
 
-    // decrease inventory
-    bool really_returns;
-    if (returning && !one_chance_in(mons_power(mons->type) + 3))
-        really_returns = true;
-    else
-        really_returns = false;
-
-    beam.drop_item = !really_returns;
+    beam.drop_item = !returning;
 
     // Redraw the screen before firing, in case the monster just
     // came into view and the screen hasn't been updated yet.
@@ -1080,7 +1158,7 @@ bool mons_throw(monster* mons, bolt &beam, int msl, bool teleport)
         beam.use_target_as_pos = true;
         beam.affect_cell();
         beam.affect_endpoint();
-        if (!really_returns)
+        if (!returning)
             beam.drop_object();
     }
     else
@@ -1088,11 +1166,11 @@ bool mons_throw(monster* mons, bolt &beam, int msl, bool teleport)
         beam.fire();
 
         // The item can be destroyed before returning.
-        if (really_returns && thrown_object_destroyed(&item, beam.target))
-            really_returns = false;
+        if (returning && thrown_object_destroyed(&item, beam.target))
+            returning = false;
     }
 
-    if (really_returns)
+    if (returning)
     {
         // Fire beam in reverse.
         beam.setup_retrace();

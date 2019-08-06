@@ -90,8 +90,11 @@ static mgen_data _pal_data(monster_type pal, int dur, god_type god,
     return _summon_data(you, pal, dur, god, spell);
 }
 
-spret_type cast_summon_butterflies(int pow, god_type god, bool fail)
+spret cast_summon_butterflies(int pow, god_type god, bool fail)
 {
+    if (otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
     bool success = false;
 
@@ -109,11 +112,14 @@ spret_type cast_summon_butterflies(int pow, god_type god, bool fail)
     if (!success)
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_small_mammal(int pow, god_type god, bool fail)
+spret cast_summon_small_mammal(int pow, god_type god, bool fail)
 {
+    if (otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
 
     monster_type mon = MONS_PROGRAM_BUG;
@@ -126,10 +132,10 @@ spret_type cast_summon_small_mammal(int pow, god_type god, bool fail)
     if (!create_monster(_pal_data(mon, 3, god, SPELL_SUMMON_SMALL_MAMMAL)))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_sticks_to_snakes(int pow, god_type god, bool fail)
+spret cast_sticks_to_snakes(int pow, god_type god, bool fail)
 {
     // The first items placed into this list will be the first
     // to be converted; for players with bow skill we prefer
@@ -155,8 +161,12 @@ spret_type cast_sticks_to_snakes(int pow, god_type god, bool fail)
     if (valid_sticks.empty())
     {
         mpr("You don't have anything to turn into a snake.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
+
+    if (otr_stop_summoning_prompt("create snakes"))
+        return spret::abort;
+
     // Sort by the quantity if the player has no bow skill; this will
     // put arrows with the smallest quantity first in line
     // If the player has bow skill, we will already have plain arrows
@@ -222,11 +232,14 @@ spret_type cast_sticks_to_snakes(int pow, god_type god, bool fail)
     else
         mpr("You fail to create any snakes.");
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_call_canine_familiar(int pow, god_type god, bool fail)
+spret cast_call_canine_familiar(int pow, god_type god, bool fail)
 {
+    if (otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
     monster_type mon = MONS_PROGRAM_BUG;
 
@@ -244,10 +257,10 @@ spret_type cast_call_canine_familiar(int pow, god_type god, bool fail)
     if (!create_monster(_pal_data(mon, dur, god, SPELL_CALL_CANINE_FAMILIAR)))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_ice_beast(int pow, god_type god, bool fail)
+spret cast_summon_ice_beast(int pow, god_type god, bool fail)
 {
     fail_check();
     const int dur = min(2 + (random2(pow) / 4), 4);
@@ -261,11 +274,14 @@ spret_type cast_summon_ice_beast(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_monstrous_menagerie(actor* caster, int pow, god_type god, bool fail)
+spret cast_monstrous_menagerie(actor* caster, int pow, god_type god, bool fail)
 {
+    if (caster->is_player() && otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
     monster_type type = MONS_PROGRAM_BUG;
 
@@ -327,10 +343,10 @@ spret_type cast_monstrous_menagerie(actor* caster, int pow, god_type god, bool f
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_hydra(actor *caster, int pow, god_type god, bool fail)
+spret cast_summon_hydra(actor *caster, int pow, god_type god, bool fail)
 {
     fail_check();
     // Power determines number of heads. Minimum 4 heads, maximum 12.
@@ -350,7 +366,7 @@ spret_type cast_summon_hydra(actor *caster, int pow, god_type god, bool fail)
     else if (caster->is_player())
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static monster_type _choose_dragon_type(int pow, god_type god, bool player)
@@ -373,14 +389,17 @@ static monster_type _choose_dragon_type(int pow, god_type god, bool player)
     return mon;
 }
 
-spret_type cast_dragon_call(int pow, bool fail)
+spret cast_dragon_call(int pow, bool fail)
 {
     if (you.duration[DUR_DRAGON_CALL]
         || you.duration[DUR_DRAGON_CALL_COOLDOWN])
     {
         mpr("You cannot issue another dragon's call so soon.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
+
+    if (otr_stop_summoning_prompt("call dragons"))
+        return spret::abort;
 
     fail_check();
 
@@ -389,7 +408,7 @@ spret_type cast_dragon_call(int pow, bool fail)
 
     you.duration[DUR_DRAGON_CALL] = (15 + pow / 5 + random2(15)) * BASELINE_DELAY;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static void _place_dragon()
@@ -537,7 +556,7 @@ void doom_howl(int time)
     }
 }
 
-spret_type cast_summon_dragon(actor *caster, int pow, god_type god, bool fail)
+spret cast_summon_dragon(actor *caster, int pow, god_type god, bool fail)
 {
     // Dragons are always friendly. Dragon type depends on power and
     // random chance, with two low-tier dragons possible at high power.
@@ -569,10 +588,10 @@ spret_type cast_summon_dragon(actor *caster, int pow, god_type god, bool fail)
     if (!success && caster->is_player())
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_mana_viper(int pow, god_type god, bool fail)
+spret cast_summon_mana_viper(int pow, god_type god, bool fail)
 {
     fail_check();
 
@@ -588,7 +607,7 @@ spret_type cast_summon_mana_viper(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 // This assumes that the specified monster can go berserk.
@@ -699,7 +718,7 @@ bool summon_holy_warrior(int pow, bool punish)
  * information about invisible enemies. (Not implemented as a macro because I
  * find they create unreadable code.)
  *
- * @return SPRET_SUCCESS
+ * @return spret::success
  **/
 static bool _fail_tukimas()
 {
@@ -887,7 +906,7 @@ void cast_tukimas_dance(int pow, actor* target)
     _animate_weapon(pow, target);
 }
 
-spret_type cast_conjure_ball_lightning(int pow, god_type god, bool fail)
+spret cast_conjure_ball_lightning(int pow, god_type god, bool fail)
 {
     fail_check();
     bool success = false;
@@ -915,10 +934,10 @@ spret_type cast_conjure_ball_lightning(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_lightning_spire(int pow, const coord_def& where, god_type god, bool fail)
+spret cast_summon_lightning_spire(int pow, const coord_def& where, god_type god, bool fail)
 {
     const int dur = 2;
 
@@ -927,13 +946,13 @@ spret_type cast_summon_lightning_spire(int pow, const coord_def& where, god_type
         || !in_bounds(where))
     {
         mpr("That's too far away.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     if (!monster_habitable_grid(MONS_HUMAN, grd(where)))
     {
         mpr("You can't construct there.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     monster* mons = monster_at(where);
@@ -942,14 +961,14 @@ spret_type cast_summon_lightning_spire(int pow, const coord_def& where, god_type
         if (you.can_see(*mons))
         {
             mpr("That space is already occupied.");
-            return SPRET_ABORT;
+            return spret::abort;
         }
 
         fail_check();
 
         // invisible monster
         mpr("Something you can't see is blocking your construction!");
-        return SPRET_SUCCESS;
+        return spret::success;
     }
 
     fail_check();
@@ -967,11 +986,11 @@ spret_type cast_summon_lightning_spire(int pow, const coord_def& where, god_type
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 
 }
 
-spret_type cast_summon_guardian_golem(int pow, god_type god, bool fail)
+spret cast_summon_guardian_golem(int pow, god_type god, bool fail)
 {
     fail_check();
 
@@ -992,7 +1011,7 @@ spret_type cast_summon_guardian_golem(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 /**
@@ -1030,9 +1049,9 @@ static map<monster_type, const char*> _imp_summon_messages = {
  * @param pow   The spellpower at which the spell is being cast.
  * @param god   The god of the caster.
  * @param fail  Whether the caster (you) failed to cast the spell.
- * @return      SPRET_FAIL if fail is true; SPRET_SUCCESS otherwise.
+ * @return      spret::fail if fail is true; spret::success otherwise.
  */
-spret_type cast_call_imp(int pow, god_type god, bool fail)
+spret cast_call_imp(int pow, god_type god, bool fail)
 {
     fail_check();
 
@@ -1052,7 +1071,7 @@ spret_type cast_call_imp(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static bool _summon_demon_wrapper(int pow, god_type god, int spell,
@@ -1146,31 +1165,41 @@ bool summon_demon_type(monster_type mon, int pow, god_type god,
                                  friendly, false, false);
 }
 
-spret_type cast_summon_demon(int pow, god_type god, bool fail)
+spret cast_summon_demon(int pow, god_type god, bool fail)
 {
+    // Chaos spawn, orange demons and sixfirhies are not rPois
+    if (otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
     mpr("You open a gate to Pandemonium!");
 
     if (!_summon_common_demon(pow, god, SPELL_SUMMON_DEMON, false))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_summon_greater_demon(int pow, god_type god, bool fail)
+spret cast_summon_greater_demon(int pow, god_type god, bool fail)
 {
+    if (otr_stop_summoning_prompt())
+        return spret::abort;
+
     fail_check();
     mpr("You open a gate to Pandemonium!");
 
     if (!_summon_greater_demon(pow, god, SPELL_SUMMON_GREATER_DEMON, false))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_shadow_creatures(int st, god_type god, level_id place,
+spret cast_shadow_creatures(int st, god_type god, level_id place,
                                  bool fail)
 {
+    if (otr_stop_summoning_prompt("summon"))
+        return spret::abort;
+
     fail_check();
     const bool scroll = (st == MON_SUMM_SCROLL);
     mpr("Wisps of shadow whirl around you...");
@@ -1247,7 +1276,7 @@ spret_type cast_shadow_creatures(int st, god_type god, level_id place,
     if (!num_created)
         mpr("The shadows disperse without effect.");
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 bool can_cast_malign_gateway()
@@ -1291,7 +1320,7 @@ coord_def find_gateway_location(actor* caster)
     return points[random2(points.size())];
 }
 
-spret_type cast_malign_gateway(actor * caster, int pow, god_type god, bool fail)
+spret cast_malign_gateway(actor * caster, int pow, god_type god, bool fail)
 {
     coord_def point = find_gateway_location(caster);
     bool success = (point != coord_def(0, 0));
@@ -1321,16 +1350,16 @@ spret_type cast_malign_gateway(actor * caster, int pow, god_type god, bool fail)
         mprf(MSGCH_WARN, "The dungeon shakes, a horrible noise fills the air, "
                          "and a portal to some otherworldly place is opened!");
 
-        return SPRET_SUCCESS;
+        return spret::success;
     }
     // We don't care if monsters fail to cast it.
     if (is_player)
         mpr("A gateway cannot be opened in this cramped space!");
 
-    return SPRET_ABORT;
+    return spret::abort;
 }
 
-spret_type cast_summon_horrible_things(int pow, god_type god, bool fail)
+spret cast_summon_horrible_things(int pow, god_type god, bool fail)
 {
     fail_check();
     if (god == GOD_NO_GOD && one_chance_in(5))
@@ -1367,7 +1396,7 @@ spret_type cast_summon_horrible_things(int pow, god_type god, bool fail)
     if (!count)
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static bool _water_adjacent(coord_def p)
@@ -1388,11 +1417,11 @@ static bool _water_adjacent(coord_def p)
  * @param pow    The spell power.
  * @param god    The god of the summoned dryad (usually the caster's).
  * @param fail   Did this spell miscast? If true, abort the cast.
- * @return       SPRET_ABORT if a summoning area couldn't be found,
- *               SPRET_FAIL if one could be found but we miscast, and
- *               SPRET_SUCCESS if the spell was successfully cast.
+ * @return       spret::abort if a summoning area couldn't be found,
+ *               spret::fail if one could be found but we miscast, and
+ *               spret::success if the spell was successfully cast.
 */
-spret_type cast_summon_forest(actor* caster, int pow, god_type god, bool fail)
+spret cast_summon_forest(actor* caster, int pow, god_type god, bool fail)
 {
     const int duration = random_range(120 + pow, 200 + pow * 3 / 2);
 
@@ -1409,6 +1438,9 @@ spret_type cast_summon_forest(actor* caster, int pow, god_type god, bool fail)
 
     if (success)
     {
+        if (otr_stop_summoning_prompt("summon a forest"))
+            return spret::abort;
+
         fail_check();
         // Replace some rock walls with trees, then scatter a smaller number
         // of trees on unoccupied floor (such that they do not break connectivity)
@@ -1475,11 +1507,11 @@ spret_type cast_summon_forest(actor* caster, int pow, god_type god, bool fail)
 
         you.duration[DUR_FORESTED] = duration;
 
-        return SPRET_SUCCESS;
+        return spret::success;
     }
 
     mpr("You need more open space to cast this spell.");
-    return SPRET_ABORT;
+    return spret::abort;
 }
 
 static bool _animatable_remains(const item_def& item)
@@ -1701,7 +1733,9 @@ static bool _raise_remains(const coord_def &pos, int corps, beh_type beha,
         *motions_r |= DEAD_ARE_HOPPING;
     }
     else if (mons_genus(zombie_type)    == MONS_WORKER_ANT
+#if TAG_MAJOR_VERSION == 34
              || mons_genus(zombie_type) == MONS_BEETLE
+#endif
              || mons_base_char(zombie_type) == 's') // many genera
     {
         *motions_r |= DEAD_ARE_CRAWLING;
@@ -1820,7 +1854,7 @@ int animate_dead(actor *caster, int /*pow*/, beh_type beha,
     return number_raised;
 }
 
-spret_type cast_animate_skeleton(god_type god, bool fail)
+spret cast_animate_skeleton(god_type god, bool fail)
 {
     bool found = false;
 
@@ -1837,7 +1871,7 @@ spret_type cast_animate_skeleton(god_type god, bool fail)
     if (!found)
     {
         mpr("There is nothing here that can be animated!");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
@@ -1853,7 +1887,7 @@ spret_type cast_animate_skeleton(god_type god, bool fail)
     {
         if (animate_skel_result == 0)
             mpr(no_space);
-        return SPRET_SUCCESS;
+        return spret::success;
     }
 
     // If not, look for a corpse and butcher it.
@@ -1863,7 +1897,7 @@ spret_type cast_animate_skeleton(god_type god, bool fail)
             && mons_skeleton(si->mon_type)
             && mons_class_can_be_zombified(si->mon_type))
         {
-            butcher_corpse(*si, MB_TRUE);
+            butcher_corpse(*si, true);
             mpr("Before your eyes, flesh is ripped from the corpse!");
             request_autopickup();
             // Only convert the top one.
@@ -1890,10 +1924,10 @@ spret_type cast_animate_skeleton(god_type god, bool fail)
             break;
     }
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
-spret_type cast_animate_dead(int pow, god_type god, bool fail)
+spret cast_animate_dead(int pow, god_type god, bool fail)
 {
     fail_check();
     canned_msg(MSG_CALL_DEAD);
@@ -1901,7 +1935,7 @@ spret_type cast_animate_dead(int pow, god_type god, bool fail)
     if (!animate_dead(&you, pow + 1, BEH_FRIENDLY, MHITYOU, &you, "", god))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 /**
@@ -1909,11 +1943,11 @@ spret_type cast_animate_dead(int pow, god_type god, bool fail)
  *
  * @param pow The spell power.
  * @param god The god casting the spell.
- * @param fail If true, return SPRET_FAIL unless the spell is aborted.
- * @returns SPRET_ABORT if no viable corpse was at the player's location,
- *          otherwise SPRET_TRUE or SPRET_FAIL based on fail.
+ * @param fail If true, return spret::fail unless the spell is aborted.
+ * @return spret::abort if no viable corpse was at the player's location,
+ *         otherwise spret::success or spret::fail based on fail.
  */
-spret_type cast_simulacrum(int pow, god_type god, bool fail)
+spret cast_simulacrum(int pow, god_type god, bool fail)
 {
     bool found = false;
     int co = -1;
@@ -1930,7 +1964,7 @@ spret_type cast_simulacrum(int pow, god_type god, bool fail)
     if (!found)
     {
         mpr("There is nothing here that can be animated!");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
@@ -1957,8 +1991,8 @@ spret_type cast_simulacrum(int pow, god_type god, bool fail)
             mprf("The headless hydra simulacr%s immediately collapse%s into snow!",
                  how_many == 1 ? "um" : "a", how_many == 1 ? "s" : "");
             if (!turn_corpse_into_skeleton(corpse))
-                butcher_corpse(corpse, MB_FALSE, false);
-            return SPRET_SUCCESS;
+                butcher_corpse(corpse, false, false);
+            return spret::success;
         }
         mg.props[MGEN_NUM_HEADS] = corpse.props[CORPSE_HEADS].get_short();
     }
@@ -1976,9 +2010,9 @@ spret_type cast_simulacrum(int pow, god_type god, bool fail)
     if (!count)
         canned_msg(MSG_NOTHING_HAPPENS);
     else if (!turn_corpse_into_skeleton(corpse))
-        butcher_corpse(corpse, MB_FALSE, false);
+        butcher_corpse(corpse, false, false);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 /**
@@ -2248,7 +2282,7 @@ monster_type pick_random_wraith()
                                   2, MONS_PHANTASMAL_WARRIOR);
 }
 
-spret_type cast_haunt(int pow, const coord_def& where, god_type god, bool fail)
+spret cast_haunt(int pow, const coord_def& where, god_type god, bool fail)
 {
     monster* m = monster_at(where);
 
@@ -2256,19 +2290,19 @@ spret_type cast_haunt(int pow, const coord_def& where, god_type god, bool fail)
     {
         fail_check();
         mpr("An evil force gathers, but it quickly dissipates.");
-        return SPRET_SUCCESS; // still losing a turn
+        return spret::success; // still losing a turn
     }
     else if (m->wont_attack())
     {
         mpr("You cannot haunt those who bear you no hostility.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     int mi = m->mindex();
     ASSERT(!invalid_monster_index(mi));
 
     if (stop_attack_prompt(m, false, you.pos()))
-        return SPRET_ABORT;
+        return spret::abort;
 
     fail_check();
 
@@ -2310,10 +2344,10 @@ spret_type cast_haunt(int pow, const coord_def& where, god_type god, bool fail)
     else
     {
         canned_msg(MSG_NOTHING_HAPPENS);
-        return SPRET_SUCCESS;
+        return spret::success;
     }
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 
@@ -2424,7 +2458,7 @@ void init_servitor(monster* servitor, actor* caster)
     servitor->props["ideal_range"].get_int() = shortest_range;
 }
 
-spret_type cast_spellforged_servitor(int pow, god_type god, bool fail)
+spret cast_spellforged_servitor(int pow, god_type god, bool fail)
 {
     fail_check();
 
@@ -2436,7 +2470,7 @@ spret_type cast_spellforged_servitor(int pow, god_type god, bool fail)
     else
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static int _abjuration(int pow, monster *mon)
@@ -2486,7 +2520,7 @@ static int _abjuration(int pow, monster *mon)
     return true;
 }
 
-spret_type cast_aura_of_abjuration(int pow, bool fail)
+spret cast_aura_of_abjuration(int pow, bool fail)
 {
     fail_check();
 
@@ -2498,7 +2532,7 @@ spret_type cast_aura_of_abjuration(int pow, bool fail)
     you.increase_duration(DUR_ABJURATION_AURA,  6 + roll_dice(2, pow / 12), 50);
     you.props["abj_aura_pow"].get_int() = pow;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 void do_aura_of_abjuration(int delay)
@@ -2516,7 +2550,7 @@ monster* find_battlesphere(const actor* agent)
         return nullptr;
 }
 
-spret_type cast_battlesphere(actor* agent, int pow, god_type god, bool fail)
+spret cast_battlesphere(actor* agent, int pow, god_type god, bool fail)
 {
     fail_check();
 
@@ -2589,7 +2623,7 @@ spret_type cast_battlesphere(actor* agent, int pow, god_type god, bool fail)
             canned_msg(MSG_NOTHING_HAPPENS);
     }
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 void end_battlesphere(monster* mons, bool killed)
@@ -2631,7 +2665,7 @@ void end_battlesphere(monster* mons, bool killed)
 
 bool battlesphere_can_mirror(spell_type spell)
 {
-    return (spell_typematch(spell, SPTYP_CONJURATION)
+    return (spell_typematch(spell, spschool::conjuration)
            && spell_to_zap(spell) != NUM_ZAPS)
            || spell == SPELL_FREEZE
            || spell == SPELL_STICKY_FLAME
@@ -2947,7 +2981,7 @@ bool fire_battlesphere(monster* mons)
     return used;
 }
 
-spret_type cast_fulminating_prism(actor* caster, int pow,
+spret cast_fulminating_prism(actor* caster, int pow,
                                   const coord_def& where, bool fail)
 {
     if (grid_distance(where, caster->pos())
@@ -2955,14 +2989,14 @@ spret_type cast_fulminating_prism(actor* caster, int pow,
     {
         if (caster->is_player())
             mpr("That's too far away.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     if (cell_is_solid(where))
     {
         if (caster->is_player())
             mpr("You can't conjure that within a solid object!");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     actor* victim = monster_at(where);
@@ -2972,7 +3006,7 @@ spret_type cast_fulminating_prism(actor* caster, int pow,
         {
             if (caster->is_player())
                 mpr("You can't place the prism on a creature.");
-            return SPRET_ABORT;
+            return spret::abort;
         }
 
         fail_check();
@@ -2989,7 +3023,7 @@ spret_type cast_fulminating_prism(actor* caster, int pow,
             else
                 canned_msg(MSG_GHOSTLY_OUTLINE);
         }
-        return SPRET_SUCCESS;      // Don't give free detection!
+        return spret::success;      // Don't give free detection!
     }
 
     fail_check();
@@ -3019,7 +3053,7 @@ spret_type cast_fulminating_prism(actor* caster, int pow,
     else if (you.can_see(*caster))
         canned_msg(MSG_NOTHING_HAPPENS);
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 monster* find_spectral_weapon(const actor* agent)
@@ -3036,7 +3070,7 @@ bool weapon_can_be_spectral(const item_def *wpn)
         && !is_special_unrandom_artefact(*wpn);
 }
 
-spret_type cast_spectral_weapon(actor *agent, int pow, god_type god, bool fail)
+spret cast_spectral_weapon(actor *agent, int pow, god_type god, bool fail)
 {
     ASSERT(agent);
 
@@ -3058,7 +3092,7 @@ spret_type cast_spectral_weapon(actor *agent, int pow, god_type god, bool fail)
                 mpr(you.hands_act("twitch", "."));
         }
 
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
@@ -3084,7 +3118,7 @@ spret_type cast_spectral_weapon(actor *agent, int pow, god_type god, bool fail)
         //if (agent->is_player())
             canned_msg(MSG_NOTHING_HAPPENS);
 
-        return SPRET_SUCCESS;
+        return spret::success;
     }
 
     if (agent->is_player())
@@ -3109,7 +3143,7 @@ spret_type cast_spectral_weapon(actor *agent, int pow, god_type god, bool fail)
     mons->summoner = agent->mid;
     agent->props["spectral_weapon"].get_int() = mons->mid;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 void end_spectral_weapon(monster* mons, bool killed, bool quiet)
@@ -3230,12 +3264,12 @@ static void _setup_infestation(bolt &beam, int pow)
     beam.origin_spell = SPELL_INFESTATION;
 }
 
-spret_type cast_infestation(int pow, bolt &beam, bool fail)
+spret cast_infestation(int pow, bolt &beam, bool fail)
 {
     if (cell_is_solid(beam.target))
     {
         canned_msg(MSG_SOMETHING_IN_WAY);
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
@@ -3244,7 +3278,7 @@ spret_type cast_infestation(int pow, bolt &beam, bool fail)
     mpr("You call forth a plague of scarabs!");
     beam.explode();
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 struct summon_cap

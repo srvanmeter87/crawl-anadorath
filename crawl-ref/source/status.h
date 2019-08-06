@@ -49,9 +49,10 @@ enum status_type
 #endif
     STATUS_BRIBE,
     STATUS_CLOUD,
-    STATUS_BONE_ARMOUR,
     STATUS_ORB,
+#if TAG_MAJOR_VERSION == 34
     STATUS_DIVINE_ENERGY,
+#endif
     STATUS_STILL_WINDS,
     STATUS_MISSILES,
     STATUS_SERPENTS_LASH,
@@ -61,6 +62,10 @@ enum status_type
 
 struct status_info
 {
+    status_info() : light_colour(0)
+    {
+    };
+
     int light_colour;
     string light_text; // status light
     string short_text; // @: line
@@ -71,7 +76,7 @@ struct status_info
 // *info will be filled in as appropriate for current
 // character state
 // returns true if the status has a description
-bool fill_status_info(int status, status_info* info);
+bool fill_status_info(int status, status_info& info);
 
 const char *duration_name(duration_type dur);
 bool duration_dispellable(duration_type dur);

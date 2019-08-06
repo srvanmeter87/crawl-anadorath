@@ -8,6 +8,7 @@
 #include "cio.h"
 #include "describe.h"
 #include "env.h"
+#include "food.h"
 #include "invent.h"
 #include "item-name.h"
 #include "item-prop.h"
@@ -21,9 +22,10 @@
 #include "mon-util.h"
 #include "options.h"
 #include "output.h"
-#include "process-desc.h"
 #include "rot.h"
 #include "spl-book.h"
+#include "stringutil.h"
+#include "terrain.h"
 #include "tile-inventory-flags.h"
 #include "tiledef-dngn.h"
 #include "tiledef-icons.h"
@@ -55,7 +57,7 @@ void InventoryRegion::pack_buffers()
                     break;
 
                 int num_floor = tile_dngn_count(env.tile_default.floor);
-                tileidx_t t = env.tile_default.floor + m_flavour[i] % num_floor;
+                tileidx_t t = env.tile_default.floor + i % num_floor;
                 m_buf.add_dngn_tile(t, x, y);
             }
             else
@@ -231,14 +233,6 @@ static bool _can_use_item(const item_def &item, bool equipped)
         return false;
 #endif
 
-    // Vampires can drain corpses.
-    if (item.base_type == OBJ_CORPSES)
-    {
-        return you.species == SP_VAMPIRE
-               && item.sub_type != CORPSE_SKELETON
-               && mons_has_blood(item.mon_type);
-    }
-
     if (equipped && item.cursed())
     {
         // Evocable items (e.g. dispater staff) are still evocable when cursed.
@@ -332,8 +326,10 @@ bool InventoryRegion::update_tip_text(string& tip)
 
         if (item_is_stationary_net(item))
         {
+            actor *trapped = actor_at(item.pos);
             tip += make_stringf(" (holding %s)",
-                                net_holdee(item)->name(DESC_A).c_str());
+                            trapped ? trapped->name(DESC_A).c_str()
+                                    : "nobody"); // buggy net, but don't crash
         }
 
         if (!item_is_stationary(item))
@@ -349,23 +345,11 @@ bool InventoryRegion::update_tip_text(string& tip)
         if (item.base_type == OBJ_CORPSES
             && item.sub_type != CORPSE_SKELETON)
         {
-            tip += "\n[Shift + L-Click] ";
-            if (can_bottle_blood_from_corpse(item.mon_type))
-                tip += "Bottle blood";
-            else
-                tip += "Chop up";
-            tip += " (%)";
+            tip += "\n[Shift + L-Click] Chop up (%)";
             cmd.push_back(CMD_BUTCHER);
-
-            if (you.species == SP_VAMPIRE)
-            {
-                tip += "\n\n[Shift + R-Click] Drink blood (e)";
-                cmd.push_back(CMD_EAT);
-            }
         }
         else if (item.base_type == OBJ_FOOD
-                 && you.undead_state() != US_UNDEAD
-                 && you.species != SP_VAMPIRE)
+                 && !you_foodless())
         {
             tip += "\n[Shift + R-Click] Eat (e)";
             cmd.push_back(CMD_EAT);
@@ -434,15 +418,6 @@ bool InventoryRegion::update_tip_text(string& tip)
                 cmd.push_back(CMD_EVOKE);
                 break;
             case OBJ_MISCELLANY + EQUIP_OFFSET:
-                if (item.sub_type >= MISC_FIRST_DECK
-                    && item.sub_type <= MISC_LAST_DECK)
-                {
-                    tmp += "Draw a card (%)";
-                    cmd.push_back(CMD_EVOKE_WIELDED);
-                    _handle_wield_tip(tmp, cmd, "\n[Ctrl + L-Click] ", true);
-                    break;
-                }
-                // else fall-through
             case OBJ_RODS + EQUIP_OFFSET:
                 tmp += "Evoke (%)";
                 cmd.push_back(CMD_EVOKE_WIELDED);
@@ -518,18 +493,8 @@ bool InventoryRegion::update_tip_text(string& tip)
                     _handle_wield_tip(tmp, cmd, "\n[Ctrl + L-Click] ", true);
                 break;
             case OBJ_CORPSES:
-                if (you.species == SP_VAMPIRE)
-                {
-                    tmp += "Drink blood (%)";
-                    cmd.push_back(CMD_EAT);
-                }
-
                 if (wielded)
-                {
-                    if (you.species == SP_VAMPIRE)
-                        tmp += "\n";
                     _handle_wield_tip(tmp, cmd, "\n[Ctrl + L-Click] ", true);
-                }
                 break;
             default:
                 tmp += "Use";
@@ -598,11 +563,7 @@ bool InventoryRegion::update_alt_text(string &alt)
     else
         get_item_desc(*item, inf);
 
-    alt_desc_proc proc(crawl_view.msgsz.x, crawl_view.msgsz.y);
-    process_description<alt_desc_proc>(proc, inf);
-
-    proc.get_string(alt);
-
+    alt = process_description(inf);
     return true;
 }
 
@@ -631,7 +592,7 @@ void InventoryRegion::draw_tag()
 
 void InventoryRegion::activate()
 {
-    if (inv_count() < 1)
+    if (inv_count() < 1 && you.num_turns > 0)
     {
         canned_msg(MSG_NOTHING_CARRIED);
         flush_prev_message();
@@ -651,12 +612,8 @@ static void _fill_item_info(InventoryTile &desc, const item_info &item)
         // -1 specifies don't display anything
         desc.quantity = (item.quantity == 1) ? -1 : item.quantity;
     }
-    else if (type == OBJ_WANDS
-             && ((item.flags & ISFLAG_KNOW_PLUSES)
-                 || item.used_count == ZAPCOUNT_EMPTY))
-    {
+    else if (type == OBJ_WANDS && item.flags & ISFLAG_KNOW_TYPE)
         desc.quantity = item.charges;
-    }
     else
         desc.quantity = -1;
 

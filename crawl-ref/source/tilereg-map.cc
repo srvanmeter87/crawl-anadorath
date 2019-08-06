@@ -16,7 +16,6 @@
 #include "viewgeom.h"
 
 MapRegion::MapRegion(int pixsz) :
-    m_buf(nullptr),
     m_dirty(true),
     m_far_view(false)
 {
@@ -30,11 +29,7 @@ MapRegion::MapRegion(int pixsz) :
 
 void MapRegion::on_resize()
 {
-    delete[] m_buf;
-
-    int size = mx * my;
-    m_buf    = new unsigned char[size];
-    memset(m_buf, 0, sizeof(unsigned char) * size);
+    m_buf.fill(0);
 }
 
 void MapRegion::init_colours()
@@ -56,20 +51,18 @@ void MapRegion::init_colours()
     m_colours[MF_STAIR_UP]      = Options.tile_upstairs_col;
     m_colours[MF_STAIR_DOWN]    = Options.tile_downstairs_col;
     m_colours[MF_STAIR_BRANCH]  = Options.tile_branchstairs_col;
-    m_colours[MF_PORTAL]        = Options.tile_portal_col;
     m_colours[MF_FEATURE]       = Options.tile_feature_col;
     m_colours[MF_WATER]         = Options.tile_water_col;
-    m_colours[MF_DEEP_WATER]    = Options.tile_deep_water_col;
     m_colours[MF_LAVA]          = Options.tile_lava_col;
     m_colours[MF_TRAP]          = Options.tile_trap_col;
     m_colours[MF_EXCL_ROOT]     = Options.tile_excl_centre_col;
     m_colours[MF_EXCL]          = Options.tile_excluded_col;
     m_colours[MF_PLAYER]        = Options.tile_player_col;
-}
-
-MapRegion::~MapRegion()
-{
-    delete[] m_buf;
+    m_colours[MF_DEEP_WATER]    = Options.tile_deep_water_col;
+    m_colours[MF_PORTAL]        = Options.tile_portal_col;
+    m_colours[MF_TRANSPORTER]   = Options.tile_transporter_col;
+    m_colours[MF_TRANSPORTER_LANDING] = Options.tile_transporter_landing_col;
+    m_colours[MF_EXPLORE_HORIZON] = Options.tile_explore_horizon_col;
 }
 
 void MapRegion::pack_buffers()
@@ -80,7 +73,7 @@ void MapRegion::pack_buffers()
     for (int x = m_min_gx; x <= m_max_gx; x++)
         for (int y = m_min_gy; y <= m_max_gy; y++)
         {
-            map_feature f = (map_feature)m_buf[x + y * mx];
+            map_feature f = (map_feature)m_buf[x + y * GXM];
 
             float pos_x = x - m_min_gx;
             float pos_y = y - m_min_gy;
@@ -96,6 +89,7 @@ void MapRegion::pack_buffers()
     float pos_ex = (m_win_end.x - m_min_gx) - 1 / (float)dx;
     float pos_ey = (m_win_end.y - m_min_gy) - 1 / (float)dy;
 
+    set_transform();
     m_buf_lines.add_square(pos_sx, pos_sy, pos_ex, pos_ey,
                            Options.tile_window_col);
 }
@@ -115,8 +109,10 @@ void MapRegion::render()
     }
 
     set_transform();
+    glmanager->set_scissor(sx, sy, wx, wy);
     m_buf_map.draw();
     m_buf_lines.draw();
+    glmanager->reset_scissor();
 }
 
 void MapRegion::recenter()
@@ -129,7 +125,7 @@ void MapRegion::recenter()
 void MapRegion::set(const coord_def &gc, map_feature f)
 {
     ASSERT((unsigned int)f <= (unsigned char)~0);
-    m_buf[gc.x + gc.y * mx] = f;
+    m_buf[gc.x + gc.y * GXM] = f;
 
     if (f == MF_UNSEEN)
         return;
@@ -158,7 +154,7 @@ void MapRegion::update_bounds()
     for (int x = min_gx; x <= max_gx; x++)
         for (int y = min_gy; y <= max_gy; y++)
         {
-            map_feature f = (map_feature)m_buf[x + y * mx];
+            map_feature f = (map_feature)m_buf[x + y * GXM];
             if (f == MF_UNSEEN)
                 continue;
 
@@ -193,9 +189,7 @@ void MapRegion::clear()
 
     recenter();
 
-    if (m_buf)
-        memset(m_buf, 0, sizeof(*m_buf) * mx * my);
-
+    m_buf.fill(0);
     m_buf_map.clear();
     m_buf_lines.clear();
 }
@@ -231,15 +225,16 @@ int MapRegion::handle_mouse(MouseEvent &event)
         if (m_far_view)
             tiles.load_dungeon(gc);
         return 0;
-    case MouseEvent::PRESS:
 #ifdef TOUCH_UI
+    case MouseEvent::WHEEL:
         // ctrl-rolley-wheel on the minimap (this ensures busting out of minimap when zooming in again on very small layouts)
-        if ( (event.mod & TILES_MOD_CTRL)
-        && (event.button == MouseEvent::SCROLL_UP || event.button == MouseEvent::SCROLL_DOWN))
+        if (event.mod & TILES_MOD_CTRL)
         {
             tiles.zoom_dungeon(event.button == MouseEvent::SCROLL_UP);
             return CK_NO_KEY; // prevents this being handled by the dungeon underneath too(!)
         }
+        return 0;
+    case MouseEvent::PRESS:
         if (event.button == MouseEvent::LEFT)
         {
             m_far_view = true;
@@ -257,6 +252,7 @@ int MapRegion::handle_mouse(MouseEvent &event)
             m_far_view = false;
         return 0;
 #else
+    case MouseEvent::PRESS:
         if (event.button == MouseEvent::LEFT)
         {
             if (event.mod & TILES_MOD_SHIFT)
@@ -305,8 +301,7 @@ bool MapRegion::update_tip_text(string& tip)
     tip = "[L-Click] Enable map mode";
 #else
     tip = "[L-Click] Travel / [R-Click] View";
-    if (!player_in_branch(BRANCH_LABYRINTH)
-        && (you.hunger_state > HS_STARVING || you_min_hunger())
+    if ((you.hunger_state > HS_STARVING || you_min_hunger())
         && i_feel_safe())
     {
         tip += "\n[Shift + L-Click] Autoexplore";

@@ -26,7 +26,7 @@ enum class spschool
   earth          = 1<<10,
   air            = 1<<11,
   LAST_SCHOOL    = spschool::air,
-  random         = LAST_SCHOOL << 1,
+  random         = spschool::LAST_SCHOOL << 1,
 };
 DEF_BITFIELD(spschools_type, spschool, 11);
 const int SPSCHOOL_LAST_EXPONENT = spschools_type::last_exponent;
