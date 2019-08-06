@@ -76,5 +76,5 @@ spret cast_ignition(const actor *caster, int pow, bool fail);
 
 spret cast_borgnjors_vile_clutch(int pow, bolt &beam, bool fail);
 
-spret_type cast_elemental_blast(const spell_type spell, int powc, dist spd,
+spret cast_elemental_blast(const spell_type spell, int powc, dist spd,
                                 bolt& beam, bool fail);

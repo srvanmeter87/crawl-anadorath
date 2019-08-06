@@ -662,18 +662,18 @@ static const ability_def Ability_List[] =
     { ABIL_WU_JIAN_WALLJUMP, "Wall Jump",
         0, 0, 0, 0, {}, abflag::starve_ok | abflag::berserk_ok },
 
-    { ABIL_STOP_RECALL, "Stop Recall", 0, 0, 0, 0, {fail_basis::invo}, abflag::none },
+    { ABIL_STOP_RECALL, "Stop Recall", 0, 0, 0, 0, {fail_basis::invo}, abflag::starve_ok },
 
     // Anadorath
     { ABIL_ANADORATH_ELEMENTAL_BLAST, "Elemental Blast",
-      0, 10, 750, 0, {fail_basis::invo, 60, 4, 20}, abflag::none },
+      0, 10, 750, 0, {fail_basis::invo, 60, 4, 20}, abflag::starve_ok },
     /*  { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
           5, 0, 300, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath }, */
 
     { ABIL_RENOUNCE_RELIGION, "Renounce Religion",
-      0, 0, 0, 0, {fail_basis::invo}, abflag::none },
+      0, 0, 0, 0, {fail_basis::invo}, abflag::starve_ok },
     { ABIL_CONVERT_TO_BEOGH, "Convert to Beogh",
-      0, 0, 0, 0, {fail_basis::invo}, abflag::none },
+      0, 0, 0, 0, {fail_basis::invo}, abflag::starve_ok },
 };
 
 static const ability_def& get_ability_def(ability_type abil)
