@@ -939,6 +939,12 @@ A scroll that allows its reader to teleport a short distance, with precise
 control. Be wary that controlled teleports will cause the subject to become
 contaminated with magical energy.
 %%%%
+scroll of brand ammunition
+
+An interesting commodity: a scroll that contains just enough magical
+power to imbue ammunition such as stones, arrows, or boomerangs with a
+random brand. Any existing brand will be replaced.
+%%%%
 scroll of brand armour
 
 A rare scroll that imbues a piece of armour with a random ego, such as

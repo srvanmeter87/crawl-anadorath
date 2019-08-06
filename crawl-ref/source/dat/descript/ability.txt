@@ -14,7 +14,8 @@ Randomly translocates the user a short distance.
 Breathe Dispelling Energy ability
 
 Breathes a bolt of dispelling energy at a targeted creature, possibly removing
-some of its enchantments.
+some of its enchantments. The range of the bolt is decreased by one for every
+creature it strikes.
 %%%%
 Breathe Fire ability
 
@@ -51,19 +52,31 @@ for a short time. It may also splash onto other nearby creatures on impact.
 Breathe Steam ability
 
 Breathes a jet of steam at a targeted location, which will scald any creatures
-it hits and will also obscure vision.
+it hits and will also obscure vision. The range of the jet is decreased by one
+for every creature it strikes.
 %%%%
 Breathe Noxious Fumes ability
 
-Breathes a blast of noxious fumes at a targeted creature.
+Breathes a blast of noxious fumes at a targeted creature. The range of the blast
+is decreased by one for every creature it strikes.
 %%%%
 Bat Form ability
 
 Transforms the user into a swift-moving vampire bat, increasing evasion but
-substantially weakening melee attacks.
+substantially weakening melee attacks. The transformation drains the user's
+attributes.
 
 While tranformed, any equipped weapons, armour and rings are melded, and the
-user becomes unable to evoke wands or to cast spells.
+user becomes unable to cast spells.
+%%%%
+Exsanguinate ability
+
+Remove all of your blood, transitioning to a bloodless state.
+%%%%
+Revivify ability
+
+Return to life, transitioning from bloodless to alive. This process renders
+the user temporarily frail.
 %%%%
 Fly ability
 
@@ -93,6 +106,9 @@ Allows making tunnels through soft rock and rusted grates. Activating the
 ability has no cost and simply prepares you to start digging; once active,
 moving into a wall will start tunneling. Doing so makes some noise and causes
 hunger, and is a little slower than walking.
+
+Once active, activating the ability again or making any non-digging movement
+action will cancel the Dig status.
 %%%%
 Shaft Self ability
 
@@ -127,6 +143,10 @@ Releases a thick cloud of fog to obscure vision.
 Evoke Ratskin ability
 
 Summons up to two dungeon rats to serve their master for a brief time.
+%%%%
+Evoke Thunderclouds ability
+
+Create a mighty thunderclouds around the user.
 %%%%
 End Transformation ability
 
@@ -241,6 +261,8 @@ skeletons cannot leave the level they were created on.
 %%%%
 Drain Life ability
 
+# Note: part of this description duplicates the Drain Life spell description.
+
 Drains the life force of any nearby creatures, healing the user depending on
 the damage dealt. The amount of life force drained is increased by Invocations
 skill.
@@ -290,16 +312,6 @@ Summons a major demon. Failing to use this ability correctly will turn the
 demon hostile.
 %%%%
 # Sif Muna
-Divine Energy ability
-
-Calls on Sif Muna for divine energy. While active, Sif Muna will allow you to
-cast spells even with insufficient reserves of magic. Doing so will cause you
-to briefly lose access to your magic after the spell is cast.
-%%%%
-Stop Divine Energy ability
-
-Stops requesting divine energy from Sif Muna, no longer allowing you to cast
-spells without sufficient magical reserves.
 %%%%
 Channel Magic ability
 
@@ -310,14 +322,13 @@ Forget Spell ability
 
 Removes a known spell from memory, so as to free memory to learn others.
 %%%%
-# Trog
-Burn Spellbooks ability
+Divine Exegesis ability
 
-Sets all spellbooks within your field of vision on fire. The fire is fuelled by
-Trog's hatred, and it burns hotter than mere parchment would — which can be
-useful if you throw the book under someone's feet first. Trog greatly
-appreciates the burning of spellbooks.
+Casts any spell from your spell library with guaranteed success. You receive a
+bonus to spell power based on your Invocations skill that is worth 50% more
+than equivalent levels of training in the relevant skills of the spell itself.
 %%%%
+# Trog
 Berserk ability
 
 Sends the user into a berserk rage. Going berserk temporarily increases health,
@@ -363,8 +374,9 @@ Heals a creature other than yourself by a moderate amount, depending on
 Invocations skill. Using this ability on hostile monsters will try to turn them
 neutral. This works best on animals, and is less effective on humanoids and
 other intelligent creatures. Undead and demons are harder still to pacify.
-Mindless creatures cannot be pacified, and no monster can be pacified while it
-is asleep.
+Ghosts of dead adventurers and demon lords are too wrathful to be pacified,
+mindless creatures are too unintelligent to be pacified, and no monster can be
+pacified while it is asleep.
 
 Whether the pacification succeeds or not, the invested food, piety and magic
 points are lost. If it does succeed, the monster is healed and you gain half
@@ -423,22 +435,25 @@ distortion. This blessing may only be used once, and it cannot be used on
 artefact weapons.
 %%%%
 # Nemelex Xobeh
+Draw ability
+
+Draws a card from a deck of power.
+%%%%
 Triple Draw ability
 
-Draws three cards from any deck in your inventory, and allows you to choose one
-to keep, discarding the other two.
+Draws three cards from any deck, and allows you to choose one to play,
+discarding the other two.
 %%%%
 Deal Four ability
 
-Deals four cards from any unmarked deck in the time it normally takes to draw a
-single card. The rest of the deck is lost. If the deck does not contain enough
-cards, Nemelex will give you one extra card, but you might not like it.
+Deals four cards from a deck in the time it normally takes to draw a
+single card.
 %%%%
 Stack Five ability
 
-Shows you five cards from any unmarked deck in your inventory, losing the rest
-of the deck, and allows you to sort them into any order. Subsequently, you can
-draw these cards in the order you chose.
+Draws five cards from your choice of decks, and allows you to sort them into
+any order. Subsequently, you can draw these cards in the order you chose.
+Re-using this ability will discard the current stack.
 %%%%
 # Beogh
 Smiting ability
@@ -483,8 +498,8 @@ up completely, revealing the dungeon floor.
 %%%%
 Growth ability
 
-Uses fruit to grow a ring of plants around yourself. If a complete ring cannot
-be formed (because you do not have enough fruit), plants will grow on squares
+Uses food to grow a ring of plants around yourself. If a complete ring cannot
+be formed (because you do not have enough food), plants will grow on squares
 adjacent to you that are close to monsters. The plants you create gain bonus
 health proportional to your Invocations skill.
 %%%%
@@ -502,10 +517,11 @@ explode, causing damage to you or your enemies.
 %%%%
 Evolution ability
 
-Turns plants and fungi into stronger species. Upgrading fungi requires piety,
-while upgrading plants requires fruit. Upgraded plants gain a bonus to attack
+Turns plants and fungi into stronger species. Upgraded plants gain a bonus to attack
 accuracy proportional to the user's Invocations skill, and oklob plants are
 more likely to spit acid at higher Invocations.
+
+Upgrading fungi requires piety, while upgrading plants requires food.
 %%%%
 # Cheibriados
 Bend Time ability
@@ -563,7 +579,7 @@ Aborts an ongoing skill transfer.
 Shadow Step ability
 
 Allows you to step into the shadow of any hostile creature within your umbra,
-as long as they are immobile or asleep, landing adjacent to the target.
+landing on a random spot adjacent to the target.
 %%%%
 Shadow Form ability
 
@@ -585,7 +601,7 @@ Call Merchant ability
 
 Sends funds to a merchant to help them set up shop at your location. The cost of
 funding a shop increases with the number of shops funded.{{
-    if you.race() == "Mummy" then
+    if you.race() == "Mummy" or you.race() == "Vampire" then
         return
     end
 
@@ -593,8 +609,6 @@ funding a shop increases with the number of shops funded.{{
 
     if you.race() == "Ghoul" then
         desc = desc .. "carrion"
-    elseif you.race() == "Vampire" then
-        desc = desc .. "blood"
     else
         desc = desc .. "food"
     end
@@ -621,18 +635,6 @@ Readies a device surge, which triggers on your next usage of a magical device
 to strengthen its power at the cost of some magic. The amount of magical power
 that can be used for a surge varies, but correlates with how devoted a follower
 is to Pakellas.
-%%%%
-Quick Charge ability
-
-Spends two thirds of your current pool of magic to charge a wand. The
-effectiveness of this depends on your current pool of magic and your
-Evocations skill.
-%%%%
-Supercharge ability
-
-Infuses magical energy into a wand. Its capacity is significantly increased
-beyond normal and fully charged to this new capacity. This ability may only be
-used once.
 %%%%
 # Qazlal
 Upheaval ability
@@ -770,8 +772,8 @@ Accepting a sacrifice will reset the timer to the standard length.
 Stomp ability
 
 Stomps down in time with the rhythm of the dance, sending a shockwave through
-all adjacent creatures. The shockwave damages each creature by a percentage of
-its maximum health, with the percentage increasing with Invocations skill.
+all adjacent creatures. The shockwave damages each creature by a fraction of
+its current health, plus damage increasing with Invocations skill.
 %%%%
 Line Pass ability
 
@@ -851,13 +853,18 @@ undone.
 Ancestor Identity ability
 
 Recalls who your ancestor preferred to be known as, correcting their name and
-gender. This does not take any time.
+gender.
+%%%%
+Wall Jump ability
+
+Vaults off an adjacent wall towards enemies, striking all enemies adjacent to
+the landing spot and taking two turns to complete the motion.
 %%%%
 Serpent's Lash ability
 
-Allows you to move at supernatural speeds for a short distance, causing the
-next two movement actions taken to be instant. Martial attacks performed under
-the effect of Serpent's Lash are more effective.
+Allows you to move at supernatural speeds, making any movements up to a
+distance of two tiles instantly. Martial attacks performed under the effect of
+Serpent's Lash are more damaging and never miss.
 %%%%
 Heavenly Storm ability
 

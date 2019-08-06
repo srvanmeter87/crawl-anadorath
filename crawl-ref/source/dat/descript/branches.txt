@@ -11,7 +11,8 @@ some sliver of sanity sufficient to tell the tale.
 Temple
 
 The Ecumenical Temple is a place of peace and refuge from the insanity of the
-dungeon. It usually contains altars to most of the known gods.
+dungeon. It usually contains altars to most of the known gods. Gods that value
+exploration grant no piety for exploring the Temple.
 %%%%
 Orcish Mines
 
@@ -139,7 +140,8 @@ Portals to the Abyss are found abundantly in the Depths.
 The Abyss consists of five infinite levels. The abyssal rune of Zot can be
 found from the third level onwards, and is more common at greater depths.
 Portals back to the dungeon are scattered throughout the Abyss, and are found
-more commonly at greater depths or while carrying the abyssal rune. Killing
+more commonly at greater depths or while carrying the abyssal rune. Adventurers
+who linger in the Abyss will find themselves drawn irresistibly deeper. Killing
 monsters will warp the substance of the Abyss, eventually generating a gateway
 out. Further persistence will wear holes in the Abyss, allowing descent into
 deeper layers.
@@ -177,13 +179,16 @@ an item is also said to be found at the bottom of the Tomb of the Ancients. Each
 time a ziggurat is conquered by exiting it from the final floor, subsequent
 ziggurats will become increasingly dangerous and lucrative.
 %%%%
-Labyrinth
+Gauntlet
 
-The labyrinth is a complex, ever-shifting maze designed by subtle and malicious
-minds for reasons long lost to history. Old stories say that the labyrinth was
-constructed as a prison for a fearsome minotaur. More recent stories say this
-beast dwells there still, guarding the labyrinth's sole exit — as well as a
-rich hoard of treasure taken from the bodies of foolish adventurers.
+An elaborate complex designed to lure foolhardy adventurers seeking riches and
+glory. Those who enter must choose a path through several combat arenas, each
+of which contains treasure guarded by dangerous and sometimes exotic creatures.
+At the end awaits a fearsome minotaur guarding a large hoard of loot taken from
+the bodies of foolish adventurers.
+
+Beware that powerful magic prevents long-range teleports in Gauntlets. What's
+worse, some of these complexes offer only one exit...in the minotaur's lair.
 %%%%
 Bazaar
 

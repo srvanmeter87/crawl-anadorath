@@ -650,9 +650,9 @@ i-amnesia SCR_AMNESIA
 #### Remove curse foo when TAG_MAJOR_VERSION > 34
 # Don't forget to update SCR_ID_LAST
 i-curse-jewellery SCR_CURSE_JEWELLERY
-%back scroll-purple
+%back scroll-cyan
 i-brand-armour SCR_BRAND_ARMOUR
-%back scroll-green
+%back scroll-purple
 i-brand-ammunition SCR_BRAND_AMMUNITION SCR_ID_LAST
 %back none
 
