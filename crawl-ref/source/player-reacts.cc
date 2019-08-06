@@ -219,6 +219,9 @@ static void _decrement_petrification(int delay)
 
         mprf(MSGCH_DURATION, "You turn to %s and can move again.",
              flesh_equiv.c_str());
+
+        if (you.props.exists(PETRIFIED_BY_KEY))
+            you.props.erase(PETRIFIED_BY_KEY);
     }
 
     if (you.duration[DUR_PETRIFYING])
@@ -254,8 +257,8 @@ static void _decrement_paralysis(int delay)
             you.redraw_evasion = true;
             you.duration[DUR_PARALYSIS_IMMUNITY] = roll_dice(1, 3)
             * BASELINE_DELAY;
-            if (you.props.exists("paralysed_by"))
-                you.props.erase("paralysed_by");
+            if (you.props.exists(PARALYSED_BY_KEY))
+                you.props.erase(PARALYSED_BY_KEY);
         }
     }
 }
@@ -286,26 +289,19 @@ static void _maybe_melt_armour()
  */
 static int _current_horror_level()
 {
-    const coord_def& center = you.pos();
-    const int radius = LOS_RADIUS;
     int horror_level = 0;
 
-    for (radius_iterator ri(center, radius, C_SQUARE); ri; ++ri)
+    for (monster_near_iterator mi(&you, LOS_NO_TRANS); mi; ++mi)
     {
-        const monster* const mon = monster_at(*ri);
 
-        if (mon == nullptr
-            || mons_aligned(mon, &you)
-            || !mons_is_threatening(*mon)
-            || !you.can_see(*mon)
-            || mons_is_tentacle_or_tentacle_segment(mon->type))
+        if (mons_aligned(*mi, &you)
+            || !mons_is_threatening(**mi)
+            || mons_is_tentacle_or_tentacle_segment(mi->type))
         {
             continue;
         }
 
-        ASSERT(mon);
-
-        const mon_threat_level_type threat_level = mons_threat_level(*mon);
+        const mon_threat_level_type threat_level = mons_threat_level(**mi);
         if (threat_level == MTHRT_NASTY)
             horror_level += 3;
         else if (threat_level == MTHRT_TOUGH)
@@ -458,7 +454,7 @@ void player_reacts_to_monsters()
 {
     // In case Maurice managed to steal a needed item for example.
     if (!you_are_delayed())
-        update_can_train();
+        update_can_currently_train();
 
     if (you.duration[DUR_FIRE_SHIELD] > 0)
         manage_fire_shield(you.time_taken);
@@ -475,6 +471,16 @@ void player_reacts_to_monsters()
     _decrement_petrification(you.time_taken);
     if (_decrement_a_duration(DUR_SLEEP, you.time_taken))
         you.awaken();
+
+    if (_decrement_a_duration(DUR_GRASPING_ROOTS, you.time_taken)
+        && you.is_constricted())
+    {
+        // We handle the end-of-enchantment message here since the method
+        // of constriction is no longer detectable.
+        mprf("The grasping roots release their grip on you.");
+        you.stop_being_constricted(true);
+    }
+
     _maybe_melt_armour();
     _update_cowardice();
     if (you_worship(GOD_USKAYAW))
@@ -680,6 +686,8 @@ static void _decrement_durations()
         {
             mprf(MSGCH_RECOVERY, "Your %s has recovered.", stat_desc(s, SD_NAME));
             you.redraw_stats[s] = true;
+            if (you.duration[DUR_SLOW] == 0)
+                mprf(MSGCH_DURATION, "You feel yourself speed up.");
         }
     }
 
@@ -703,7 +711,7 @@ static void _decrement_durations()
     }
 
     if (you.duration[DUR_DISJUNCTION])
-        disjunction();
+        disjunction_spell();
 
     // Should expire before flight.
     if (you.duration[DUR_TORNADO])
@@ -740,10 +748,17 @@ static void _decrement_durations()
         }
     }
 
-    if (you.duration[DUR_DEATHS_DOOR] && you.hp > allowed_deaths_door_hp())
+    if (you.duration[DUR_DEATHS_DOOR]
+        && you.attribute[ATTR_DEATHS_DOOR_HP] > 0
+        && you.hp > you.attribute[ATTR_DEATHS_DOOR_HP])
     {
-        set_hp(allowed_deaths_door_hp());
+        set_hp(you.attribute[ATTR_DEATHS_DOOR_HP]);
         you.redraw_hit_points = true;
+    }
+    else if (!you.duration[DUR_DEATHS_DOOR]
+             && you.attribute[ATTR_DEATHS_DOOR_HP] > 0)
+    {
+        you.attribute[ATTR_DEATHS_DOOR_HP] = 0;
     }
 
     if (_decrement_a_duration(DUR_CLOUD_TRAIL, delay,
@@ -801,9 +816,6 @@ static void _decrement_durations()
             _handle_recitation(new_recite);
     }
 
-    if (you.duration[DUR_GRASPING_ROOTS])
-        check_grasping_roots(you);
-
     if (you.attribute[ATTR_NEXT_RECALL_INDEX] > 0)
         do_recall(delay);
 
@@ -817,7 +829,8 @@ static void _decrement_durations()
         doom_howl(min(delay, you.duration[DUR_DOOM_HOWL]));
 
     dec_elixir_player(delay);
-    you.maybe_degrade_bone_armour(delay);
+    extract_manticore_spikes("You carefully extract the barbed spikes from "
+                             "your body.");
 
     if (!env.sunlight.empty())
         process_sunlights();
@@ -847,28 +860,6 @@ static void _decrement_durations()
             _decrement_simple_duration((duration_type) i, delay);
 }
 
-
-// For worn items; weapons do this on melee attacks.
-static void _check_equipment_conducts()
-{
-    if (you_worship(GOD_DITHMENOS) && one_chance_in(10))
-    {
-        bool fiery = false;
-        const item_def* item;
-        for (int i = EQ_MIN_ARMOUR; i < NUM_EQUIP; i++)
-        {
-            item = you.slot_item(static_cast<equipment_type>(i));
-            if (item && is_fiery_item(*item))
-            {
-                fiery = true;
-                break;
-            }
-        }
-        if (fiery)
-            did_god_conduct(DID_FIRE, 1, true);
-    }
-}
-
 /**
  * Handles player ghoul rotting over time.
  */
@@ -880,7 +871,6 @@ static void _rot_ghoul_players()
     int resilience = 400;
     if (have_passive(passive_t::slow_metabolism))
         resilience = resilience * 3 / 2;
-
 
     // Faster rotting when hungry.
     if (you.hunger_state < HS_SATIATED)
@@ -945,7 +935,7 @@ static void _regenerate_hp_and_mp(int delay)
 
     ASSERT_RANGE(you.hit_points_regeneration, 0, 100);
 
-    update_regen_amulet_attunement();
+    update_amulet_attunement_by_health();
 
     // MP Regeneration
     if (!player_regenerates_mp())
@@ -971,8 +961,6 @@ static void _regenerate_hp_and_mp(int delay)
 
 void player_reacts()
 {
-    search_around();
-
     //XXX: does this _need_ to be calculated up here?
     const int stealth = player_stealth();
 
@@ -983,8 +971,6 @@ void player_reacts()
 
     if (you.has_mutation(MUT_DEMONIC_GUARDIAN))
         check_demonic_guardian();
-
-    _check_equipment_conducts();
 
     if (you.unrand_reacts.any())
         unrand_reacts();
@@ -1008,7 +994,7 @@ void player_reacts()
         const int teleportitis_level = player_teleport();
         // this is instantaneous
         if (teleportitis_level > 0 && one_chance_in(100 / teleportitis_level))
-            you_teleport_now(false, true);
+            you_teleport_now(false, true, "You feel strangely unstable.");
         else if (player_in_branch(BRANCH_ABYSS) && one_chance_in(80)
                  && (!map_masked(you.pos(), MMT_VAULT) || one_chance_in(3)))
         {
