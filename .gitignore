@@ -1,2 +1,9 @@
 .cquery_cache/
 .DS_Store
+.vscode*
+.vscode/.ctags
+.vscode/.cflags
+.vscode/c_cpp_properties.json
+.vscode/settings.json
+crawl-ref/source/.ctags
+crawl-ref/source/sounds/
