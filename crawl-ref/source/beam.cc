@@ -358,9 +358,9 @@ static bool _stop_because_god_hates_target_prompt(monster* mon,
 template<typename T>
 class power_deducer
 {
-    public:
-        virtual T operator()(int pow) const = 0;
-        virtual ~power_deducer() {}
+public:
+    virtual T operator()(int pow) const = 0;
+    virtual ~power_deducer() {}
 };
 
 typedef power_deducer<int> tohit_deducer;
@@ -368,11 +368,11 @@ typedef power_deducer<int> tohit_deducer;
 template<int adder, int mult_num = 0, int mult_denom = 1>
 class tohit_calculator : public tohit_deducer
 {
-    public:
-        int operator()(int pow) const override
-        {
-            return adder + pow * mult_num / mult_denom;
-        }
+public:
+    int operator()(int pow) const override
+    {
+        return adder + pow * mult_num / mult_denom;
+    }
 };
 
 typedef power_deducer<dice_def> dam_deducer;
@@ -380,21 +380,21 @@ typedef power_deducer<dice_def> dam_deducer;
 template<int numdice, int adder, int mult_num, int mult_denom>
 class dicedef_calculator : public dam_deducer
 {
-    public:
-        dice_def operator()(int pow) const override
-        {
-            return dice_def(numdice, adder + pow * mult_num / mult_denom);
-        }
+public:
+    dice_def operator()(int pow) const override
+    {
+        return dice_def(numdice, adder + pow * mult_num / mult_denom);
+    }
 };
 
 template<int numdice, int adder, int mult_num, int mult_denom>
 class calcdice_calculator : public dam_deducer
 {
-    public:
-        dice_def operator()(int pow) const override
-        {
-            return calc_dice(numdice, adder + pow * mult_num / mult_denom);
-        }
+public:
+    dice_def operator()(int pow) const override
+    {
+        return calc_dice(numdice, adder + pow * mult_num / mult_denom);
+    }
 };
 
 struct zap_info
@@ -1418,7 +1418,7 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
     case BEAM_WATER:
         hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
         if (hurted > original && doFlavouredEffects)
-                simple_monster_message(*mons, " is doused terribly!");
+            simple_monster_message(*mons, " is doused terribly!");
         break;
 
     case BEAM_COLD:
@@ -1427,7 +1427,7 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
         {
             if (original > 0 && doFlavouredEffects)
                 simple_monster_message(*mons, " completely resists.");
-            }
+        }
         else if (original > hurted)
         {
             if (doFlavouredEffects)
@@ -1446,7 +1446,7 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
         {
             if (original > 0 && doFlavouredEffects)
                 simple_monster_message(*mons, " completely resists.");
-            }
+        }
         else if (original > hurted)
         {
             if (doFlavouredEffects)
@@ -1460,29 +1460,29 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
         break;
 
     case BEAM_ACID:
+    {
+        hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
+        if (!hurted)
         {
-            hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
-            if (!hurted)
-            {
             if (original > 0 && doFlavouredEffects)
                 simple_monster_message(*mons, " completely resists.");
-                }
-            else if (mons->res_acid() <= 0 && doFlavouredEffects)
-                mons->splash_with_acid(pbolt.agent());
-            break;
         }
+        else if (mons->res_acid() <= 0 && doFlavouredEffects)
+            mons->splash_with_acid(pbolt.agent());
+        break;
+    }
 
     case BEAM_POISON:
-        {
-            hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
+    {
+        hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
 
         if (!hurted && doFlavouredEffects && original > 0)
             simple_monster_message(*mons, " completely resists.");
-            else if (doFlavouredEffects && !one_chance_in(3))
-                poison_monster(mons, pbolt.agent());
+        else if (doFlavouredEffects && !one_chance_in(3))
+            poison_monster(mons, pbolt.agent());
 
-            break;
-        }
+        break;
+    }
 
     case BEAM_POISON_ARROW:
         hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
@@ -1553,8 +1553,8 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
         break;
 
     case BEAM_HOLY:
-        {
-            hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
+    {
+        hurted = resist_adjust_damage(mons, pbolt.flavour, hurted);
         if (doFlavouredEffects && original > 0
             && (!hurted || hurted != original))
         {
@@ -1562,9 +1562,9 @@ int mons_adjust_flavoured(monster* mons, bolt &pbolt, int hurted,
                                     hurted < original ? " resists." :
                                     " writhes in agony!");
 
-            }
-            break;
         }
+        break;
+    }
 
     case BEAM_ICE:
         // ice - 40% of damage is cold, other 60% is impact and
@@ -2385,7 +2385,7 @@ cloud_type bolt::get_cloud_type() const
         return CLOUD_SPECTRAL;
     if (origin_spell == SPELL_ELEMENTAL_BLAST)
         return CLOUD_ELEMENTAL_CHAOS;
-    
+
     if (flavour == BEAM_ELEMENTAL_BLAST)
         return CLOUD_ELEMENTAL_CHAOS;
 
@@ -2655,7 +2655,9 @@ void bolt::affect_ground()
 
 bool bolt::is_fiery() const
 {
-    return flavour == BEAM_FIRE || flavour == BEAM_LAVA || flavour == BEAM_ELEMENTAL_BLAST;
+    return flavour == BEAM_FIRE
+           || flavour == BEAM_LAVA
+           || flavour == BEAM_ELEMENTAL_BLAST;
 }
 
 /// Can this bolt burn trees it hits?
@@ -2689,7 +2691,7 @@ bool bolt::can_affect_wall(const coord_def& p, bool map_knowledge) const
     // digging
     if (flavour == BEAM_DIGGING && feat_is_diggable(wall))
         return true;
-    
+
     if (can_burn_trees())
         return feat_is_tree(wall);
 
@@ -2713,20 +2715,20 @@ void bolt::affect_place_clouds()
 
     // Is there already a cloud here?
     if (cloud_struct* cloud = cloud_at(p))
+    {
+        // fire cancelling cold & vice versa
+        if ((cloud->type == CLOUD_COLD
+             && (flavour == BEAM_FIRE || flavour == BEAM_LAVA))
+            || (cloud->type == CLOUD_FIRE && flavour == BEAM_COLD))
         {
-            // fire cancelling cold & vice versa
-            if ((cloud->type == CLOUD_COLD
-                && (flavour == BEAM_FIRE || flavour == BEAM_LAVA))
-                || (cloud->type == CLOUD_FIRE && flavour == BEAM_COLD))
-            {
-                if (player_can_hear(p))
-                    mprf(MSGCH_SOUND, "You hear a sizzling sound!");
+            if (player_can_hear(p))
+                mprf(MSGCH_SOUND, "You hear a sizzling sound!");
 
-                delete_cloud(p);
-                extra_range_used += 5;
-            }
-            return;
+            delete_cloud(p);
+            extra_range_used += 5;
         }
+        return;
+    }
 
     // No clouds here, free to make new ones.
     const dungeon_feature_type feat = grd(p);
@@ -2741,16 +2743,20 @@ void bolt::affect_place_clouds()
         place_cloud(CLOUD_FIRE, p, random2(4) + 2, agent());
 
     // Fire/cold over water/lava
-    if ((feat == DNGN_LAVA && (flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST))
-                           || (feat_is_watery(feat) && is_fiery()))
+    if (feat == DNGN_LAVA
+        && ((flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST)
+            || (feat_is_watery(feat) && is_fiery())))
+    {
         place_cloud(CLOUD_STEAM, p, 2 + random2(5), agent(), 11);
+    }
 
-    if (feat_is_watery(feat) && (flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST)
-                             && (damage.num * damage.size > 35))
+    if (feat_is_watery(feat)
+        && ((flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST)
+            && (damage.num * damage.size > 35)))
     {
         place_cloud(CLOUD_COLD, p, damage.num * damage.size / 30 + 1, agent());
     }
-        
+
     if (flavour == BEAM_MIASMA)
         place_cloud(CLOUD_MIASMA, p, random2(5) + 2, agent());
 
@@ -2785,8 +2791,9 @@ void bolt::affect_place_explosion_clouds()
     const coord_def p = pos();
 
     // First check: fire/cold over water/lava.
-    if (grd(p) == DNGN_LAVA && (flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST)
-                            || (feat_is_watery(grd(p)) && is_fiery()))
+    if (grd(p) == DNGN_LAVA
+        && ((flavour == BEAM_COLD || flavour == BEAM_ELEMENTAL_BLAST)
+            || (feat_is_watery(grd(p)) && is_fiery())))
     {
         place_cloud(CLOUD_STEAM, p, 2 + random2(5), agent());
         return;
@@ -2811,7 +2818,7 @@ void bolt::affect_place_explosion_clouds()
         {
             const god_type god =
                 (crawl_state.is_god_acting()) ? crawl_state.which_god_acting()
-                                            : GOD_NO_GOD;
+                                              : GOD_NO_GOD;
             const beh_type att =
                 (whose_kill() == KC_OTHER ? BEH_HOSTILE : BEH_FRIENDLY);
 
@@ -2833,9 +2840,7 @@ void bolt::affect_place_explosion_clouds()
     }
 
     if (origin_spell == SPELL_ELEMENTAL_BLAST || flavour == BEAM_ELEMENTAL_BLAST)
-    {
         place_cloud(CLOUD_ELEMENTAL_CHAOS, p, roll_dice(3, 3 + ench_power / 20), agent());
-    }
 }
 
 // A little helper function to handle the calling of ouch()...
@@ -3213,8 +3218,8 @@ bool bolt::misses_player()
         {
             const string refl_name = name.empty() &&
                                      origin_spell != SPELL_NO_SPELL ?
-                                     spell_title(origin_spell) :
-                                     name;
+                                        spell_title(origin_spell) :
+                                        name;
 
             const item_def *shield = you.shield();
             if (is_reflectable(you))
@@ -3238,7 +3243,7 @@ bool bolt::misses_player()
                 finish_beam();
             }
             you.shield_block_succeeded(agent());
-                return true;
+            return true;
         }
 
         // Some training just for the "attempt".
@@ -5211,7 +5216,7 @@ bool bolt::has_saving_throw() const
 }
 
 bool ench_flavour_affects_monster(beam_type flavour, const monster* mon,
-                                          bool intrinsic_only)
+                                  bool intrinsic_only)
 {
     bool rc = true;
     switch (flavour)
@@ -6266,7 +6271,7 @@ void bolt::determine_affected_cells(explosion_map& m, const coord_def& delta,
             return;
         // But remember that we are at a wall.
         if (flavour != BEAM_DIGGING)
-        at_wall = true;
+            at_wall = true;
     }
 
     if (feat_is_solid(dngn_feat) && !feat_is_wall(dngn_feat)

@@ -10,6 +10,7 @@
 #include "attack.h"
 
 #include <algorithm>
+#include <cmath>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -23,6 +24,7 @@
 #include "exercise.h"
 #include "fight.h"
 #include "fineff.h"
+#include "food.h"
 #include "god-conduct.h"
 #include "god-passive.h" // passive_t::no_haste
 #include "item-name.h"
@@ -36,6 +38,7 @@
 #include "pronoun-type.h"
 #include "religion.h"
 #include "spl-miscast.h"
+#include "spl-util.h"
 #include "state.h"
 #include "stepdown.h"
 #include "stringutil.h"
@@ -1080,7 +1083,7 @@ string attack::def_name(description_level_type desc)
 
 /* Returns the attacking weapon's name
  *
- * Sets up the appropriate descriptive level and obtains the name of a weapon
+ * Sets upthe appropriate descriptive level and obtains the name of a weapon
  * based on if the attacker is a player or non-player (non-players use a
  * plain name and a manually entered pronoun)
  */
@@ -1530,7 +1533,7 @@ bool attack::apply_damage_brand(const char *what)
             special_damage_flavour = BEAM_ELECTRICITY;
             defender->expose_to_element(BEAM_ELECTRICITY, 2);
         }
-        attacker->god_conduct(DID_AIR, 1)
+        attacker->god_conduct(DID_AIR, 1);
 
         break;
 

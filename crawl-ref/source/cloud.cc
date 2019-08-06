@@ -905,7 +905,8 @@ bool actor_cloud_immune(const actor &act, cloud_type type)
         case CLOUD_RAIN:
             return !act.is_fiery();
         case CLOUD_ELEMENTAL_CHAOS:
-            return (act.res_cold() >= 3 && act.res_elec() > 0
+            return (act.res_cold() >= 3
+                    && act.res_elec() > 0
                     && act.res_fire() >= 3);
         default:
             return false;
@@ -973,7 +974,7 @@ static int _actor_cloud_resist(const actor *act, const cloud_struct &cloud)
     case CLOUD_NEGATIVE_ENERGY:
         return act->res_negative_energy();
     case CLOUD_ELEMENTAL_CHAOS:
-            return act->res_elemental_chaos();
+        return act->res_elemental_chaos();
 
     default:
         return 0;
