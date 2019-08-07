@@ -1851,10 +1851,6 @@ bool is_brandable_armour(const item_def &arm, bool unknown)
     if (arm.base_type != OBJ_ARMOUR)
         return false;
 
-    // Armour types that can never be branded.
-    if (!armour_is_brandable(arm))
-        return false;
-
     // If we don't know the plusses, assume branding is possible.
     if (is_artefact(arm) || armour_is_special(arm))
         return false;

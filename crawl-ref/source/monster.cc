@@ -3988,6 +3988,13 @@ int monster::res_negative_energy(bool intrinsic_only) const
     return u;
 }
 
+/* int monster::res_elemental_chaos() const
+{
+    if (true)
+        return 3;
+}
+ */
+
 bool monster::res_torment() const
 {
     const mon_holy_type holy = holiness();

@@ -70,21 +70,21 @@ static bool _banned_combination(job_type job, species_type species)
         return true;
     }
     if (job == JOB_PRIMALIST
-            && (species == SP_BARACHI
-                || species == SP_CENTAUR
-                || species == SP_DEEP_DWARF
-                || species == SP_FORMICID
-                || species == SP_GHOUL
-                || species == SP_GNOLL
-                || species == SP_HALFLING
-                || species == SP_HILL_ORC
-                || species == SP_KOBOLD
-                || species == SP_MERFOLK
-                || species == SP_MINOTAUR
-                || species == SP_OGRE
-                || species == SP_RANDOM
-                || species == SP_SPRIGGAN
-                || species == SP_TROLL)
+        && ((species == SP_BARACHI)
+            || (species == SP_CENTAUR)
+            || (species == SP_DEEP_DWARF)
+            || (species == SP_FORMICID)
+            || (species == SP_GHOUL)
+            || (species == SP_GNOLL)
+            || (species == SP_HALFLING)
+            || (species == SP_HILL_ORC)
+            || (species == SP_KOBOLD)
+            || (species == SP_MERFOLK)
+            || (species == SP_MINOTAUR)
+            || (species == SP_OGRE)
+            || (species == SP_RANDOM)
+            || (species == SP_SPRIGGAN)
+            || (species == SP_TROLL)))
     {
         return true;
     }

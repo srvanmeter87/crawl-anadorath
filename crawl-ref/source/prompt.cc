@@ -4,6 +4,7 @@
  **/
 
 #include "AppHdr.h"
+#include <cmath> // isnan
 
 #include "prompt.h"
 
@@ -11,17 +12,17 @@
 #include "delay.h"
 #include "libutil.h"
 #include "macro.h"
-#ifdef TOUCH_UI
 #include "menu.h"
-#endif
 #include "message.h"
 #include "options.h"
+#include "output.h"
 #include "state.h"
 #include "stringutil.h"
-#ifdef TOUCH_UI
+#ifdef USE_TILE
 #include "tiledef-gui.h"
 #endif
 #include "viewchar.h"
+#include "ui.h"
 
 // Like yesno, but requires a full typed answer.
 // Unlike yesno, prompt should have no trailing space.
@@ -53,7 +54,7 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
 {
     bool message = (region == GOTO_MSG);
     if (interrupt_delays && !crawl_state.is_repeating_cmd())
-        interrupt_activity(AI_FORCE_INTERRUPT);
+        interrupt_activity(activity_interrupt::force);
 
     // Allow players to answer prompts via clua.
     maybe_bool res = clua.callmaybefn("c_answer_prompt", "s", str);
@@ -65,37 +66,53 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
     string prompt = make_stringf("%s ", str ? str : "Buggy prompt?");
 
 #ifdef TOUCH_UI
-    Popup pop{prompt};
-    MenuEntry * const status = new MenuEntry("", MEL_SUBTITLE);
-    MenuEntry * const y_me = new MenuEntry("Yes", MEL_ITEM, 0, 'Y');
-    y_me->add_tile(tile_def(TILEG_PROMPT_YES, TEX_GUI));
-    MenuEntry * const n_me = new MenuEntry("No", MEL_ITEM, 0, 'N');
-    n_me->add_tile(tile_def(TILEG_PROMPT_NO, TEX_GUI));
-
-    pop.push_entry(new MenuEntry(prompt, MEL_TITLE));
-    pop.push_entry(status);
-    pop.push_entry(y_me);
-    pop.push_entry(n_me);
+    bool use_popup = true;
+#else
+    bool use_popup = !crawl_state.need_save || ui::has_layout();
+    use_popup = use_popup && str;
 #endif
+
+    Menu pop(MF_SINGLESELECT | MF_ANYPRINTABLE, "", KMC_CONFIRM);
+    MenuEntry *status = nullptr;
+
+    if (use_popup)
+    {
+        status = new MenuEntry("", MEL_SUBTITLE);
+        MenuEntry * const y_me = new MenuEntry("Yes", MEL_ITEM, 1, 'Y');
+        MenuEntry * const n_me = new MenuEntry("No", MEL_ITEM, 1, 'N');
+#ifdef USE_TILE
+        y_me->add_tile(tile_def(TILEG_PROMPT_YES, TEX_GUI));
+        n_me->add_tile(tile_def(TILEG_PROMPT_NO, TEX_GUI));
+#endif
+
+        pop.set_title(new MenuEntry(prompt, MEL_TITLE));
+        pop.add_entry(status);
+        pop.add_entry(y_me);
+        pop.add_entry(n_me);
+    }
     mouse_control mc(MOUSE_MODE_YESNO);
     while (true)
     {
         int tmp = ESCAPE;
         if (!crawl_state.seen_hups)
         {
-#ifdef TOUCH_UI
-            tmp = pop.pop();
-#else
-            if (!noprompt)
+            if (use_popup)
             {
-                if (message)
-                    mprf(MSGCH_PROMPT, "%s", prompt.c_str());
-                else
-                    cprintf("%s", prompt.c_str());
+                pop.show();
+                tmp = pop.getkey();
             }
+            else
+            {
+                if (!noprompt)
+                {
+                    if (message)
+                        mprf(MSGCH_PROMPT, "%s", prompt.c_str());
+                    else
+                        cprintf("%s", prompt.c_str());
+                }
 
-            tmp = getchm(KMC_CONFIRM);
-#endif
+                tmp = ui::getch(KMC_CONFIRM);
+            }
         }
 
         // If no safe answer exists, we still need to abort when a HUP happens.
@@ -115,11 +132,12 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
             tmp = default_answer;
         }
 
-        if (Options.easy_confirm == CONFIRM_ALL_EASY
+        if (Options.easy_confirm == easy_confirm_type::all
             || tmp == default_answer
-            || Options.easy_confirm == CONFIRM_SAFE_EASY && allow_lowercase)
+            || Options.easy_confirm == easy_confirm_type::safe
+               && allow_lowercase)
         {
-            tmp = toupper(tmp);
+            tmp = toupper_safe(tmp);
         }
 
         if (clear_after && message)
@@ -136,14 +154,12 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
                              || crawl_state.game_is_hints_tutorial());
             const string pr = make_stringf("%s[Y]es or [N]o only, please.",
                                            upper ? "Uppercase " : "");
-#ifdef TOUCH_UI
-            status->text = pr;
-#else
-            if (message)
+            if (use_popup && status) // redundant, but will quiet a warning
+                status->text = pr;
+            else if (message)
                 mpr(pr);
             else
                 cprintf("%s\n", pr.c_str());
-#endif
         }
     }
 }
@@ -206,7 +222,7 @@ int yesnoquit(const char* str, bool allow_lowercase, int default_answer, bool al
               bool clear_after, char alt_yes, char alt_yes2)
 {
     if (!crawl_state.is_repeating_cmd())
-        interrupt_activity(AI_FORCE_INTERRUPT);
+        interrupt_activity(activity_interrupt::force);
 
     mouse_control mc(MOUSE_MODE_YESNO);
 
@@ -218,7 +234,7 @@ int yesnoquit(const char* str, bool allow_lowercase, int default_answer, bool al
     {
         mprf(MSGCH_PROMPT, "%s", prompt.c_str());
 
-        int tmp = getchm(KMC_CONFIRM);
+        int tmp = ui::getch(KMC_CONFIRM);
 
         if (key_is_escape(tmp) || tmp == 'q' || tmp == 'Q'
             || crawl_state.seen_hups)
@@ -229,11 +245,12 @@ int yesnoquit(const char* str, bool allow_lowercase, int default_answer, bool al
         if ((tmp == ' ' || tmp == '\r' || tmp == '\n') && default_answer)
             tmp = default_answer;
 
-        if (Options.easy_confirm == CONFIRM_ALL_EASY
+        if (Options.easy_confirm == easy_confirm_type::all
             || tmp == default_answer
-            || allow_lowercase && Options.easy_confirm == CONFIRM_SAFE_EASY)
+            || allow_lowercase
+               && Options.easy_confirm == easy_confirm_type::safe)
         {
-            tmp = toupper(tmp);
+            tmp = toupper_safe(tmp);
         }
 
         if (clear_after)
@@ -287,8 +304,8 @@ int prompt_for_quantity(const char *prompt)
     else if (ch == CK_ESCAPE || ch == CK_REDRAW)
         return 0;
 
-    macro_buf_add(ch);
-    return prompt_for_int("", false);
+    const string prefill = string(1, ch);
+    return prompt_for_int("", false, prefill);
 }
 
 /**
@@ -297,15 +314,17 @@ int prompt_for_quantity(const char *prompt)
  * @param prompt the message to be used before the prompt.
  * @param nonneg if true, the failure sentinel is -1;
  *               if false, the sentinel is 0.
+ & @param prefill a prefill to use for the message box, if any.
  * @return the chosen number, or the chosen sentinel value.
  */
-int prompt_for_int(const char *prompt, bool nonneg)
+int prompt_for_int(const char *prompt, bool nonneg, const string &prefill)
 {
     char specs[80];
 
-    msgwin_get_line(prompt, specs, sizeof(specs));
+    int getline_ret = msgwin_get_line(prompt, specs, sizeof(specs), nullptr,
+                                            prefill);
 
-    if (specs[0] == '\0')
+    if (specs[0] == '\0' || getline_ret == CK_ESCAPE)
         return nonneg ? -1 : 0;
 
     char *end;
@@ -321,15 +340,15 @@ double prompt_for_float(const char* prompt)
 {
     char specs[80];
 
-    msgwin_get_line(prompt, specs, sizeof(specs));
+    int getline_ret = msgwin_get_line(prompt, specs, sizeof(specs));
 
-    if (specs[0] == '\0')
+    if (specs[0] == '\0' || getline_ret == CK_ESCAPE)
         return -1;
 
     char *end;
     double ret = strtod(specs, &end);
 
-    if (ret == 0 && end == specs)
+    if (ret == 0 && end == specs || std::isnan(ret))
         ret = -1;
 
     return ret;

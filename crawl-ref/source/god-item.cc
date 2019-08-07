@@ -517,9 +517,7 @@ bool is_airy_item(const item_def& item, bool calc_unid)
         break;
         }
     case OBJ_WANDS:
-        if (item.sub_type == WAND_CONFUSION
-            || item.sub_type == WAND_LIGHTNING
-            || item.sub_type == WAND_CLOUDS)
+        if (item.sub_type == WAND_CLOUDS)
             retval = true;
         break;
     case OBJ_SCROLLS:

@@ -2557,7 +2557,6 @@ static void _brand_armour(item_def &arm)
         mprf_nocap("%s", arm.name(DESC_INVENTORY_EQUIP).c_str());
         you.redraw_armour_class = true;
         you.redraw_evasion = true;
-        calc_spell_power();
         calc_mp();
         flash_view_delay(UA_PLAYER, flash_colour, 300);
     }

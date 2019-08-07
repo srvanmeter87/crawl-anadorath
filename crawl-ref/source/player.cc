@@ -6273,12 +6273,12 @@ int player::res_negative_energy(bool intrinsic_only) const
 {
     return player_prot_life(!intrinsic_only, true, !intrinsic_only);
 }
-/**
-    int player::res_elemental_chaos() const
-    {
-        return player_res_elemental_chaos;
-    }
-*/
+
+/* int player::res_elemental_chaos() const
+{
+    return player_res_elemental_chaos;
+}
+ */
 
 bool player::res_torment() const
 {
