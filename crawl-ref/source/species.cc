@@ -4,7 +4,6 @@
 #include "species.h"
 
 #include "item-prop.h"
-#include "mon-enum.h"
 #include "mutation.h"
 #include "output.h"
 #include "player.h"
@@ -16,7 +15,14 @@
 
 #include "species-data.h"
 
-static const species_def& _species_def(species_type species)
+/*
+ * Get the species_def for the given species type. Asserts if the species_type
+ * is not less than NUM_SPECIES.
+ *
+ * @param species The species type.
+ * @returns The species_def of that species.
+ */
+const species_def& get_species_def(species_type species)
 {
     if (species != SP_UNKNOWN)
         ASSERT_RANGE(species, 0, NUM_SPECIES);
@@ -25,7 +31,7 @@ static const species_def& _species_def(species_type species)
 
 const char *get_species_abbrev(species_type which_species)
 {
-    return _species_def(which_species).abbrev;
+    return get_species_def(which_species).abbrev;
 }
 
 // Needed for debug.cc and hiscores.cc.
@@ -67,7 +73,7 @@ species_type str_to_species(const string &species)
  */
 string species_name(species_type speci, species_name_type spname_type)
 {
-    const species_def& def = _species_def(speci);
+    const species_def& def = get_species_def(speci);
     if (spname_type == SPNAME_GENUS && def.genus_name)
         return def.genus_name;
     else if (spname_type == SPNAME_ADJ && def.adj_name)
@@ -82,19 +88,8 @@ string species_name(species_type speci, species_name_type spname_type)
  */
 string species_walking_verb(species_type sp)
 {
-    switch (sp)
-    {
-    case SP_NAGA:
-        return "Slid";
-    case SP_TENGU:
-        return "Glid";
-    case SP_OCTOPODE:
-        return "Wriggl";
-    case SP_VINE_STALKER:
-        return "Stalk";
-    default:
-        return "Walk";
-    }
+    auto verb = get_species_def(sp).walking_verb;
+    return verb ? verb : "Walk";
 }
 
 /**
@@ -105,7 +100,7 @@ string species_walking_verb(species_type sp)
  */
 undead_state_type species_undead_type(species_type species)
 {
-    return _species_def(species).undeadness;
+    return get_species_def(species).undeadness;
 }
 
 /**
@@ -121,13 +116,13 @@ bool species_is_undead(species_type species)
 
 bool species_can_swim(species_type species)
 {
-    return _species_def(species).habitat == HT_WATER;
+    return get_species_def(species).habitat == HT_WATER;
 }
 
 bool species_likes_water(species_type species)
 {
     return species_can_swim(species)
-           || _species_def(species).habitat == HT_AMPHIBIOUS;
+           || get_species_def(species).habitat == HT_AMPHIBIOUS;
 }
 
 bool species_can_throw_large_rocks(species_type species)
@@ -137,29 +132,29 @@ bool species_can_throw_large_rocks(species_type species)
 
 bool species_is_elven(species_type species)
 {
-    return bool(_species_def(species).flags & SPF_ELVEN);
+    return bool(get_species_def(species).flags & SPF_ELVEN);
 }
 
 bool species_is_draconian(species_type species)
 {
-    return bool(_species_def(species).flags & SPF_DRACONIAN);
+    return bool(get_species_def(species).flags & SPF_DRACONIAN);
 }
 
 bool species_is_orcish(species_type species)
 {
-    return bool(_species_def(species).flags & SPF_ORCISH);
+    return bool(get_species_def(species).flags & SPF_ORCISH);
 }
 
 bool species_has_hair(species_type species)
 {
-    return !bool(_species_def(species).flags & (SPF_NO_HAIR | SPF_DRACONIAN));
+    return !bool(get_species_def(species).flags & (SPF_NO_HAIR | SPF_DRACONIAN));
 }
 
 size_type species_size(species_type species, size_part_type psize)
 {
-    const size_type size = _species_def(species).size;
+    const size_type size = get_species_def(species).size;
     if (psize == PSIZE_TORSO
-        && bool(_species_def(species).flags & SPF_SMALL_TORSO))
+        && bool(get_species_def(species).flags & SPF_SMALL_TORSO))
     {
         return static_cast<size_type>(static_cast<int>(size) - 1);
     }
@@ -168,9 +163,9 @@ size_type species_size(species_type species, size_part_type psize)
 
 bool species_recommends_job(species_type species, job_type job)
 {
-    return find(_species_def(species).recommended_jobs.begin(),
-                _species_def(species).recommended_jobs.end(),
-                job) != _species_def(species).recommended_jobs.end();
+    return find(get_species_def(species).recommended_jobs.begin(),
+                get_species_def(species).recommended_jobs.end(),
+                job) != get_species_def(species).recommended_jobs.end();
 }
 
 bool species_recommends_weapon(species_type species, weapon_type wpn)
@@ -180,20 +175,20 @@ bool species_recommends_weapon(species_type species, weapon_type wpn)
           wpn == WPN_UNARMED ? SK_UNARMED_COMBAT :
                                item_attack_skill(OBJ_WEAPONS, wpn);
 
-    return find(_species_def(species).recommended_weapons.begin(),
-                _species_def(species).recommended_weapons.end(),
-                sk) != _species_def(species).recommended_weapons.end();
+    return find(get_species_def(species).recommended_weapons.begin(),
+                get_species_def(species).recommended_weapons.end(),
+                sk) != get_species_def(species).recommended_weapons.end();
 }
 
 monster_type player_species_to_mons_species(species_type species)
 {
-    return _species_def(species).monster_species;
+    return get_species_def(species).monster_species;
 }
 
 const vector<string>& fake_mutations(species_type species, bool terse)
 {
-    return terse ? _species_def(species).terse_fake_mutations
-                 : _species_def(species).verbose_fake_mutations;
+    return terse ? get_species_def(species).terse_fake_mutations
+                 : get_species_def(species).verbose_fake_mutations;
 }
 
 /**
@@ -207,18 +202,8 @@ const vector<string>& fake_mutations(species_type species, bool terse)
  */
 string species_prayer_action(species_type species)
 {
-    switch (species)
-    {
-        case SP_NAGA:
-            return "coil in front of";
-        case SP_OCTOPODE:
-            return "curl up in front of";
-        case SP_FELID:
-            // < TGWi> you curl up on the altar and go to sleep
-            return "sit before";
-        default:
-            return "kneel at";
-    }
+  auto action = get_species_def(species).altar_action;
+  return action ? action : "kneel at";
 }
 
 const char* scale_type(species_type species)
@@ -291,16 +276,16 @@ ability_type draconian_breath(species_type species)
 
 bool species_is_unbreathing(species_type species)
 {
-    return any_of(_species_def(species).level_up_mutations.begin(),
-                  _species_def(species).level_up_mutations.end(),
+    return any_of(get_species_def(species).level_up_mutations.begin(),
+                  get_species_def(species).level_up_mutations.end(),
                   [](level_up_mutation lum)
                     { return lum.mut == MUT_UNBREATHING;});
 }
 
 bool species_has_claws(species_type species)
 {
-    return any_of(_species_def(species).level_up_mutations.begin(),
-                  _species_def(species).level_up_mutations.end(),
+    return any_of(get_species_def(species).level_up_mutations.begin(),
+                  get_species_def(species).level_up_mutations.end(),
                   [](level_up_mutation lum) { return lum.mut == MUT_CLAWS
                                                      && lum.xp_level == 1; });
 }
@@ -308,14 +293,14 @@ bool species_has_claws(species_type species)
 void give_basic_mutations(species_type species)
 {
     // Don't perma_mutate since that gives messages.
-    for (const auto& lum : _species_def(species).level_up_mutations)
+    for (const auto& lum : get_species_def(species).level_up_mutations)
         if (lum.xp_level == 1)
             you.mutation[lum.mut] = you.innate_mutation[lum.mut] = lum.mut_level;
 }
 
 void give_level_mutations(species_type species, int xp_level)
 {
-    for (const auto& lum : _species_def(species).level_up_mutations)
+    for (const auto& lum : get_species_def(species).level_up_mutations)
         if (lum.xp_level == xp_level)
         {
             perma_mutate(lum.mut, lum.mut_level,
@@ -325,22 +310,22 @@ void give_level_mutations(species_type species, int xp_level)
 
 int species_exp_modifier(species_type species)
 {
-    return _species_def(species).xp_mod;
+    return get_species_def(species).xp_mod;
 }
 
 int species_hp_modifier(species_type species)
 {
-    return _species_def(species).hp_mod;
+    return get_species_def(species).hp_mod;
 }
 
 int species_mp_modifier(species_type species)
 {
-    return _species_def(species).mp_mod;
+    return get_species_def(species).mp_mod;
 }
 
 int species_mr_modifier(species_type species)
 {
-    return _species_def(species).mr_mod;
+    return get_species_def(species).mr_mod;
 }
 
 /**
@@ -352,20 +337,20 @@ int species_mr_modifier(species_type species)
  */
 bool species_has_low_str(species_type species)
 {
-    return _species_def(species).d >= _species_def(species).s;
+    return get_species_def(species).d >= get_species_def(species).s;
 }
 
 void species_stat_init(species_type species)
 {
-    you.base_stats[STAT_STR] = _species_def(species).s;
-    you.base_stats[STAT_INT] = _species_def(species).i;
-    you.base_stats[STAT_DEX] = _species_def(species).d;
+    you.base_stats[STAT_STR] = get_species_def(species).s;
+    you.base_stats[STAT_INT] = get_species_def(species).i;
+    you.base_stats[STAT_DEX] = get_species_def(species).d;
 }
 
 void species_stat_gain(species_type species)
 {
-    const species_def& sd = _species_def(species);
-    if (you.experience_level % sd.how_often == 0)
+    const species_def& sd = get_species_def(species);
+    if (sd.level_stats.size() > 0 && you.experience_level % sd.how_often == 0)
         modify_stat(*random_iterator(sd.level_stats), 1, false);
 }
 
@@ -377,7 +362,7 @@ static void _swap_equip(equipment_type a, equipment_type b)
     you.melded.set(b, tmp);
 }
 
-species_type find_species_from_string(const string &species)
+species_type find_species_from_string(const string &species, bool initial_only)
 {
     string spec = lowercase_string(species);
 
@@ -397,7 +382,7 @@ species_type find_species_from_string(const string &species)
                 sp = si;
                 break;
             }
-            else
+            else if (!initial_only)
                 sp = si;
         }
     }
@@ -439,7 +424,6 @@ void change_species_to(species_type sp)
         if (you.has_innate_mutation(static_cast<mutation_type>(i)))
         {
             you.mutation[i] -= you.innate_mutation[i];
-            ASSERT(you.mutation[i] >= 0);
             you.innate_mutation[i] = 0;
         }
         prev_muts[i] = you.mutation[i];
@@ -508,4 +492,44 @@ void change_species_to(species_type sp)
     init_player_doll();
 #endif
     redraw_screen();
+}
+
+// A random valid (selectable on the new game screen) species.
+species_type random_starting_species()
+{
+  species_type species;
+  do {
+      species = static_cast<species_type>(random_range(0, NUM_SPECIES - 1));
+  } while (!is_starting_species(species));
+  return species;
+}
+
+// Ensure the species isn't SP_RANDOM/SP_VIABLE and it has recommended jobs
+// (old disabled species have none).
+bool is_starting_species(species_type species)
+{
+    return species < NUM_SPECIES
+        && !get_species_def(species).recommended_jobs.empty();
+}
+
+// Check that we can give this draconian species to players as a color.
+static bool _is_viable_draconian(species_type species)
+{
+#if TAG_MAJOR_VERSION == 34
+    if (species == SP_MOTTLED_DRACONIAN)
+        return false;
+#endif
+    return true;
+}
+
+// A random non-base draconian colour appropriate for the player.
+species_type random_draconian_colour()
+{
+  species_type species;
+  do {
+      species =
+          static_cast<species_type>(random_range(SP_FIRST_NONBASE_DRACONIAN,
+                                                 SP_LAST_NONBASE_DRACONIAN));
+  } while (!_is_viable_draconian(species));
+  return species;
 }

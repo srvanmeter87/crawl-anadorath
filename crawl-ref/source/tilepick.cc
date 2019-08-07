@@ -3644,11 +3644,11 @@ tileidx_t tileidx_ability(const ability_type ability)
         return TILEG_ABILITY_WU_JIAN_SERPENTS_LASH;
     case ABIL_WU_JIAN_HEAVENLY_STORM:
         return TILEG_ABILITY_WU_JIAN_HEAVENLY_STORM;
+    // Anadorath
     case ABIL_ANADORATH_ELEMENTAL_BLAST:
         return TILEG_ABILITY_BREATHE_ENERGY;
-    /* Anadorath
-    case ABIL_ANADORATH_ELEMENTAL_BLAST:
-        return TILEG_ABILITY_ANADORATH_ELEMENTAL_BLAST; */
+    // case ABIL_ANADORATH_ELEMENTAL_BLAST:
+    //     return TILEG_ABILITY_ANADORATH_ELEMENTAL_BLAST;
 
     // General divine (pseudo) abilities.
     case ABIL_RENOUNCE_RELIGION:
