@@ -2161,7 +2161,9 @@ bool god_hates_brand(const int brand)
 
     if (you_worship(GOD_ANADORATH)
         && (brand == SPWPN_ANTIMAGIC || brand == SPWPN_HOLY_WRATH))
+    {
         return true;
+    }
 
     if (you_worship(GOD_CHEIBRIADOS) && (brand == SPWPN_CHAOS
                                          || brand == SPWPN_SPEED))
@@ -2789,7 +2791,8 @@ static bool _handle_brand_weapon(bool alreadyknown, const string &pre_msg)
 
 static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
 {
-    item_def* armour = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_ARMOUR,
+    item_def* armour = _choose_target_item_for_scroll(alreadyknown,
+                                                      OSEL_BRANDABLE_ARMOUR,
                                                       "Brand which item?");
     
     if (!armour)
@@ -2801,11 +2804,14 @@ static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
 
 static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
 {
-    item_def* ammunition = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_AMMUNITION,
+    item_def* ammunition = _choose_target_item_for_scroll(alreadyknown,
+                                                          OSEL_BRANDABLE_AMMUNITION,
                                                           "Brand which item?");
     
     if (!ammunition)
+    {
         return !alreadyknown;
+    }
     
     _brand_ammunition(*ammunition);
     return true;

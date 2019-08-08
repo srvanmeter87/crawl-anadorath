@@ -1148,7 +1148,9 @@ void torment_player(actor *attacker, torment_source_type taux)
         if (you.form == transformation::statue
             || you.species == SP_GARGOYLE
             || you.species == SP_PYROLITH)
+        {
             hploss /= 2;
+        }
     }
 
     // Kiku protects you from torment to a degree.

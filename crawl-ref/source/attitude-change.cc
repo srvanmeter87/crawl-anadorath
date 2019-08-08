@@ -28,13 +28,12 @@
 
 // Called whenever an already existing monster changes its attitude, possibly
 // temporarily.
-void mons_att_changed(monster* mon)
+void mons_att_changed(monster *mon)
 {
     const mon_attitude_type att = mon->temp_attitude();
     const monster_type mc = mons_base_type(*mon);
 
-    if (mons_is_tentacle_head(mc)
-        || mons_is_solo_tentacle(mc))
+    if (mons_is_tentacle_head(mc) || mons_is_solo_tentacle(mc))
     {
         for (monster_iterator mi; mi; ++mi)
             if (mi->is_child_tentacle_of(mon))
@@ -65,12 +64,12 @@ void mons_att_changed(monster* mon)
     mon->remove_summons(true);
 }
 
-static void _jiyva_convert_slime(monster* slime);
-static void _fedhas_neutralise_plant(monster* plant);
-static void _anadorath_convert_elemental(monster* elemental);
-static void _anadorath_neutralise_elemental(monster* elemental);
+static void _jiyva_convert_slime(monster *slime);
+static void _fedhas_neutralise_plant(monster *plant);
+static void _anadorath_convert_elemental(monster *elemental);
+static void _anadorath_neutralise_elemental(monster *elemental);
 
-void beogh_follower_convert(monster* mons, bool orc_hit)
+void beogh_follower_convert(monster *mons, bool orc_hit)
 {
     if (!species_is_orcish(you.species) || crawl_state.game_is_arena())
         return;
@@ -98,9 +97,10 @@ void beogh_follower_convert(monster* mons, bool orc_hit)
     }
 }
 
-void slime_convert(monster* mons)
+void slime_convert(monster *mons)
 {
-    if (have_passive(passive_t::neutral_slimes) && mons_is_slime(*mons)
+    if (have_passive(passive_t::neutral_slimes)
+        && mons_is_slime(*mons)
         && !mons->neutral()
         && !mons->friendly()
         && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
@@ -114,7 +114,7 @@ void slime_convert(monster* mons)
     }
 }
 
-void fedhas_neutralise(monster* mons)
+void fedhas_neutralise(monster *mons)
 {
     if (have_passive(passive_t::friendly_plants)
         && mons->attitude == ATT_HOSTILE
@@ -127,7 +127,7 @@ void fedhas_neutralise(monster* mons)
     }
 }
 
-void anadorath_convert(monster* mons)
+void anadorath_convert(monster *mons)
 {
     if (have_passive(passive_t::elemental_friend)
         && anadorath_converts(*mons)
@@ -144,7 +144,7 @@ void anadorath_convert(monster* mons)
     }
 }
 
-void anadorath_neutralise(monster* mons)
+void anadorath_neutralise(monster *mons)
 {
     if (have_passive(passive_t::elemental_neutrality)
         && !have_passive(passive_t::elemental_friend)
@@ -190,7 +190,7 @@ bool yred_slaves_abandon_you()
 
     for (radius_iterator ri(you.pos(), LOS_DEFAULT); ri; ++ri)
     {
-        monster* mons = monster_at(*ri);
+        monster *mons = monster_at(*ri);
         if (mons == nullptr)
             continue;
 
@@ -237,7 +237,7 @@ bool beogh_followers_abandon_you()
 
     for (radius_iterator ri(you.pos(), LOS_DEFAULT); ri; ++ri)
     {
-        monster* mons = monster_at(*ri);
+        monster *mons = monster_at(*ri);
         if (mons == nullptr)
             continue;
 
@@ -274,9 +274,10 @@ bool beogh_followers_abandon_you()
     if (reconvert) // Maybe all of them are invisible.
     {
         simple_god_message("'s voice booms out, \"Who do you think you "
-                           "are?\"", GOD_BEOGH);
+                           "are?\"",
+                           GOD_BEOGH);
 
-        ostream& chan = msg::streams(MSGCH_MONSTER_ENCHANT);
+        ostream &chan = msg::streams(MSGCH_MONSTER_ENCHANT);
 
         if (num_reconvert > 0)
         {
@@ -296,8 +297,8 @@ bool beogh_followers_abandon_you()
     return false;
 }
 
-static void _print_converted_orc_speech(const string& key,
-                                        monster* mon,
+static void _print_converted_orc_speech(const string &key,
+                                        monster *mon,
                                         msg_channel_type channel)
 {
     string msg = getSpeakString("beogh_converted_orc_" + key);
@@ -312,7 +313,7 @@ static void _print_converted_orc_speech(const string& key,
 
 // Orcs may turn friendly when encountering followers of Beogh, and be
 // made gifts of Beogh.
-void beogh_convert_orc(monster* orc, conv_t conv)
+void beogh_convert_orc(monster *orc, conv_t conv)
 {
     ASSERT(orc); // XXX: change to monster &orc
     ASSERT(mons_genus(orc->type) == MONS_ORC);
@@ -368,7 +369,7 @@ void beogh_convert_orc(monster* orc, conv_t conv)
     mons_att_changed(orc);
 }
 
-static void _fedhas_neutralise_plant(monster* plant)
+static void _fedhas_neutralise_plant(monster *plant)
 {
     if (!plant
         || !fedhas_neutralises(*plant)
@@ -379,58 +380,60 @@ static void _fedhas_neutralise_plant(monster* plant)
     }
 
     plant->attitude = ATT_GOOD_NEUTRAL;
-    plant->flags   |= MF_WAS_NEUTRAL;
+    plant->flags |= MF_WAS_NEUTRAL;
     mons_att_changed(plant);
 }
 
-static void _anadorath_convert_elemental(monster* elemental)
+static void _anadorath_convert_elemental(monster *elemental)
 {
     ASSERT(elemental);
-    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
-           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
+    ASSERT(mons_is_airy(*elemental)
+           || mons_is_earthy(*elemental)
+           || mons_is_fiery(*elemental)
+           || mons_is_icy(*elemental));
 
     behaviour_event(elemental, ME_ALERT);
 
     if (you.can_see(*elemental))
     {
         mprf(MSGCH_GOD, "%s seems to appreciate your presence and joins you!",
-        
         elemental->name(DESC_THE).c_str());
     }
 
     elemental->attitude = ATT_FRIENDLY;
-    elemental->flags   |= MF_WAS_NEUTRAL;
+    elemental->flags |= MF_WAS_NEUTRAL;
 
     mons_make_god_gift(*elemental, GOD_ANADORATH);
 
     mons_att_changed(elemental);
 }
 
-static void _anadorath_neutralise_elemental(monster* elemental)
+static void _anadorath_neutralise_elemental(monster *elemental)
 {
     ASSERT(elemental);
-    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
-           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
+    ASSERT(mons_is_airy(*elemental)
+           || mons_is_earthy(*elemental)
+           || mons_is_fiery(*elemental)
+           || mons_is_icy(*elemental));
 
     behaviour_event(elemental, ME_ALERT);
 
     if (you.can_see(*elemental))
     {
-        mprf(MSGCH_GOD, "%s stares at you suspiciously for a moment, "
-                        "then relaxes.",
-
+        mprf(MSGCH_GOD,
+             "%s stares at you suspiciously for a moment, then relaxes.",
         elemental->name(DESC_THE).c_str());
     }
 
     elemental->attitude = ATT_GOOD_NEUTRAL;
-    elemental->flags   |= MF_WAS_NEUTRAL;
+    elemental->flags |= MF_WAS_NEUTRAL;
 
     mons_make_god_gift(*elemental, GOD_ANADORATH);
 
     mons_att_changed(elemental);
 }
 
-static void _jiyva_convert_slime(monster* slime)
+static void _jiyva_convert_slime(monster *slime)
 {
     ASSERT(slime); // XXX: change to monster &slime
     ASSERT(mons_is_slime(*slime));
@@ -441,9 +444,8 @@ static void _jiyva_convert_slime(monster* slime)
     {
         if (mons_genus(slime->type) == MONS_FLOATING_EYE)
         {
-            mprf(MSGCH_GOD, "%s stares at you suspiciously for a moment, "
-                            "then relaxes.",
-
+            mprf(MSGCH_GOD,
+                 "%s stares at you suspiciously for a moment, then relaxes.",
             slime->name(DESC_THE).c_str());
         }
         else
@@ -461,7 +463,7 @@ static void _jiyva_convert_slime(monster* slime)
     mons_att_changed(slime);
 }
 
-void gozag_set_bribe(monster* traitor)
+void gozag_set_bribe(monster *traitor)
 {
     // Try to bribe the monster.
     const int bribability = gozag_type_bribable(traitor->type);
@@ -469,7 +471,7 @@ void gozag_set_bribe(monster* traitor)
     if (bribability <= 0 || traitor->friendly() || traitor->is_summoned())
         return;
 
-    const monster* leader =
+    const monster *leader =
         traitor->props.exists("band_leader")
         ? monster_by_mid(traitor->props["band_leader"].get_int())
         : nullptr;
@@ -497,7 +499,7 @@ void gozag_set_bribe(monster* traitor)
     }
 }
 
-void gozag_check_bribe(monster* traitor)
+void gozag_check_bribe(monster *traitor)
 {
     branch_type branch = gozag_fixup_branch(you.where_are_you);
 
@@ -546,7 +548,7 @@ void gozag_check_bribe(monster* traitor)
     }
 }
 
-void gozag_break_bribe(monster* victim)
+void gozag_break_bribe(monster *victim)
 {
     ASSERT(victim); // XXX: change to monster &victim
 
@@ -571,7 +573,7 @@ void gozag_break_bribe(monster* victim)
 }
 
 // Conversions and bribes.
-void do_conversions(monster* target)
+void do_conversions(monster *target)
 {
         beogh_follower_convert(target);
         gozag_check_bribe(target);

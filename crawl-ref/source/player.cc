@@ -1454,7 +1454,9 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
         // body armour
         const item_def *body_armour = you.slot_item(EQ_BODY_ARMOUR);
         if (body_armour)
+        {
             rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
+        }
         
         // ego armours
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
@@ -5680,7 +5682,9 @@ int player::missile_deflection() const
 {
     if (attribute[ATTR_DEFLECT_MISSILES]
         || have_passive(passive_t::elemental_protection))
+    {
         return 2;
+    }
 
     if (get_mutation_level(MUT_DISTORTION_FIELD) == 3
         || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
