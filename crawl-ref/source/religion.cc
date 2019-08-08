@@ -863,9 +863,7 @@ static void _inc_penance(god_type god, int val)
         else if (god == GOD_ANADORATH)
         {
             if (you.piety >= piety_breakpoint(3))
-            {
                 mprf(MSGCH_GOD, god, "Elemental worshippers frown upon you.");
-            }
             if (you.piety >= piety_breakpoint(2))
             {
                 mprf(MSGCH_GOD, god, "Your elemental shield shrinks.");

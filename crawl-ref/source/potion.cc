@@ -1258,33 +1258,25 @@ public:
         if (you.religion == GOD_NO_GOD)
         {
             if (reason)
-            {
                 *reason = "You have no god with whom to gain favour.";
-            }
             return false;
         }
         else if (you.religion == GOD_GOZAG)
         {
             if (reason)
-            {
                 *reason = "Gozag cares only for gold.";
-            }
             return false;
         }
         else if (you.religion == GOD_RU)
         {
             if (reason)
-            {
                 *reason = "Ru does not consider this a sacrifice.";
-            }
             return false;
         }
         else if (you.religion == GOD_XOM)
         {
             if (reason)
-            {
                 *reason = "You cannot gain favour with the chaotic Xom.";
-            }
             return false;
         }
         return true;
@@ -1293,9 +1285,7 @@ public:
     bool quaff(bool was_known) const override
     {
         if (was_known && !check_known_quaff())
-        {
             return false;
-        }
 
         effect();
         return true;
@@ -1336,9 +1326,7 @@ public:
             || you.religion == GOD_RU || you.religion == GOD_XOM)
         {
             if (reason)
-            {
                 *reason = "You cannot bring yourself to quaff this right now.";
-            }
             return false;
         }
         return true;
@@ -1364,9 +1352,7 @@ public:
     {
         bool nothing_happens = true;
         if (you.religion == GOD_NO_GOD)
-        {
             return nothing_happens;
-        }
 
         if (player_under_penance() > 0)
         {

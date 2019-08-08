@@ -927,17 +927,13 @@ static formatted_string _describe_god_powers(god_type which_god)
             if (have_passive(passive_t::elemental_shield))
             {
                 if (have_passive(passive_t::elemental_protection))
-                {
                     textcolour(LIGHTGREEN);
-                }
                 textcolour(LIGHTBLUE);
             }
             textcolour(god_colour(which_god));
         }
         else
-        {
             textcolour(DARKGREY);
-        }
         desc.cprintf("%s grants you a %s forged from primal elements.\n",
                 uppercase_first(god_name(which_god)).c_str(),
                 piety >= piety_breakpoint(4) ? "large elemental shield" :
@@ -973,9 +969,7 @@ static formatted_string _describe_god_powers(god_type which_god)
                 textcolour(YELLOW);
         }
         else
-        {
             textcolour(DARKGREY);
-        }
         desc.cprintf("%s's boon%s.\n",
                 uppercase_first(god_name(which_god)).c_str(),
                 piety >= piety_breakpoint(5) ? " allies you with primal elementals" :

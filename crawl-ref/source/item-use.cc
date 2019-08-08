@@ -2809,9 +2809,7 @@ static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
                                                           "Brand which item?");
 
     if (!ammunition)
-    {
         return !alreadyknown;
-    }
 
     _brand_ammunition(*ammunition);
     return true;
