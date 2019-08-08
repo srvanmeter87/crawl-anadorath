@@ -800,7 +800,9 @@ vector<conduct_type> item_conducts(const item_def &item)
 
     case GOD_PAKELLAS:
         if (item_type_known(item) && is_channeling_item(item))
+        {
             return DID_CHANNEL;
+        }
         break;
 
     case GOD_ANADORATH:

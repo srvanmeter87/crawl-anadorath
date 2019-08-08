@@ -1341,7 +1341,9 @@ int player_res_fire(bool calc_unid, bool temp, bool items)
     if (have_passive(passive_t::elemental_resist))
     {
         if (have_passive(passive_t::elemental_resist_plus))
+        {
             rf++;
+        }
 
         rf++;
     }
@@ -1388,7 +1390,9 @@ int player_res_steam(bool calc_unid, bool temp, bool items)
     if (have_passive(passive_t::elemental_resist))
     {
         if (have_passive(passive_t::elemental_resist_plus))
+        {
             res++;
+        }
 
         res++;
     }
@@ -1450,7 +1454,9 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
         // body armour
         const item_def *body_armour = you.slot_item(EQ_BODY_ARMOUR);
         if (body_armour)
+        {
             rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
+        }
 
         // ego armours
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
@@ -1494,7 +1500,9 @@ int player_res_cold(bool calc_unid, bool temp, bool items)
     if (have_passive(passive_t::elemental_resist))
     {
         if (have_passive(passive_t::elemental_resist_plus))
+        {
             rc++;
+        }
 
         rc++;
     }
@@ -1596,7 +1604,9 @@ int player_res_electricity(bool calc_unid, bool temp, bool items)
 
     // god passives:
     if (have_passive(passive_t::elemental_resist))
+    {
         re++;
+    }
     // mutations:
     re += you.get_mutation_level(MUT_THIN_METALLIC_SCALES, temp) == 3 ? 1 : 0;
     re += you.get_mutation_level(MUT_SHOCK_RESISTANCE, temp);
@@ -2367,11 +2377,17 @@ int player_shield_class()
     // god passives
     // +4, +7, +10 (displayed values)
     if (have_passive(passive_t::elemental_buckler))
+    {
         shield += 800;
+    }
     if (have_passive(passive_t::elemental_shield))
+    {
         shield += 600;
+    }
     if (have_passive(passive_t::elemental_protection))
+    {
         shield += 600;
+    }
 
     return (shield + 50) / 100;
 }
