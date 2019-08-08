@@ -19,7 +19,7 @@
 --filter=no
 --if0=no
 --langdef=crawlmap
---langdef=crawlmap:+.des
+--langmap=crawlmap:+.des
 --languages=crawlmap,C,C++,Flex,Lua,Perl,Python,Sh
 --line-directives=no
 --links=yes
