@@ -282,13 +282,11 @@ bool is_antichaotic_item(const item_def& item, bool calc_unid)
     bool retval = false;
 
     if (item.base_type == OBJ_WEAPONS)
-    {
-        if (calc_unid || item_brand_known(item))
         {
+        if (calc_unid || item_brand_known(item))
             return get_weapon_brand(item) == SPWPN_ANTIMAGIC
                    || get_weapon_brand(item) == SPWPN_HOLY_WRATH;
         }
-    }
 
     if (!calc_unid && !item_type_known(item))
         return false;
@@ -479,9 +477,7 @@ bool is_earthy_item(const item_def& item, bool calc_unid)
             || item.sub_type == WAND_DIGGING
             || item.sub_type == WAND_DISINTEGRATION
             || item.sub_type == WAND_SCATTERSHOT)
-        {
             retval = true;
-        }
         break;
     case OBJ_BOOKS:
         retval = _is_book_type(item, is_earthy_spell);
@@ -502,13 +498,13 @@ bool is_airy_item(const item_def& item, bool calc_unid)
     bool retval = false;
 
     if (item.base_type == OBJ_WEAPONS)
-    {
-        if (calc_unid || item_brand_known(item))
         {
+        if (calc_unid || item_brand_known(item))
+            {
             return get_weapon_brand(item) == SPWPN_ELECTROCUTION
                    || get_weapon_brand(item) == SPWPN_SPEED;
+            }
         }
-    }
 
     if (!calc_unid && !item_type_known(item))
         return false;
@@ -531,9 +527,7 @@ bool is_airy_item(const item_def& item, bool calc_unid)
             || item.sub_type == SCR_FOG
             || item.sub_type == SCR_SILENCE
             || item.sub_type == SCR_AMNESIA)
-        {
             retval = true;
-        }
         break;
     case OBJ_BOOKS:
         retval = _is_book_type(item, is_airy_spell);
@@ -866,9 +860,7 @@ bool god_likes_item_type(const item_def &item, god_type which_god)
         case GOD_ANADORATH:
             if (item.is_type(OBJ_JEWELLERY, AMU_GUARDIAN_SPIRIT)
                 || item.is_type(OBJ_JEWELLERY, AMU_RAGE))
-            {
                 return false;
-            }
             break;
 
         case GOD_ELYVILON:

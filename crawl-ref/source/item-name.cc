@@ -3549,10 +3549,8 @@ bool is_useless_item(const item_def &item, bool temp)
             return _invisibility_is_useless(temp);
         case POT_DIVINE_FAVOUR:
         case POT_PENANCE:
-            return you.religion == GOD_NO_GOD
-                   || you.religion == GOD_GOZAG
-                   || you.religion == GOD_RU
-                   || you.religion == GOD_XOM;
+            return (you.religion == GOD_NO_GOD || you.religion == GOD_GOZAG
+                    || you.religion == GOD_RU || you.religion == GOD_XOM);
         }
 
         return false;

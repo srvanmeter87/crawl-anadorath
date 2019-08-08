@@ -3128,10 +3128,10 @@ bool god_hates_attacking_friend(god_type god, const monster& fr)
         case GOD_FEDHAS:
             return _fedhas_protects_species(species);
         case GOD_ANADORATH:
-            return mons_is_airy(fr)
+            return (mons_is_airy(fr)
                    || mons_is_earthy(fr)
                    || mons_is_fiery(fr)
-                   || mons_is_icy(fr);
+                   || mons_is_icy(fr));
         default:
             return false;
     }
@@ -3912,20 +3912,16 @@ int had_gods()
 bool god_likes_your_god(god_type god, god_type your_god)
 {
     if (your_god == GOD_ANADORATH)
-    {
-        return god == GOD_CHEIBRIADOS || god == GOD_ELYVILON
-               || god == GOD_FEDHAS || god == GOD_QAZLAL
-               || god == GOD_RU || god == GOD_SIF_MUNA
-               || god == GOD_VEHUMET;
-    }
+        return (god == GOD_CHEIBRIADOS || god == GOD_ELYVILON
+                || god == GOD_FEDHAS || god == GOD_QAZLAL
+                || god == GOD_RU || god == GOD_SIF_MUNA
+                || god == GOD_VEHUMET);
 
     if (god == GOD_ANADORATH)
-    {
-        return your_god == GOD_CHEIBRIADOS || your_god == GOD_ELYVILON
-               || your_god == GOD_FEDHAS || your_god == GOD_QAZLAL
-               || your_god == GOD_RU || your_god == GOD_SIF_MUNA
-               || your_god == GOD_VEHUMET;
-    }
+        return (your_god == GOD_CHEIBRIADOS || your_god == GOD_ELYVILON
+                || your_god == GOD_FEDHAS || your_god == GOD_QAZLAL
+                || your_god == GOD_RU || your_god == GOD_SIF_MUNA
+                || your_god == GOD_VEHUMET);
 
     return is_good_god(god) && is_good_god(your_god);
 }
@@ -3938,13 +3934,11 @@ bool god_hates_your_god(god_type god, god_type your_god)
 
     // Anadorath is a special case.
     if (is_elemental_god(god))
-    {
-        return is_evil_god(your_god) || your_god == GOD_JIYVA
-               || your_god == GOD_PAKELLAS || your_god == GOD_SHINING_ONE
-               || your_god == GOD_TROG || your_god == GOD_USKAYAW
-               || your_god == GOD_XOM || your_god == GOD_YREDELEMNUL
-               || your_god == GOD_ZIN;
-    }
+        return (is_evil_god(your_god) || your_god == GOD_JIYVA
+                || your_god == GOD_PAKELLAS || your_god == GOD_SHINING_ONE
+                || your_god == GOD_TROG || your_god == GOD_USKAYAW
+                || your_god == GOD_XOM || your_god == GOD_YREDELEMNUL
+                || your_god == GOD_ZIN);
 
     // Gods do not hate themselves.
     if (god == your_god)
