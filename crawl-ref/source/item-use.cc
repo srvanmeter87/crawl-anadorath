@@ -2791,7 +2791,7 @@ static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
 {
     item_def* armour = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_ARMOUR,
                                                       "Brand which item?");
-
+    
     if (!armour)
         return !alreadyknown;
 
@@ -2803,7 +2803,7 @@ static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
 {
     item_def* ammunition = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_AMMUNITION,
                                                           "Brand which item?");
-
+    
     if (!ammunition)
         return !alreadyknown;
     

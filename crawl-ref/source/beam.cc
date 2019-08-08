@@ -6590,7 +6590,7 @@ static string _beam_type_name(beam_type type)
     case BEAM_DEVASTATION:           return "devastation";
     case BEAM_RANDOM:                return "random";
     case BEAM_CHAOS:                 return "chaos";
-    case BEAM_ELEMENTAL_BLAST:       return "elemental blast";
+    case BEAM_ELEMENTAL_BLAST:       return "elemental blast";    
     case BEAM_SLOW:                  return "slow";
     case BEAM_HASTE:                 return "haste";
     case BEAM_MIGHT:                 return "might";

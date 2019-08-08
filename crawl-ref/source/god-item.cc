@@ -407,10 +407,10 @@ bool is_fiery_item(const item_def& item, bool calc_unid)
     bool retval = false;
 
     if (item.base_type == OBJ_WEAPONS)
-        {
+    {
         if (calc_unid || item_brand_known(item))
             return get_weapon_brand(item) == SPWPN_FLAMING;
-        }
+    }
 
     if (!calc_unid && !item_type_known(item))
         return false;
@@ -459,7 +459,7 @@ bool is_earthy_item(const item_def& item, bool calc_unid)
         if (calc_unid || item_brand_known(item))
             return get_weapon_brand(item) == SPWPN_PENETRATION;
     }
-
+    
     if (!calc_unid && !item_type_known(item))
         return false;
 
@@ -498,14 +498,13 @@ bool is_airy_item(const item_def& item, bool calc_unid)
     bool retval = false;
 
     if (item.base_type == OBJ_WEAPONS)
-        {
+    {
         if (calc_unid || item_brand_known(item))
-            {
+        {
             return get_weapon_brand(item) == SPWPN_ELECTROCUTION
                    || get_weapon_brand(item) == SPWPN_SPEED;
-            }
         }
-
+    }
     if (!calc_unid && !item_type_known(item))
         return false;
 
@@ -553,16 +552,16 @@ bool is_icy_item(const item_def& item, bool calc_unid)
 
 #if TAG_MAJOR_VERSION == 34
     if (item.base_type == OBJ_WEAPONS)
-        {
+    {
         if (calc_unid || item_brand_known(item))
             return get_weapon_brand(item) == SPWPN_FROST;
-        }
+    }
 
     if (item.base_type == OBJ_MISSILES)
-        {
+    {
         if (calc_unid || item_brand_known(item))
             return get_ammo_brand(item) == SPMSL_FROST;
-        }
+    }
 #endif
 
     if (!calc_unid && !item_type_known(item))
@@ -798,7 +797,7 @@ vector<conduct_type> item_conducts(const item_def &item)
             return DID_CHANNEL;
         }
         break;
-
+    
     case GOD_ANADORATH:
         if (!item_type_known(item))
             return DID_NOTHING;

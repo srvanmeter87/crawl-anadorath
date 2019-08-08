@@ -7388,7 +7388,7 @@ spret wu_jian_wall_jump_ability()
                         5 + random2avg(12 + div_rand_round(pow * 3, 4), 3),
                         &you);
         }
-
+                    
         mprf("You create a blast of frostfire!");
         did_god_conduct(DID_FIRE, min(5 + pow/2, 23));
         did_god_conduct(DID_ICE, min(5 + pow/2, 23));

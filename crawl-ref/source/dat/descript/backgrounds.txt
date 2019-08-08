@@ -87,7 +87,7 @@ Primalist
 Primalists are devout, powerful casters of the destructive powers of Earth,
 Air, Fire, Ice, and Death. Driven to the dungeon on a vision from Ashenzari
 herself, they carry two sacred Elemental Tomes containing many
-spells from which to choose, an enchanted robe, some scrolls, and little else.
+spells from which to choose, an enchanted robe, some scrolls, and little else. 
 %%%%
 Skald
 

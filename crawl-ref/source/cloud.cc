@@ -973,7 +973,7 @@ static int _actor_cloud_resist(const actor *act, const cloud_struct &cloud)
         return act->res_elec();
     case CLOUD_NEGATIVE_ENERGY:
         return act->res_negative_energy();
-/*
+/*     
     case CLOUD_ELEMENTAL_CHAOS:
         return act->res_elemental_chaos();
  */

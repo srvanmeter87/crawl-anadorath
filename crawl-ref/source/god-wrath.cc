@@ -1590,7 +1590,7 @@ static void _anadorath_elemental_miscast()
 {
     const god_type god = GOD_ANADORATH;
     simple_god_message(" invokes the elements against you.", god);
-
+    
     spschool stype = random_choose(spschool::air, spschool::fire,
                                    spschool::earth, spschool::ice);
     MiscastEffect(&you, nullptr, {miscast_source::god, god}, stype,

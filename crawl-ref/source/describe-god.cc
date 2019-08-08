@@ -943,7 +943,7 @@ static formatted_string _describe_god_powers(god_type which_god)
                 piety >= piety_breakpoint(4) ? "large elemental shield" :
                 piety >= piety_breakpoint(2) ? "moderate-size shield" :
                                                "small buckler");
-
+        
         if (have_passive(passive_t::elemental_resist))
             textcolour(YELLOW);
         else if (have_passive(passive_t::elemental_resist_plus))
@@ -964,7 +964,7 @@ static formatted_string _describe_god_powers(god_type which_god)
                                                "",
                 piety >= piety_breakpoint(5) ? " rElec+" :
                                                "");
-
+        
         if (have_passive(passive_t::elemental_neutrality))
         {
             if (have_passive(passive_t::elemental_friend))
@@ -983,7 +983,7 @@ static formatted_string _describe_god_powers(god_type which_god)
                                                " would make primal elementals cease hostility");
         break;
     }
-
+            
     case GOD_ASHENZARI:
         have_any = true;
         desc.cprintf("You are provided with a bounty of information.\n");
