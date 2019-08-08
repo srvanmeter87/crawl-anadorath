@@ -1,12 +1,9 @@
 .cquery_cache/
 .DS_Store
-.vscode*
-.vscode/.ctags
-.vscode/.cflags
-.vscode/c_cpp_properties.json
-.vscode/settings.json
+.vscode/*
 crawl-ref/source/.ctags
 crawl-ref/source/sounds/
 crawl-ref/source/GPATH
 crawl-ref/source/GRTAGS
 crawl-ref/source/GTAGS
+crawl-ref/settings/*
