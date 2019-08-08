@@ -7,3 +7,6 @@
 .vscode/settings.json
 crawl-ref/source/.ctags
 crawl-ref/source/sounds/
+crawl-ref/source/GPATH
+crawl-ref/source/GRTAGS
+crawl-ref/source/GTAGS
