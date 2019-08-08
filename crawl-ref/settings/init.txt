@@ -1,92 +1,3 @@
-##### Crawl Init file ###############################################
-# For descriptions of all options, as well as some more in-depth information
-# on setting them, consult the file
-#    options_guide.txt
-# in your /docs directory. If you can't find it, the file is also available
-# online at:
-# https://github.com/crawl/crawl/blob/master/crawl-ref/docs/options_guide.txt
-#
-# Crawl uses the first file of the following list as its option file:
-#  * init.txt in the -rcdir directory (if specified)
-#  * .crawlrc in the -rcdir directory (if specified)
-#  * init.txt (in the Crawl directory)
-#  * ~/.crawl/init.txt (Unix only)
-#  * ~/.crawlrc (Unix only)
-#  * ~/init.txt (Unix only)
-#  * settings/init.txt (in the Crawl directory)
-
-##### Some basic explanation of option syntax #######################
-# Lines beginning with '#' are comments. The basic syntax is:
-#
-# field = value         or      field.subfield = value
-#
-# Only one specification is allowed per line.
-#
-# The terms are typically case-insensitive except in the fairly obvious
-# cases (the character's name and specifying files or directories when
-# on a system that has case-sensitive filenames).
-#
-# White space is stripped from the beginning and end of the line, as
-# well as immediately before and after the '='. If the option allows
-# multiple comma/semicolon-separated terms (such as
-# autopickup_exceptions), all whitespace around the separator is also
-# trimmed. All other whitespace is left intact.
-#
-# There are three broad types of Crawl options: true/false values (booleans),
-# arbitrary values, and lists of values. The first two types use only the
-# simple =, with later options - which includes your options that are different
-# from the defaults - overriding earlier ones. List options allow using +=, ^=,
-# -=, and = to append, prepend, remove, and reset, respectively. Usually you will
-# want to use += to add to a list option. Lastly, there is := which you can use
-# to create an alias, like so:
-#   ae := autopickup_exceptions
-# From there on, 'ae' will be treated as if it you typed autopickup_exceptions,
-# so you can save time typing it.
-#
-
-##### Other files ###################################################
-# You can include other files from your options file using the 'include'
-# option. Crawl will treat it as if you copied the whole text of that file
-# into your options file in that spot. You can uncomment some of the following
-# lines by removing the beginning '#' to include some of the other files in
-# this folder.
-
-# Some useful, more advanced options, implemented in LUA.
-# include = advanced_optioneering.txt
-
-# Alternative vi bindings for Dvorak users.
-# include = dvorak_command_keys.txt
-
-# Alternative vi bindings for Colemak users.
-# include = colemak_command_keys.txt
-
-# Alternative vi bindings for Neo users.
-# include = neo_command_keys.txt
-
-# Override the vi movement keys with a non-command.
-# include = no_vi_command_keys.txt
-
-# Turn the shift-vi keys into safe move, instead of run.
-# include = safe_move_shift.txt
-
-##### Ancient versions ##############################################
-# If you're used to the interface of ancient versions of Crawl, you may
-# get back parts of it by uncommenting the following options:
-
-# include                 = 034_command_keys.txt
-
-# And to revert monster glyph and colouring changes:
-
-# include                 = 052_monster_glyphs.txt
-# include                 = 060_monster_glyphs.txt
-# include                 = 071_monster_glyphs.txt
-# include                 = 080_monster_glyphs.txt
-# include                 = 0.9_monster_glyphs.txt
-# include                 = 0.12_monster_glyphs.txt
-# include                 = 0.13_monster_glyphs.txt
-# include                 = 0.14_monster_glyphs.txt
-
-
 ## 1 - Starting Screen
 name =
 remember_name = false
@@ -95,16 +6,20 @@ remember_name = false
 # background +=
 # combo +=
 restart_after_game = true
-restart_after_save = true
+restart_after_save = false
+newgame_after_quit = false
+name_bypasses_menu = false
 default_manual_training = false
 autopickup_starting_ammo = true
+# game_seed = none
+# pregen_dungeon = false
 
 ## 2 - Filesystem
-crawl_dir = /home/kaedan/.git/repo/srvanmeter87/crawl-ref/source
-morgue_dir = morgue\
-save_dir = saves\
-macro_dir = ..\settings\
-sound_file_path = sound/
+# crawl_dir = ~/crawl/crawl-ref/source
+# morgue_dir = ../morgue
+# save_dir = ../saves
+# macro_dir = ../settings
+sound_file_path = sounds/
 one_SDL_sound_channel = false
 sound += LOW MAGIC WARNING:beeuboop.wav
 sound += FIRE_PROMPT:thoonk.wav
@@ -203,7 +118,7 @@ sound += You are cast deeper into the Abyss:beeuboop.wav
 sound += The Abyss bends around you:thoonk.wav
 
 ## 3a - Interface
-autopickup = (/%?!+:\0}X$
+autopickup = (/%?!+:0}X$
 #    )  Weapons     (  Missiles    [  Armour
 #    /  Wands       %  Food        ?  Scrolls
 #    "  Amulets     =  Rings       !  Potions
@@ -214,7 +129,7 @@ autopickup = (/%?!+:\0}X$
 ae := autopickup_exceptions
 ae =
 ae += <rune of Zot
-ae += amulet of (nothing|inaccuracy|the gourmand|regeneration|harm|rage|guardian spirit|faith|magic regeneration)
+ae += amulet of (nothing|inaccuracy|rage)
 ae += ring of (see invisible|flight|poison resistance|resist corrosion)
 ae += [^n]identified.*spellbook
 default_autopickup = true
@@ -222,6 +137,7 @@ pickup_thrown = true
 assign_item_slot = backward
 pickup_menu_limit = 1
 drop_filter =
+auto_hide_spells = false
 
 ## 3b - Passive Sightings
 detected_monster_colour = lightmagenta
@@ -243,21 +159,21 @@ level_map_cursor_step = 5
 ## 3e - Viewport Display
 view_max_width = 81
 view_max_height = 71
-view_lock_x = true
-view_lock_y = true
+# view_lock_x = true
+# view_lock_y = true
 view_lock = true
-center_on_scroll = false
-symmetric_scroll = true
-scroll_margin_x = 2
-scroll_margin_y = 2
-scroll_margin = 2
+# center_on_scroll = false
+# symmetric_scroll = true
+# scroll_margin_x = 2
+# scroll_margin_y = 2
+# scroll_margin = 2
 always_show_exclusions = true
 
 ## 3f - Travel & Exploration
 travel_delay = 25
 explore_delay = 25
 rest_delay = -1
-# travel_avoid_terrain = deep water
+travel_avoid_terrain = deep water
 explore_greedy = true
 explore_stop = shops,altars,portals,branches,runed_doors
 explore_stop += glowing_items,artefacts,runes
@@ -291,9 +207,12 @@ interrupt_rest = interrupt_travel, stat, hit_monster, message, full_hp, full_mp
 delay_safe_poison = 80:100
 runrest_ignore_monster = ^butterfly$:1, ^wandering mushroom$:1, fish:2
 rest_wait_both = true
+rest_wait_ancestor = false
 rest_wait_percent = 100
 explore_auto_rest = true
 auto_exclude = oklob, statue, roxanne, hyperactive, lightning spire
+wall_jump_move = true
+wall_jump_prompt = true
 
 ## 3g - Command Enhancements
 auto_switch = true
@@ -309,20 +228,21 @@ confirm_butcher = never
 easy_eat_chunks = false
 auto_eat_chunks = false
 easy_quit_item_prompts = true
-easy_exit_menu = false
 ability_menu = true
 easy_floor_use = true
 sort_menus = true : equipped, charged, art, ego, identified, glowing, basename, dbname, curse, >qty
-spell_slot ^= Shatter:+z
-spell_slot ^= Lee's Rapid Deconstruction:+y
-spell_slot ^= Fireball:+x
-spell_slot ^= Ignition:+w
-spell_slot ^= Fire Storm:+v
-spell_slot ^= Glaciate:+u
-spell_slot ^= Airstrike:+t
-spell_slot ^= Necromutation:+s
-spell_slot ^= Sublimation of Blood:+r
-spell_slot += .*:abcdefghijklmnopq
+
+spell_slot ^= Bolt:abcdef
+spell_slot ^= Poison Arrow:+g
+spell_slot ^= Fireball:+h
+spell_slot ^= Ignition:+i
+spell_slot ^= Fire Storm:+j
+spell_slot ^= Airstrike:+k
+spell_slot ^= Lee's Rapid Deconstruction:+l
+spell_slot ^= Sublimation of Blood:+m
+spell_slot ^= Shatter:+s
+spell_slot += .*:nopqrtuvwxyz
+
 # item_slot ^=
 # ability_slot ^=
 autofight_stop = 33
@@ -336,7 +256,7 @@ autofight_caught = true
 autofight_wait = true
 autofight_prompt_range = true
 automagic_enable = true
-automagic_slot = a
+automagic_slot = n
 automagic_fight = false
 automagic_stop = 0
 fail_severity_to_confirm = 2
@@ -346,6 +266,7 @@ enable_recast_spell = true
 # confirm_action += regex
 regex_search = true
 autopickup_search = false
+bad_item_prompt = false
 
 ## 3h - Messages & Display Enhancements
 hp_warning = 25
@@ -366,6 +287,7 @@ item_stack_summary_minimum = 4
 # mlist_allow_alternate_layout = false
 msg_min_height = 16
 msg_max_height = 16
+# msg_webtiles_height = -1
 messages_at_top = true
 msg_condense_repeats = true
 msg_condense_short = true
@@ -377,6 +299,7 @@ mlc = friendly:lightblue, good_neutral:green, neutral:brown, strict_neutral:brow
 view_delay = 750
 # use_animations -=
 darken_beyond_range = true
+
 fmm := force_more_message
 fmm =
 fmm += You focus on prolonging your flight
@@ -506,9 +429,6 @@ menu += blue:.*good_item.*
 menu += magenta:.*dangerous_item.*
 menu += blue:.*misc.*[lL]antern
 menu += lightgreen:^identified.*(potion|scroll|wand|jewellery|magical staff|misc)
-: if you.god() == "Nemelex Xobeh" then
-    menu += lightblue:deck of cards
-: end
 menu += pickup:lightgreen:god gift
 menu += white:(^identified.*(weapon|armour).*)
 menu += notes:magenta:Reached XP level
@@ -591,7 +511,7 @@ msc += mute:Uskayaw will no longer force your foes to share their pain\.
 ## 3j - Missiles
 fire_items_start = a
 fire_order  = launcher, return
-fire_order += javelin, tomahawk, net, stone, rock
+fire_order += javelin, boomerang, net, stone, rock
 fire_order += inscribed
 
 ## 3k - Message Channels
@@ -647,6 +567,10 @@ macros += K3 e N
 macros += M v 5
 
 # Wizard Mode Commands
+macros += M / ?
+macros += M ` ff
+macros += M x %
+macros += M b x
 macros += M \{-222} &~
 macros += M \{-52} &,
 macros += M \{-51} &_
@@ -685,21 +609,31 @@ macros += M \{-1073741891} ai
 macros += M \{-1073741892} aj
 macros += M \{-1073741893} ak
 
-# 1-4 == Default Spell Order
-macros += M 1 Za
-macros += M 2 Zb
-macros += M 3 Zc
-macros += M 4 Zd
-macros += M 5 Ze
-macros += M 6 Zf
-macros += M 7 Zg
-macros += M 8 Zh
-macros += M 9 Zi
+# Shift F1-F6 == Bolts
+macros += M \{-1073741947} Za
+macros += M \{-1073741948} Zb
+macros += M \{-1073741949} Zc
+macros += M \{-1073741950} Zd
+macros += M \{-1073741951} Ze
+macros += M \{-1073741952} Zf
 
 # q/w/e == Fireball/LRD/Shatter
-macros += M q Zx
-macros += M w Zy
-macros += M e Zz
+macros += M q Zh
+macros += M w Zl
+macros += M e Zs
+
+# 1 == Auto-Magic Slot
+macros += M 1 Zn
+
+# 2 - 9 == Default Spell Order
+macros += M 2 Zo
+macros += M 3 Zp
+macros += M 4 Zq
+macros += M 5 Zr
+macros += M 6 Zt
+macros += M 7 Zu
+macros += M 8 Zv
+macros += M 9 Zw
 
 flush.failure = true
 flush.command = false
@@ -707,7 +641,7 @@ flush.message = false
 # additional_macro_file = path/to/file.name
 
 ## 3n - Tiles Options
-tile_show_items = $X%?!/()["=+:}\
+tile_show_items = $X%?!/()["=+:}
 #    )  Weapons     (  Missiles    [  Armour
 #    /  Wands       %  Food        ?  Scrolls
 #    "  Amulets     =  Rings       !  Potions
@@ -749,23 +683,26 @@ tile_tag_pref = enemy
 tile_window_width = 0
 tile_window_height = 0
 tile_map_pixels = 0
-tile_cell_pixels = 48
+tile_viewport_scale = 1.5
+tile_map_scale = 0.6
+tile_cell_pixels = 36
 tile_filter_scaling = true
 tile_force_overlay = true
 tile_full_screen = true
-# tile_font_crt_file  = VeraMono.ttf
-# tile_font_stat_file = VeraMono.ttf
-# tile_font_msg_file  = VeraMono.ttf
-# tile_font_tip_file  = VeraMono.ttf
-# tile_font_lbl_file  = Vera.ttf
+tile_single_column_menus = true
+# tile_font_crt_file  = DejaVuSansMono.ttf
+# tile_font_stat_file = DejaVuSansMono.ttf
+# tile_font_msg_file  = DejaVuSansMono.ttf
+# tile_font_tip_file  = DejaVuSansMono.ttf
+# tile_font_lbl_file  = DejaVuSans.ttf
 # tile_font_crt_family  = monospace
 # tile_font_stat_family = monospace
 # tile_font_msg_family  = monospace
 # tile_font_lbl_family  = monospace
-tile_font_crt_size  = 16
+tile_font_crt_size  = 18
 tile_font_stat_size = 18
-tile_font_msg_size  = 14
-tile_font_tip_size  = 13
+tile_font_msg_size  = 15
+tile_font_tip_size  = 14
 tile_font_lbl_size  = 16
 tile_font_ft_light = true
 tile_show_minihealthbar = true
@@ -773,21 +710,19 @@ tile_show_minimagicbar = true
 tile_show_demon_tier = true
 tile_water_anim = true
 tile_misc_anim = true
-tile_show_player_species = false
+tile_show_player_species = true
 tile_layout_priority = minimap, inventory, gold_turn, ability, spell, monster
+tile_player_tile = playermons
+# tile_weapon_offsets = (<x>,<y> | reset)
+# tile_shield_offsets = (<x>,<y> | reset)
 ### WEBTILES ONLY ###
 # tile_realtime_anim = false
 # tile_display_mode = (tiles | glyphs | hybrid)
 # tile_level_map_hide_messages = true
 # tile_level_map_hide_sidebar = false
-# tile_player_tile = (normal | playermons | mons:<monster> | tile:<monster-tile>)
-# tile_weapon_offsets = (<x>,<y> | reset)
-# tile_shield_offsets = (<x>,<y> | reset)
 # tile_web_mouse_control = true
 
 ## 4 - Character Dump
-arena_dump_msgs = true
-arena_dump_msgs_all = true
 dump_on_save = true
 ## 4b - Items & Kills
 # kill_map =
@@ -799,9 +734,8 @@ dump_order  = header,hiscore,stats,misc,inventory,
 dump_order += skills,spells,overview,mutations,messages,screenshot,
 dump_order += monlist,kills,notes,skill_gains,action_counts,
 dump_order += turns_by_place,kills_by_place,vaults
-dump_book_spells = true
 ## 4c - Notes
-user_note_prefix = manualNote: 
+# user_note_prefix = manualNote:
 note_items += rod,book,acquirement
 # note_monsters +=
 note_hp_percent = 2
@@ -819,9 +753,21 @@ mouse_input = true
 wiz_mode = no
 explore_mode = no
 # char_set = default
+use_modifier_prefix_keys = false
+fake_lang = dwarven
+# read_persist_options = false
 ## 5b - DOS and Windows
 dos_use_background_intensity = true
+## 5c - Unix
+# blink_brightens_background = false
+# bold_brightens_foreground = false
+# best_effort_brighten_background = false
+# best_effort_brighten_foreground = true
+allow_extended_colours = true
+# background_colour = black
+# foreground_colour = lightgrey
+# use_fake_cursor = true
 
 ### 6 - Lua Code
 
-# lua_file = lua/functions.lua
+lua_file = lua/functions.lua
