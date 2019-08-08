@@ -1913,6 +1913,14 @@ static const mutation_def mut_data[] =
   {"You feel less resistant to acid.", "", ""},
 },
 
+{ MUT_NO_SHORT_BLADES, 0, 1, mutflag::bad, false,
+  "no short blades",
+
+  {"You cannot use short blades.", "", ""},
+  {"You can no longer use short blades.", "", ""},
+  {"You can use short blades again.", "", ""},
+},
+
 { MUT_NO_BOWS, 0, 1, mutflag::bad, false,
   "no bows",
 
@@ -1924,17 +1932,9 @@ static const mutation_def mut_data[] =
 { MUT_NO_THROWING, 0, 1, mutflag::bad, false,
   "no throwing weapons",
 
-  {"You cannot use thrown or blown weapons.", "", ""},
-  {"You can no longer use thrown or blown weapons.", "", ""},
-  {"You can use thrown and blown weapons again.", "", ""},
-},
-
-{ MUT_NO_SHORT_BLADES, 0, 1, mutflag::bad, false,
-  "no short blades",
-
-  {"You cannot use short blades.", "", ""},
-  {"You can no longer use short blades.", "", ""},
-  {"You can use short blades again.", "", ""},
+  {"You cannot use thrown weapons.", "", ""},
+  {"You can no longer use thrown weapons.", "", ""},
+  {"You can use thrown weapons again.", "", ""},
 },
 
 { MUT_NO_SLINGS, 0, 1, mutflag::bad, false,

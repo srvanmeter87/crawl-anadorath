@@ -15,19 +15,18 @@ aptitudes:
   fighting: 3
   short_blades: -3
   long_blades: 2
-  axes: 0
   maces_and_flails: -2
+  axes: 0
   polearms: 2
   staves: -2
-  slings: -3
+  unarmed_combat: 4
   bows: -3
   crossbows: 0
   throwing: 4
+  slings: -3
   armour: 4
   dodging: -10
   shields: 5
-  stealth: -10
-  unarmed_combat: 4
   spellcasting: 2
   conjurations: 1
   hexes: -1
@@ -36,13 +35,14 @@ aptitudes:
   necromancy: -6
   translocations: -4
   transmutations: -2
-  earth_magic: 3
   fire_magic: 4
   ice_magic: false
   air_magic: false
+  earth_magic: 3
   poison_magic: -6
   invocations: 3
   evocations: 2
+  stealth: -10
 can_swim: false
 size: giant
 str: 12
