@@ -1115,7 +1115,7 @@ bool item_is_selected(const item_def &i, int selector)
 
     case OSEL_BRANDABLE_ARMOUR:
         return is_brandable_armour(i, true);
-    
+
     case OSEL_ENCHANTABLE_ARMOUR:
         return is_enchantable_armour(i, true);
 

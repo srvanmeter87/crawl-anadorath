@@ -1296,7 +1296,7 @@ public:
         {
             return false;
         }
-        
+
         effect();
         return true;
     }

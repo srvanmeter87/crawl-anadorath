@@ -1,4 +1,4 @@
-﻿# -*- conf-unix -*- vim:ft=conf
+# -*- conf-unix -*- vim:ft=conf
 # The above comment makes Emacs and vim treat this file as a configuration file
 
 *.[oa]

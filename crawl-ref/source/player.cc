@@ -1396,7 +1396,7 @@ int player_res_steam(bool calc_unid, bool temp, bool items)
 
         res++;
     }
-        
+
     res += rf * 2;
 
     if (res > 2)
@@ -1441,7 +1441,7 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
 
         // rings of magic resistance
         rec += you.wearing(EQ_RINGS, RING_PROTECTION_FROM_MAGIC, calc_unid);
-        
+
         // rings of magic boosting
         rec += you.wearing(EQ_RINGS, RING_MAGICAL_POWER, calc_unid);
         rec += you.wearing(EQ_RINGS, RING_WIZARDRY, calc_unid);
@@ -1457,7 +1457,7 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
         {
             rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
         }
-        
+
         // ego armours
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_CLOUD_IMMUNE) * 10;
@@ -1606,7 +1606,7 @@ int player_res_electricity(bool calc_unid, bool temp, bool items)
     if (have_passive(passive_t::elemental_resist))
     {
         re++;
-    }    
+    }
     // mutations:
     re += you.get_mutation_level(MUT_THIN_METALLIC_SCALES, temp) == 3 ? 1 : 0;
     re += you.get_mutation_level(MUT_SHOCK_RESISTANCE, temp);
@@ -2388,7 +2388,7 @@ int player_shield_class()
     {
         shield += 600;
     }
-    
+
     return (shield + 50) / 100;
 }
 
