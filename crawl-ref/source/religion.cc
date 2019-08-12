@@ -393,7 +393,7 @@ const vector<god_power> god_powers[NUM_GODS] =
 
     // Anadorath
     {
-        {  7, ABIL_ANADORATH_ELEMENTAL_BLAST, "conjure a chaotic blast of elements" },
+        {  6, ABIL_ANADORATH_ELEMENTAL_BLAST, "conjure a chaotic blast of elements" },
     },
 };
 
@@ -658,13 +658,13 @@ void dec_penance(god_type god, int val)
             if (have_passive(passive_t::neutral_slimes))
                 add_daction(DACT_SLIME_NEW_ATTEMPT);
 
-            if (have_passive(passive_t::elemental_neutrality)
-                && !(have_passive(passive_t::elemental_friend)))
+            if (have_passive(passive_t::elemental_conversion_1)
+                && !(have_passive(passive_t::elemental_conversion_2)))
             {
                 simple_god_message(" calms elemental worshippers, neutralising them.");
                 add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
             }
-            if (have_passive(passive_t::elemental_friend))
+            if (have_passive(passive_t::elemental_conversion_2))
             {
                 simple_god_message(" restores your alliance with elemental worshippers.");
                 add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
@@ -862,18 +862,18 @@ static void _inc_penance(god_type god, int val)
         }
         else if (god == GOD_ANADORATH)
         {
-            if (you.piety >= piety_breakpoint(3))
+            if (you.piety >= piety_breakpoint(4))
             {
                 mprf(MSGCH_GOD, god, "Elemental worshippers frown upon you.");
+            }
+            if (you.piety >= piety_breakpoint(3))
+            {
+                mprf(MSGCH_GOD, god, "Your elemental resistance dissipates.");
+                you.redraw_armour_class = true;
             }
             if (you.piety >= piety_breakpoint(2))
             {
                 mprf(MSGCH_GOD, god, "Your elemental shield shrinks.");
-                you.redraw_armour_class = true;
-            }
-            if (you.piety >= piety_breakpoint(1))
-            {
-                mprf(MSGCH_GOD, god, "Your elemental resistance dissipates.");
                 you.redraw_armour_class = true;
             }
         }
@@ -1722,6 +1722,8 @@ bool is_follower(const monster& mon)
         return is_yred_undead_slave(mon);
     else if (will_have_passive(passive_t::convert_orcs))
         return is_orcish_follower(mon);
+    else if (will_have_passive(passive_t::elemental_conversion_2))
+        return is_elemental_follower(mon);
     else if (you_worship(GOD_JIYVA))
         return is_fellow_slime(mon);
     else if (you_worship(GOD_FEDHAS))
@@ -2503,6 +2505,13 @@ static void _gain_piety_point()
         you.redraw_armour_class = true;
     }
 
+    if (you_worship(GOD_ANADORATH)
+        && (anadorath_def_boost(old_piety) != anadorath_def_boost()))
+    {
+        you.redraw_armour_class = true;
+    }
+
+
     if (have_passive(passive_t::halo) || have_passive(passive_t::umbra))
     {
         // Piety change affects halo / umbra radius.
@@ -2647,6 +2656,12 @@ void lose_piety(int pgn)
 
     if (you_worship(GOD_QAZLAL)
         && qazlal_sh_boost(old_piety) != qazlal_sh_boost())
+    {
+        you.redraw_armour_class = true;
+    }
+
+    if (you_worship(GOD_ANADORATH)
+        && (anadorath_def_boost(old_piety) != anadorath_def_boost()))
     {
         you.redraw_armour_class = true;
     }
@@ -3128,10 +3143,10 @@ bool god_hates_attacking_friend(god_type god, const monster& fr)
         case GOD_FEDHAS:
             return _fedhas_protects_species(species);
         case GOD_ANADORATH:
-            return (mons_is_airy(fr)
+            return mons_is_airy(fr)
                    || mons_is_earthy(fr)
                    || mons_is_fiery(fr)
-                   || mons_is_icy(fr));
+                   || mons_is_icy(fr);
         default:
             return false;
     }
@@ -3912,16 +3927,20 @@ int had_gods()
 bool god_likes_your_god(god_type god, god_type your_god)
 {
     if (your_god == GOD_ANADORATH)
-        return (god == GOD_CHEIBRIADOS || god == GOD_ELYVILON
-                || god == GOD_FEDHAS || god == GOD_QAZLAL
-                || god == GOD_RU || god == GOD_SIF_MUNA
-                || god == GOD_VEHUMET);
+    {
+        return god == GOD_CHEIBRIADOS || god == GOD_ELYVILON
+               || god == GOD_FEDHAS || god == GOD_QAZLAL
+               || god == GOD_RU || god == GOD_SIF_MUNA
+               || god == GOD_VEHUMET;
+    }
 
     if (god == GOD_ANADORATH)
-        return (your_god == GOD_CHEIBRIADOS || your_god == GOD_ELYVILON
-                || your_god == GOD_FEDHAS || your_god == GOD_QAZLAL
-                || your_god == GOD_RU || your_god == GOD_SIF_MUNA
-                || your_god == GOD_VEHUMET);
+    {
+        return your_god == GOD_CHEIBRIADOS || your_god == GOD_ELYVILON
+               || your_god == GOD_FEDHAS || your_god == GOD_QAZLAL
+               || your_god == GOD_RU || your_god == GOD_SIF_MUNA
+               || your_god == GOD_VEHUMET;
+    }
 
     return is_good_god(god) && is_good_god(your_god);
 }
@@ -3934,11 +3953,13 @@ bool god_hates_your_god(god_type god, god_type your_god)
 
     // Anadorath is a special case.
     if (is_elemental_god(god))
-        return (is_evil_god(your_god) || your_god == GOD_JIYVA
-                || your_god == GOD_PAKELLAS || your_god == GOD_SHINING_ONE
-                || your_god == GOD_TROG || your_god == GOD_USKAYAW
-                || your_god == GOD_XOM || your_god == GOD_YREDELEMNUL
-                || your_god == GOD_ZIN);
+    {
+        return is_evil_god(your_god) || your_god == GOD_JIYVA
+               || your_god == GOD_PAKELLAS || your_god == GOD_SHINING_ONE
+               || your_god == GOD_TROG || your_god == GOD_USKAYAW
+               || your_god == GOD_XOM || your_god == GOD_YREDELEMNUL
+               || your_god == GOD_ZIN;
+    }
 
     // Gods do not hate themselves.
     if (god == your_god)
@@ -4213,7 +4234,7 @@ void handle_god_time(int /*time_delta*/)
             if (one_chance_in(35))
                 lose_piety(1);
         case GOD_ANADORATH:
-            if (one_chance_in(25))
+            if (one_chance_in(22))
                 lose_piety(1);
             break;
 

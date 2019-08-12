@@ -1293,7 +1293,9 @@ public:
     bool quaff(bool was_known) const override
     {
         if (was_known && !check_known_quaff())
+        {
             return false;
+        }
         
         effect();
         return true;

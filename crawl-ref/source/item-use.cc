@@ -2161,7 +2161,9 @@ bool god_hates_brand(const int brand)
 
     if (you_worship(GOD_ANADORATH)
         && (brand == SPWPN_ANTIMAGIC || brand == SPWPN_HOLY_WRATH))
+    {
         return true;
+    }
 
     if (you_worship(GOD_CHEIBRIADOS) && (brand == SPWPN_CHAOS
                                          || brand == SPWPN_SPEED))
@@ -2805,7 +2807,9 @@ static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
                                                           "Brand which item?");
     
     if (!ammunition)
+    {
         return !alreadyknown;
+    }
     
     _brand_ammunition(*ammunition);
     return true;

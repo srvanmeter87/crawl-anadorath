@@ -129,7 +129,7 @@ void fedhas_neutralise(monster* mons)
 
 void anadorath_convert(monster* mons)
 {
-    if (have_passive(passive_t::elemental_friend)
+    if (have_passive(passive_t::elemental_conversion_2)
         && anadorath_converts(*mons)
         && !mons->friendly()
         && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
@@ -146,11 +146,10 @@ void anadorath_convert(monster* mons)
 
 void anadorath_neutralise(monster* mons)
 {
-    if (have_passive(passive_t::elemental_neutrality)
-        && !have_passive(passive_t::elemental_friend)
+    if (have_passive(passive_t::elemental_conversion_1)
+        && !have_passive(passive_t::elemental_conversion_2)
         && anadorath_converts(*mons)
-        && !mons->neutral()
-        && !mons->friendly()
+        && !mons->wont_attack()
         && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
     {
         mons->flags |= MF_ATT_CHANGE_ATTEMPT;

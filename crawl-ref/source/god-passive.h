@@ -254,18 +254,17 @@ enum class passive_t
     wu_jian_whirlwind,
     wu_jian_wall_jump,
 
-    // Anadorath's elemental hostility modifier
-    elemental_neutrality,
-    elemental_friend,
+    /// Anadorath's elemental hostility modifier
+    elemental_conversion_1,
+    elemental_conversion_2,
 
-    // Anadorath's elemental shields
-    elemental_buckler,
-    elemental_shield,
-    elemental_protection,
+    /// Anadorath's elemental shielding
+    elemental_shield_1,
+    elemental_shield_2,
+    elemental_shield_3,
 
-    // Anadorath's elemental resistances
-    elemental_resist,
-    elemental_resist_plus,
+    /// Anadorath's elemental resistances
+    elemental_resistance,
 };
 
 enum ru_interference
@@ -294,7 +293,7 @@ int gozag_gold_in_los(actor* whom);
 void gozag_detect_level_gold(bool count);
 int qazlal_sh_boost(int piety = you.piety);
 int tso_sh_boost();
-int anadorath_ac_boost(int piety = you.piety);
+int anadorath_def_boost(int piety = you.piety);
 void qazlal_storm_clouds();
 void qazlal_element_adapt(beam_type flavour, int strength);
 bool does_ru_wanna_redirect(monster* mon);

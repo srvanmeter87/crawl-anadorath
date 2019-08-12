@@ -1338,15 +1338,8 @@ int player_res_fire(bool calc_unid, bool temp, bool items)
     rf -= you.get_mutation_level(MUT_TEMPERATURE_SENSITIVITY, temp);
     rf += you.get_mutation_level(MUT_MOLTEN_SCALES, temp) == 3 ? 1 : 0;
     // god passives:
-    if (have_passive(passive_t::elemental_resist))
-    {
-        if (have_passive(passive_t::elemental_resist_plus))
-        {
-            rf++;
-        }
-
+    if (have_passive(passive_t::elemental_resistance))
         rf++;
-    }
     // spells:
     if (temp)
     {
@@ -1387,16 +1380,9 @@ int player_res_steam(bool calc_unid, bool temp, bool items)
             res += armour_type_prop(body_armour->sub_type, ARMF_RES_STEAM) * 2;
     }
 
-    if (have_passive(passive_t::elemental_resist))
-    {
-        if (have_passive(passive_t::elemental_resist_plus))
-        {
-            res++;
-        }
-
+    if (have_passive(passive_t::elemental_resistance))
         res++;
-    }
-        
+
     res += rf * 2;
 
     if (res > 2)
@@ -1454,7 +1440,9 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
         // body armour
         const item_def *body_armour = you.slot_item(EQ_BODY_ARMOUR);
         if (body_armour)
+        {
             rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
+        }
         
         // ego armours
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
@@ -1495,15 +1483,8 @@ int player_res_cold(bool calc_unid, bool temp, bool items)
                 rc += 2;
     }
 
-    if (have_passive(passive_t::elemental_resist))
-    {
-        if (have_passive(passive_t::elemental_resist_plus))
-        {
-            rc++;
-        }
-
+    if (have_passive(passive_t::elemental_resistance))
         rc++;
-    }
 
     if (items)
     {
@@ -1601,10 +1582,8 @@ int player_res_electricity(bool calc_unid, bool temp, bool items)
     }
 
     // god passives:
-    if (have_passive(passive_t::elemental_resist))
-    {
+    if (have_passive(passive_t::elemental_resistance))
         re++;
-    }    
     // mutations:
     re += you.get_mutation_level(MUT_THIN_METALLIC_SCALES, temp) == 3 ? 1 : 0;
     re += you.get_mutation_level(MUT_SHOCK_RESISTANCE, temp);
@@ -2369,24 +2348,10 @@ int player_shield_class()
 
     shield += qazlal_sh_boost() * 100;
     shield += tso_sh_boost() * 100;
+    shield += anadorath_def_boost(you.piety);
     shield += you.wearing(EQ_AMULET_PLUS, AMU_REFLECTION) * 200;
     shield += you.scan_artefacts(ARTP_SHIELDING) * 200;
 
-    // god passives
-    // +4, +7, +10 (displayed values)
-    if (have_passive(passive_t::elemental_buckler))
-    {
-        shield += 800;
-    }
-    if (have_passive(passive_t::elemental_shield))
-    {
-        shield += 600;
-    }
-    if (have_passive(passive_t::elemental_protection))
-    {
-        shield += 600;
-    }
-    
     return (shield + 50) / 100;
 }
 
@@ -5640,9 +5605,8 @@ int player::shield_block_penalty() const
 bool player::shielded() const
 {
     return shield()
-           || have_passive(passive_t::elemental_protection)
-           || have_passive(passive_t::elemental_shield)
-           || have_passive(passive_t::elemental_buckler)
+           || have_passive(passive_t::elemental_shield_2)
+           || have_passive(passive_t::elemental_shield_3)
            || duration[DUR_DIVINE_SHIELD]
            || get_mutation_level(MUT_LARGE_BONE_PLATES) > 0
            || qazlal_sh_boost() > 0
@@ -5679,8 +5643,10 @@ void player::shield_block_succeeded(actor *foe)
 int player::missile_deflection() const
 {
     if (attribute[ATTR_DEFLECT_MISSILES]
-        || have_passive(passive_t::elemental_protection))
+        || have_passive(passive_t::elemental_shield_3))
+    {
         return 2;
+    }
 
     if (get_mutation_level(MUT_DISTORTION_FIELD) == 3
         || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
@@ -6015,13 +5981,8 @@ int player::armour_class(bool /*calc_unid*/) const
     if (duration[DUR_CORROSION])
         AC -= 400 * you.props["corrosion_amount"].get_int();
 
-    // Anadorath's elemental resistances
-    if (have_passive(passive_t::elemental_resist))
-        AC += 300;
-
-    if (have_passive(passive_t::elemental_resist_plus))
-        AC += 600;
-
+    // Anadorath's elemental resistance
+    AC += anadorath_def_boost();
     AC += sanguine_armour_bonus();
 
     return AC / scale;

@@ -387,8 +387,10 @@ static void _unequip_artefact_effect(item_def &item,
 static void _equip_use_warning(const item_def& item)
 {
     if (is_holy_item(item)
-        && you_worship(GOD_YREDELEMNUL) || you_worship(GOD_ANADORATH))
+        && (you_worship(GOD_YREDELEMNUL) || you_worship(GOD_ANADORATH)))
+    {
         mpr("You really shouldn't be using a holy item like this.");
+    }
     else if (is_corpse_violating_item(item) && you_worship(GOD_FEDHAS))
         mpr("You really shouldn't be using a corpse-violating item like this.");
     else if (is_evil_item(item) && is_good_god(you.religion))
@@ -917,8 +919,10 @@ static void _equip_armour_effect(item_def& arm, bool unmeld,
             // player::cloud_immunity checks the scarf + passives, so can't
             // call it here.
             if (have_passive(passive_t::cloud_immunity)
-                || have_passive(passive_t::elemental_protection))
+                || have_passive(passive_t::elemental_resistance))
+            {
                 mpr("Your immunity to the effects of clouds is unaffected.");
+            }
             else
                 mpr("You feel immune to the effects of clouds.");
             break;

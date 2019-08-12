@@ -427,27 +427,24 @@ static const vector<god_passive> god_passives[] =
 
     // Anadorath
     {
-        { -1, passive_t::elemental_buckler,
+        {  1, passive_t::elemental_shield_1,
               "have a tiny shield forged from ambient earth",
               "have an elemental shield" },
-        {  2, passive_t::elemental_resist,
-              "are NOW slightly resistant to the primal elements",
-              "are NOW resistant to the primal elements" },
-        {  3, passive_t::elemental_shield,
-              "have a moderate-sized shield imbued with living air,"
-              " allowing it to repel missiles",
-              "Your shield shrinks down to a tiny buckler, once again"
-              " leaving you vulnerable to missiles" },
-        {  4, passive_t::elemental_neutrality,
-              "are NOW neutral to primal elementals" },
-        {  5, passive_t::elemental_protection,
-              "have a large elemental shield, flickering from flaming frost",
-              "Your elemental shield shrinks to a moderate size, its"
+        {  2, passive_t::elemental_shield_2,
+              "have a moderate-sized shield, flickering from flaming frost",
+              "Your elemental shield shrinks down to a tiny buckler, its"
               " illumination dying down" },
-        {  6, passive_t::elemental_resist_plus,
+        {  3, passive_t::elemental_resistance,
               "are NOW greatly resistant to the primal elements",
-              "Your elemental resistance wanes, but remains" },
-        {  6, passive_t::elemental_friend,
+              "Your elemental resistance dissipates" },
+        {  4, passive_t::elemental_conversion_1,
+              "are NOW neutral to primal elementals" },
+        {  5, passive_t::elemental_shield_3,
+              "have a large shield imbued with living air,"
+              " allowing it to repel missiles",
+              "Your shield shrinks to a more moderate size, once again"
+              " leaving you vulnerable to missiles" },
+        {  6, passive_t::elemental_conversion_2,
               "are NOW allied with primal elementals" },
     },
 };
@@ -1151,15 +1148,25 @@ int tso_sh_boost()
     return you.attribute[ATTR_DIVINE_SHIELD];
 }
 
-int anadorath_ac_boost(int piety)
+/**
+ * Calculate Anadorath's defense boosts from piety rank.
+ * 
+ * @param piety = you.piety.
+ * 
+ * @return Strength of AC/SH bonuses. Based on piety * 10 / 2.
+ */
+int anadorath_def_boost(int piety)
 {
-    if (!have_passive(passive_t::elemental_resist))
-        return 0;
-    if (piety >= piety_breakpoint(5))
-        return 7;
-    if (piety >= piety_breakpoint(0))
-        return 2;
-    return 0;
+    int def = 0;
+
+    if (have_passive(passive_t::elemental_shield_1))
+        def += 100;
+    if (have_passive(passive_t::elemental_shield_2))
+        def += piety * 10 / 2;
+    if (have_passive(passive_t::elemental_shield_3))
+        def += (piety - piety_breakpoint(piety_rank(piety) - 3)) * 10 / 2;
+
+    return def;
 }
 
 void qazlal_storm_clouds()
