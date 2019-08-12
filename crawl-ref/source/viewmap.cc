@@ -33,6 +33,7 @@
 #include "tileview.h"
 #include "tiles-build-specific.h"
 #include "travel.h"
+#include "ui.h"
 #include "unicode.h"
 #include "view.h"
 #include "viewchar.h"
@@ -107,29 +108,6 @@ bool travel_colour_override(const coord_def& p)
         return false;
 }
 
-static bool _is_explore_horizon(const coord_def& c)
-{
-    if (env.map_knowledge(c).feat() != DNGN_UNSEEN)
-        return false;
-
-    // Note: c might be on map edge, walkable squares not really.
-    for (adjacent_iterator ai(c); ai; ++ai)
-        if (in_bounds(*ai))
-        {
-            dungeon_feature_type feat = env.map_knowledge(*ai).feat();
-            if (feat != DNGN_UNSEEN
-                && !feat_is_solid(feat)
-                && !feat_is_door(feat))
-            {
-                return true;
-            }
-        }
-
-    return false;
-}
-#endif
-
-#ifndef USE_TILE_LOCAL
 static char32_t _get_sightmap_char(dungeon_feature_type feat)
 {
     return get_feature_def(feat).symbol();
@@ -181,13 +159,11 @@ bool is_feature(char32_t feature, const coord_def& where)
         // feat_is_altar doesn't include it in the first place.
         return feat_stair_direction(grid) == CMD_GO_UPSTAIRS
                 && !feat_is_altar(grid)
-                && !feat_is_portal_exit(grid)
                 && grid != DNGN_ENTER_SHOP
                 && grid != DNGN_TRANSPORTER;
     case '>':
         return feat_stair_direction(grid) == CMD_GO_DOWNSTAIRS
                 && !feat_is_altar(grid)
-                && !feat_is_portal_entrance(grid)
                 && grid != DNGN_ENTER_SHOP
                 && grid != DNGN_TRANSPORTER;
     case '^':
@@ -207,15 +183,13 @@ static bool _is_feature_fudged(char32_t glyph, const coord_def& where)
 
     if (glyph == '<')
     {
-        return feat_is_portal_exit(grd(where))
-               || grd(where) == DNGN_EXIT_ABYSS
+        return grd(where) == DNGN_EXIT_ABYSS
                || grd(where) == DNGN_EXIT_PANDEMONIUM
                || grd(where) == DNGN_ENTER_HELL && player_in_hell();
     }
     else if (glyph == '>')
     {
-        return feat_is_portal_entrance(grd(where))
-               || grd(where) == DNGN_TRANSIT_PANDEMONIUM
+        return grd(where) == DNGN_TRANSIT_PANDEMONIUM
                || grd(where) == DNGN_TRANSPORTER;
     }
 
@@ -361,7 +335,7 @@ static void _draw_level_map(int start_x, int start_y, bool travel_mode,
 
                 const show_class show = get_cell_show_class(env.map_knowledge(c));
 
-                if (show == SH_NOTHING && _is_explore_horizon(c))
+                if (show == SH_NOTHING && is_explore_horizon(c))
                 {
                     const feature_def& fd = get_feature_def(DNGN_EXPLORE_HORIZON);
                     cell->glyph = fd.symbol();
@@ -593,8 +567,8 @@ static level_pos _stair_dest(const coord_def& p, command_type dir)
 
 static void _unforget_map()
 {
-    ASSERT(env.map_forgotten.get());
-    MapKnowledge &old(*env.map_forgotten.get());
+    ASSERT(env.map_forgotten);
+    MapKnowledge &old(*env.map_forgotten);
 
     for (rectangle_iterator ri(0); ri; ++ri)
         if (!env.map_knowledge(*ri).seen() && old(*ri).seen())
@@ -609,14 +583,27 @@ static void _unforget_map()
         }
 }
 
-static void _forget_map()
+static void _forget_map(bool wizard_forget = false)
 {
     for (rectangle_iterator ri(0); ri; ++ri)
     {
-        if (env.map_knowledge(*ri).flags & MAP_VISIBLE_FLAG)
+        auto& flags = env.map_knowledge(*ri).flags;
+        // don't touch squares we can currently see
+        if (flags & MAP_VISIBLE_FLAG)
             continue;
-        env.map_knowledge(*ri).flags &= ~MAP_SEEN_FLAG;
-        env.map_knowledge(*ri).flags |= MAP_MAGIC_MAPPED_FLAG;
+        if (wizard_forget)
+        {
+            env.map_knowledge(*ri).clear();
+#ifdef USE_TILE
+            tile_forget_map(*ri);
+#endif
+        }
+        else if (flags & MAP_SEEN_FLAG)
+        {
+            // squares we've seen in the past, pretend we've mapped instead
+            flags |= MAP_MAGIC_MAPPED_FLAG;
+            flags &= ~MAP_SEEN_FLAG;
+        }
         env.map_seen.set(*ri, false);
 #ifdef USE_TILE
         tiles.update_minimap(*ri);
@@ -639,8 +626,10 @@ bool show_map(level_pos &lpos,
     tiles.do_map_display();
 #endif
 
+#ifdef USE_TILE
+    ui::cutoff_point ui_cutoff_point;
+#endif
 #ifdef USE_TILE_WEB
-    tiles_crt_control crt(false);
     tiles_ui_control ui(UI_VIEW_MAP);
 #endif
 
@@ -652,7 +641,6 @@ bool show_map(level_pos &lpos,
             lpos.id = level_id::current();
 
         cursor_control ccon(!Options.use_fake_cursor);
-        int i, j;
 
         int move_x = 0, move_y = 0, scroll_y = 0;
 
@@ -713,29 +701,11 @@ bool show_map(level_pos &lpos,
 
                 feats.init();
 
-                min_x = GXM, max_x = 0, min_y = 0, max_y = 0;
-                bool found_y = false;
-
-                for (j = 0; j < GYM; j++)
-                    for (i = 0; i < GXM; i++)
-                    {
-                        if (env.map_knowledge[i][j].known())
-                        {
-                            if (!found_y)
-                            {
-                                found_y = true;
-                                min_y = j;
-                            }
-
-                            max_y = j;
-
-                            if (i < min_x)
-                                min_x = i;
-
-                            if (i > max_x)
-                                max_x = i;
-                        }
-                    }
+                std::pair<coord_def, coord_def> bounds = known_map_bounds();
+                min_x = bounds.first.x;
+                min_y = bounds.first.y;
+                max_x = bounds.second.x;
+                max_y = bounds.second.y;
 
                 map_lines = max_y - min_y + 1;
 
@@ -895,10 +865,29 @@ bool show_map(level_pos &lpos,
                 clear_map_or_travel_trail();
                 break;
 
+#ifdef WIZARD
+            case CMD_MAP_WIZARD_FORGET:
+                {
+                    // this doesn't seem useful outside of debugging and may
+                    // be buggy in unexpected ways, so wizmode-only. (Though
+                    // it doesn't leak information or anything.)
+                    if (!you.wizard)
+                        break;
+                    if (env.map_forgotten)
+                        _unforget_map();
+                    MapKnowledge *old = new MapKnowledge(env.map_knowledge);
+                    // completely wipe out map
+                    _forget_map(true);
+                    env.map_forgotten.reset(old);
+                    mpr("Level map wiped.");
+                    break;
+                }
+#endif
+
             case CMD_MAP_FORGET:
                 {
                     // Merge it with already forgotten data first.
-                    if (env.map_forgotten.get())
+                    if (env.map_forgotten)
                         _unforget_map();
                     MapKnowledge *old = new MapKnowledge(env.map_knowledge);
                     _forget_map();
@@ -908,7 +897,7 @@ bool show_map(level_pos &lpos,
                 break;
 
             case CMD_MAP_UNFORGET:
-                if (env.map_forgotten.get())
+                if (env.map_forgotten)
                 {
                     _unforget_map();
                     env.map_forgotten.reset();
@@ -1011,7 +1000,7 @@ bool show_map(level_pos &lpos,
                 }
 
                 if (dest.id.is_valid() && dest.id != level_id::current()
-                    && is_existing_level(dest.id))
+                    && you.level_visited(dest.id))
                 {
                     lpos = dest;
                 }
@@ -1020,26 +1009,29 @@ bool show_map(level_pos &lpos,
             }
 
             case CMD_MAP_GOTO_LEVEL:
-            {
                 if (!allow_offlevel)
                     break;
 
-                string name;
-                const level_pos pos
-                    = prompt_translevel_target(TPF_DEFAULT_OPTIONS, name);
-
-                if (pos.id.depth < 1
-                    || pos.id.depth > brdepth[pos.id.branch]
-                    || !is_existing_level(pos.id))
                 {
-                    canned_msg(MSG_OK);
-                    redraw_map = true;
-                    break;
-                }
+                    string name;
+#ifdef USE_TILE_WEB
+                    tiles_ui_control msgwin(UI_NORMAL);
+#endif
+                    const level_pos pos
+                        = prompt_translevel_target(TPF_DEFAULT_OPTIONS, name);
 
-                lpos = pos;
+                    if (pos.id.depth < 1
+                        || pos.id.depth > brdepth[pos.id.branch]
+                        || !you.level_visited(pos.id))
+                    {
+                        canned_msg(MSG_OK);
+                        redraw_map = true;
+                        break;
+                    }
+
+                    lpos = pos;
+                }
                 continue;
-            }
 
             case CMD_MAP_JUMP_DOWN_LEFT:
                 move_x = -block_step;
@@ -1100,6 +1092,13 @@ bool show_map(level_pos &lpos,
                     move_y = you.pos().y - lpos.pos.y;
                 }
                 break;
+
+#ifdef USE_TILE
+            case CMD_MAP_ZOOM_IN:
+            case CMD_MAP_ZOOM_OUT:
+                tiles.zoom_dungeon(cmd == CMD_MAP_ZOOM_IN);
+                break;
+#endif
 
             case CMD_MAP_FIND_UPSTAIR:
             case CMD_MAP_FIND_DOWNSTAIR:
@@ -1174,8 +1173,20 @@ bool show_map(level_pos &lpos,
                 {
                     if (you.travel_x > 0 && you.travel_y > 0)
                     {
-                        move_x = you.travel_x - lpos.pos.x;
-                        move_y = you.travel_y - lpos.pos.y;
+                        if (you.travel_z == level_id::current())
+                        {
+                            move_x = you.travel_x - lpos.pos.x;
+                            move_y = you.travel_y - lpos.pos.y;
+                        }
+                        else if (allow_offlevel && you.travel_z.is_valid()
+                                        && can_travel_to(you.travel_z)
+                                        && you.level_visited(you.travel_z))
+                        {
+                            // previous travel target is offlevel
+                            lpos = level_pos(you.travel_z,
+                                        coord_def(you.travel_x, you.travel_y));
+                            los_changed();
+                        }
                     }
                 }
                 else
@@ -1194,13 +1205,18 @@ bool show_map(level_pos &lpos,
                 if (!is_map_persistent())
                     mpr("You can't annotate this level.");
                 else
+                {
+#ifdef USE_TILE_WEB
+                    tiles_ui_control msgwin(UI_NORMAL);
+#endif
                     do_annotate(lpos.id);
+                }
 
                 redraw_map = true;
                 break;
 
             case CMD_MAP_EXPLORE:
-                if (on_level && !player_in_branch(BRANCH_LABYRINTH))
+                if (on_level)
                 {
                     travel_pathfind tp;
                     tp.set_floodseed(you.pos(), true);

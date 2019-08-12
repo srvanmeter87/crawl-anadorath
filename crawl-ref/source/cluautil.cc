@@ -9,22 +9,22 @@ int push_activity_interrupt(lua_State *ls, activity_interrupt_data *t)
 {
     switch (t->apt)
     {
-    case AIP_HP_LOSS:
+    case ai_payload::hp_loss:
         {
             lua_pushnumber(ls, t->ait_hp_loss_data->hp);
             lua_pushnumber(ls, t->ait_hp_loss_data->hurt_type);
             return 1;
         }
-    case AIP_INT:
+    case ai_payload::int_payload:
         lua_pushnumber(ls, *t->int_data);
         break;
-    case AIP_STRING:
+    case ai_payload::string_payload:
         lua_pushstring(ls, t->string_data);
         break;
-    case AIP_MONSTER:
+    case ai_payload::monster:
         push_monster(ls, t->mons_data);
         break;
-    case AIP_NONE:
+    case ai_payload::none:
         lua_pushnil(ls);
         break;
     }
@@ -105,4 +105,23 @@ int clua_pushpoint(lua_State *ls, const coord_def &pos)
                    pos.x, pos.y, vm.error.c_str());
     }
     return 1;
+}
+
+// these next two functions provide safe conversions to integers that will have
+// stable behavior cross-platform. The lua 5.1 built-in conversions may not
+// have stable behavior on all platforms if crawl is linked with a system lua
+// library, because the technique it uses for doing this conversion is different
+// depending on where that library was compiled.
+lua_Integer luaL_safe_checkinteger(lua_State *L, int idx)
+{
+    lua_Number r = luaL_checknumber(L, idx);
+    // intentional use of C cast to mimic luaconf.h behavior
+    return (lua_Integer)(r);
+}
+
+lua_Integer luaL_safe_tointeger(lua_State *L, int idx)
+{
+    lua_Number r = lua_tonumber(L, idx);
+    // intentional use of C cast to mimic luaconf.h behavior
+    return (lua_Integer)(r);
 }

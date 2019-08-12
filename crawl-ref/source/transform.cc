@@ -260,7 +260,7 @@ int Form::get_ac_bonus() const
 /**
  * (freeze)
  */
-static string _brand_suffix(int brand)
+static string _brand_suffix(brand_type brand)
 {
     if (brand == SPWPN_NORMAL)
         return "";
@@ -980,7 +980,9 @@ static const Form* forms[] =
     &FormPig::instance(),
     &FormAppendage::instance(),
     &FormTree::instance(),
+#if TAG_MAJOR_VERSION == 34
     &FormPorcupine::instance(),
+#endif
 
     &FormWisp::instance(),
 #if TAG_MAJOR_VERSION == 34
@@ -999,8 +1001,6 @@ const Form* get_form(transformation xform)
     return forms[form];
 }
 
-
-static void _extra_hp(int amount_extra);
 
 /**
  * Get the wizmode name of a form.
@@ -1107,11 +1107,6 @@ bool form_can_bleed(transformation form)
     return get_form(form)->can_bleed != FC_FORBID;
 }
 
-bool form_can_use_wand(transformation form)
-{
-    return form_can_wield(form) || form == transformation::dragon;
-}
-
 // Used to mark forms which keep most form-based mutations.
 bool form_keeps_mutations(transformation form)
 {
@@ -1150,6 +1145,7 @@ _init_equipment_removal(transformation form)
 }
 
 static void _remove_equipment(const set<equipment_type>& removed,
+                              transformation form,
                               bool meld = true, bool mutation = false)
 {
     // Meld items into you in (reverse) order. (set is a sorted container)
@@ -1162,7 +1158,7 @@ static void _remove_equipment(const set<equipment_type>& removed,
         bool unequip = !meld;
         if (!unequip && e == EQ_WEAPON)
         {
-            if (form_can_wield(you.form))
+            if (form_can_wield(form))
                 unequip = true;
             if (!is_weapon(*equip))
                 unequip = true;
@@ -1280,7 +1276,7 @@ void remove_one_equip(equipment_type eq, bool meld, bool mutation)
 
     set<equipment_type> r;
     r.insert(eq);
-    _remove_equipment(r, meld, mutation);
+    _remove_equipment(r, you.form, meld, mutation);
 }
 
 /**
@@ -1452,14 +1448,11 @@ static bool _transformation_is_safe(transformation which_trans,
  * May prompt the player.
  *
  * @param new_form  The form to check the safety of.
+ * @param quiet     Whether to prompt the player.
  * @return          Whether it's okay to go ahead with the transformation.
  */
-bool check_form_stat_safety(transformation new_form)
+bool check_form_stat_safety(transformation new_form, bool quiet)
 {
-    // Gnolls don't have to worry about forms changing stats
-    if (you.species == SP_GNOLL)
-        return true;
-
     const int str_mod = get_form(new_form)->str_mod - get_form()->str_mod;
     const int dex_mod = get_form(new_form)->dex_mod - get_form()->dex_mod;
 
@@ -1467,6 +1460,8 @@ bool check_form_stat_safety(transformation new_form)
     const bool bad_dex = you.dex() > 0 && dex_mod + you.dex() <= 0;
     if (!bad_str && !bad_dex)
         return true;
+    if (quiet)
+        return false;
 
     string prompt = make_stringf("%s will reduce your %s to zero. Continue?",
                                  new_form == transformation::none
@@ -1552,16 +1547,16 @@ undead_form_reason lifeless_prevents_form(transformation which_trans,
     if (which_trans == transformation::lich)
         return UFR_TOO_DEAD; // vampires can never lichform
 
-    if (which_trans == transformation::bat) // can batform on satiated or below
+    if (which_trans == transformation::bat) // can batform bloodless
     {
         if (involuntary)
             return UFR_TOO_DEAD; // but not as a forced polymorph effect
 
-        return you.hunger_state <= HS_SATIATED ? UFR_GOOD : UFR_TOO_ALIVE;
+        return !you.vampire_alive ? UFR_GOOD : UFR_TOO_ALIVE;
     }
 
-    // other forms can only be entered when satiated or above.
-    return you.hunger_state >= HS_SATIATED ? UFR_GOOD : UFR_TOO_DEAD;
+    // other forms can only be entered when alive
+    return you.vampire_alive ? UFR_GOOD : UFR_TOO_DEAD;
 }
 
 /**
@@ -1670,7 +1665,7 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     else if (which_trans == transformation::lich
              && you.duration[DUR_DEATHS_DOOR])
     {
-        msg = "You cannot become a lich while in Death's Door.";
+        msg = "You cannot become a lich while in death's door.";
         success = false;
     }
 
@@ -1736,11 +1731,13 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     mpr(get_form(which_trans)->transform_message(previous_trans));
 
     // Update your status.
+    // Order matters here, take stuff off (and handle attendant HP and stat
+    // changes) before adjusting the player to be transformed.
+    _remove_equipment(rem_stuff, which_trans);
+
     you.form = which_trans;
     you.set_duration(DUR_TRANSFORMATION, _transform_duration(which_trans, pow));
     update_player_symbol();
-
-    _remove_equipment(rem_stuff);
 
     you.props[TRANSFORM_POW_KEY] = pow;
 
@@ -1753,7 +1750,7 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     if (dex_mod)
         notify_stat_change(STAT_DEX, dex_mod, true);
 
-    _extra_hp(form_hp_mod());
+    calc_hp(true, false);
 
     if (you.digging && !form_keeps_mutations(which_trans))
     {
@@ -1845,10 +1842,10 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     // normally non-constricting players to constrict, this would need to
     // be changed.
     if (!form_keeps_mutations(which_trans))
-        you.stop_constricting_all(false);
+        you.stop_directly_constricting_all(false);
 
     // Stop being constricted if we are now too large.
-    if (you.is_constricted())
+    if (you.is_directly_constricted())
     {
         actor* const constrictor = actor_by_mid(you.constricted_by);
         ASSERT(constrictor);
@@ -1882,6 +1879,14 @@ bool transform(int pow, transformation which_trans, bool involuntary,
     // Land the player if we stopped flying.
     if (was_flying && !you.airborne())
         move_player_to_grid(you.pos(), false);
+
+    // Stop emergency flight if it's activated and this form can fly
+    if (you.props[EMERGENCY_FLIGHT_KEY]
+        && form_can_fly()
+        && you.airborne())
+    {
+        you.props.erase(EMERGENCY_FLIGHT_KEY);
+    }
 
     // Update merfolk swimming for the form change.
     if (you.species == SP_MERFOLK)
@@ -1919,7 +1924,6 @@ void untransform(bool skip_move)
 
     // Must be unset first or else infinite loops might result. -- bwr
     const transformation old_form = you.form;
-    int hp_downscale = form_hp_mod();
 
     // We may have to unmeld a couple of equipment types.
     set<equipment_type> melded = _init_equipment_removal(old_form);
@@ -1951,6 +1955,8 @@ void untransform(bool skip_move)
                  app == MUT_TENTACLE_SPIKE ? "s" : "");
         }
     }
+
+    calc_hp(true, false);
 
     const string message = get_form(old_form)->get_untransform_message();
     if (!message.empty())
@@ -2011,17 +2017,6 @@ void untransform(bool skip_move)
              armour->name(DESC_YOUR).c_str());
     }
 
-    if (hp_downscale != 10 && you.hp != you.hp_max)
-    {
-        int hp = you.hp * 10 / hp_downscale;
-        if (hp < 1)
-            hp = 1;
-        else if (hp > you.hp_max)
-            hp = you.hp_max;
-        set_hp(hp);
-    }
-    calc_hp();
-
     if (you.hp <= 0)
     {
         ouch(0, KILLED_BY_FRAILTY, MID_NOBODY,
@@ -2030,7 +2025,7 @@ void untransform(bool skip_move)
     }
 
     // Stop being constricted if we are now too large.
-    if (you.is_constricted())
+    if (you.is_directly_constricted())
     {
         actor* const constrictor = actor_by_mid(you.constricted_by);
         if (you.body_size(PSIZE_BODY) > constrictor->body_size(PSIZE_BODY))
@@ -2040,16 +2035,6 @@ void untransform(bool skip_move)
     you.turn_is_over = true;
     if (you.transform_uncancellable)
         you.transform_uncancellable = false;
-}
-
-static void _extra_hp(int amount_extra) // must also set in calc_hp
-{
-    calc_hp();
-
-    you.hp *= amount_extra;
-    you.hp /= 10;
-
-    deflate_hp(you.hp_max, false);
 }
 
 void emergency_untransform()
@@ -2115,4 +2100,17 @@ void merfolk_stop_swimming()
 #ifdef USE_TILE
     init_player_doll();
 #endif
+}
+
+void vampire_update_transformations()
+{
+    const undead_form_reason form_reason = lifeless_prevents_form();
+    if (form_reason != UFR_GOOD && you.duration[DUR_TRANSFORMATION])
+    {
+        print_stats();
+        mprf(MSGCH_WARN,
+             "Your blood-%s body can't sustain your transformation.",
+             form_reason == UFR_TOO_DEAD ? "deprived" : "filled");
+        untransform();
+    }
 }

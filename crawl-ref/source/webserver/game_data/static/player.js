@@ -6,16 +6,16 @@ function ($, comm, enums, map_knowledge, messages, options) {
     var player = {}, last_time;
 
     var stat_boosters = {
-        "str": "vitalised|mighty|berserk",
+        "str": "vitalised|mighty|berserking",
         "int": "vitalised|brilliant",
         "dex": "vitalised|agile",
-        "hp": "divinely vigorous|berserk",
+        "hp": "divinely vigorous|berserking",
         "mp": "divinely vigorous"
     };
 
     var defense_boosters = {
         "ac": "icy armour|protected from physical damage|sanguine armour|corpse armour|protection aura",
-        "ev": "phasing|agile",
+        "ev": "agile|acrobat",
         "sh": "divine shield|corpse armour",
     }
 
@@ -287,7 +287,9 @@ function ($, comm, enums, map_knowledge, messages, options) {
     function percentage_color(name)
     {
         var real = false;
-        if (player["real_" + name + "_max"] != player[name + "_max"])
+        // There is only real_hp_max, real_mp_max doesn't exist
+        if (player["real_" + name + "_max"]
+            && player["real_" + name + "_max"] != player[name + "_max"])
             real = true;
 
         $("#stats_" + name).removeClass();
@@ -381,6 +383,11 @@ function ($, comm, enums, map_knowledge, messages, options) {
         else
             $("#stats_real_hp_max").text("");
 
+        if (player.species == "Deep Dwarf" && player.dd_real_mp_max != player.mp_max)
+            $("#stats_dd_real_mp_max").text("(" + player.dd_real_mp_max + ")");
+        else
+            $("#stats_dd_real_mp_max").text("");
+
         percentage_color("hp");
         percentage_color("mp");
         update_bar("hp");
@@ -399,14 +406,15 @@ function ($, comm, enums, map_knowledge, messages, options) {
         {
             $("#stats_time_caption").text("Time:");
             $("#stats_time").text((player.time / 10.0).toFixed(1));
-            if (player.time_delta)
-                $("#stats_time").append(" (" + (player.time_delta / 10.0).toFixed(1) + ")");
         }
         else
         {
             $("#stats_time_caption").text("Turn:");
             $("#stats_time").text(player.turn);
         }
+
+        if (player.time_delta)
+            $("#stats_time").append(" (" + (player.time_delta / 10.0).toFixed(1) + ")");
 
         var place_desc = player.place;
         if (player.depth) place_desc += ":" + player.depth;
@@ -495,7 +503,7 @@ function ($, comm, enums, map_knowledge, messages, options) {
             $.extend(player, {
                 name: "", god: "", title: "", species: "",
                 hp: 0, hp_max: 0, real_hp_max: 0, poison_survival: 0,
-                mp: 0, mp_max: 0,
+                mp: 0, mp_max: 0, dd_real_mp_max: 0,
                 ac: 0, ev: 0, sh: 0,
                 xl: 0, progress: 0,
                 time: 0, time_delta: 0,

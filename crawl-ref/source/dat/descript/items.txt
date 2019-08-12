@@ -60,6 +60,12 @@ An amulet that allows its wearer to eat fresh raw meat when not hungry, and
 drastically increases nutrition gained from them. These effects on the wearer's
 digestion are cumulative over time and are initially small.
 %%%%
+amulet of the acrobat
+
+An amulet that allows the user to tumble and roll to evade the blows of their
+enemies, but only while moving and waiting. While taking other actions the
+amulet conveys no benefits. In order to function, it must first attune itself to the wearer's body at full health.
+%%%%
 animal skin
 
 A large piece of thick skin covered in fur, cut from the corpse of an animal
@@ -83,11 +89,6 @@ A long pole with an enormous, cleaving blade on one end.
 battleaxe
 
 A large war axe with a formidable double-sided head.
-%%%%
-blowgun
-
-A long, light tube, open at both ends, through which various types of needles
-are propelled by puffs of breath at enemies. It makes very little noise.
 %%%%
 bolt
 
@@ -298,10 +299,6 @@ There are six known traits:
 
 As far as anyone knows, all beasts have exactly two of these traits.
 %%%%
-bread ration
-
-A filling meal of stale, but hearty, bread.
-%%%%
 broad axe
 
 An axe with langets, spikes, a lengthed haft and a single-bladed crescent head.
@@ -353,6 +350,13 @@ An incredibly heavy but extremely effective suit of crystalline armour.
 dagger
 
 A double-edged fighting knife with a sharp point.
+%%%%
+dart
+
+A thin piece of metal, typically coated in some harmful substance. When
+thrown with skill it can deliver its toxins into the bloodstream of a
+living or demonic being. In addition to throwing skill, stealth skill improves
+the chance for a dart to affect its target.
 %%%%
 decaying skeleton
 
@@ -443,10 +447,6 @@ flail
 
 A mace with a short chain connecting the head to the haft.
 %%%%
-fruit
-
-A delicious edible flower ovary.
-%%%%
 fustibalus
 
 A length of wood with a reinforced sling at one end, able to fire projectiles
@@ -534,7 +534,9 @@ inedible chunk of flesh
 %%%%
 javelin
 
-A lightweight spear, designed for throwing.
+A lightweight spear, designed for throwing. It will pass through the targets it
+hits, potentially hitting all targets in its path until it reaches maximum
+range.
 {{
     if you.race() == "Halfling"
         or you.race() == "Kobold"
@@ -603,17 +605,9 @@ manual
 A valuable book which allows one to practise a certain skill more efficiently
 when carried.
 %%%%
-meat ration
-
-A filling ration of dried and preserved meats.
-%%%%
 morningstar
 
 A mace with a head covered in short spikes.
-%%%%
-mutagenic chunk of flesh
-
-<chunk of flesh>
 %%%%
 naga barding
 
@@ -624,12 +618,6 @@ necronomicon
 An extremely rare book, powerful and sinister. Many foolhardy magicians have
 tried to study this tome, only to find themselves entangled within necromantic
 forces they could not hope to control.
-%%%%
-needle
-
-A thin piece of metal, typically coated in some harmful substance. When
-launched from a blowgun it can deliver its toxins into the bloodstream of a
-living or demonic being.
 %%%%
 orb of zot
 
@@ -684,13 +672,14 @@ potion of berserk rage
 
 A potion which can send one into an incoherent rage.
 %%%%
+# TAG_MAJOR_VERSION == 34
 potion of blood
 
 A potion containing the essence of life.
 %%%%
 potion of brilliance
 
-A potion which greatly increases the intelligence and magical power of one who
+A potion which greatly increases the intelligence and spell power of one who
 drinks it.
 %%%%
 potion of cancellation
@@ -705,7 +694,7 @@ It can also slightly repair rotting.
 %%%%
 potion of degeneration
 
-A noxious concotion which reduces strength, intelligence and dexterity.
+A noxious concoction which reduces strength, intelligence and dexterity.
 %%%%
 potion of divine favour
 
@@ -731,8 +720,10 @@ A potion which confers invisibility on one who consumes it.
 potion of lignification
 
 A potion which transforms the imbiber into an animated tree with branches
-capable of holding weapons. Such a tree is very resilient, although it is
-rooted in place while the transformation lasts, and cannot teleport.
+capable of holding weapons. Such a tree has minimal evasion but increased
+health and natural armour, and is resistant to poison and immune to negative
+energy. However, it is rooted in place while the transformation lasts, and
+cannot teleport.
 %%%%
 potion of magic
 
@@ -787,6 +778,11 @@ rapier
 
 A slender, sharply pointed sword, with an uncommonly elegant design.
 %%%%
+ration
+
+Something for everyone: A filling meal of preserved meats, fruits, cheese,
+and stale, but hearty, bread.
+%%%%
 ring mail
 
 A light leather suit reinforced with a covering of metal rings. It is
@@ -825,10 +821,9 @@ on its degree of enchantment.
 %%%%
 ring of resist corrosion
 
-A ring that protects the wearer from acid damage and from corrosion caused by
-acids, although not infallibly so.
+A ring that provides partial protection from all sources of acid and corrosion.
 %%%%
-ring of loudness
+ring of attention
 
 A ring that makes the player less stealthy.
 %%%%
@@ -895,10 +890,6 @@ A large, loose-fitting, wide-sleeved outer garment made of light cloth. It
 offers little protection against physical harm, but does not hinder evasion or
 spellcasting.
 %%%%
-royal jelly
-
-A particularly rich and golden gelatinous thing.
-%%%%
 rune of zot
 
 A talisman which allows entry into the Realm of Zot.
@@ -948,6 +939,12 @@ A scroll that allows its reader to teleport a short distance, with precise
 control. Be wary that controlled teleports will cause the subject to become
 contaminated with magical energy.
 %%%%
+scroll of brand ammunition
+
+An interesting commodity: a scroll that contains just enough magical
+power to imbue ammunition such as stones, arrows, or boomerangs with a
+random brand. Any existing brand will be replaced.
+%%%%
 scroll of brand armour
 
 A rare scroll that imbues a piece of armour with a random ego, such as
@@ -957,8 +954,8 @@ replaced. Artefacts cannot be branded in this way.
 scroll of brand weapon
 
 A scroll that imbues a weapon with a random brand, such as flame, freezing, or
-venom. Any existing brand will be replaced. Blowguns and artefacts cannot be
-branded in this way.
+venom. Any existing brand will be replaced. Artefacts cannot be branded in this
+way.
 %%%%
 scroll of enchant armour
 
@@ -967,8 +964,6 @@ Body armour and bardings can be enchanted up to the same value as their base
 AC. Bucklers, shields and large shields can be enchanted up to +3, +5 or +8
 respectively, and other armour can be enchanted up to +2. Magical artefacts
 cannot be enchanted at all.
-
-It can also be used to enchant the hides of certain exotic creatures.
 %%%%
 scroll of enchant weapon
 
@@ -978,7 +973,10 @@ artefacts cannot be enchanted at all.
 %%%%
 scroll of fear
 
-A scroll that causes great fear in those who see the one who reads it.
+A scroll that causes great fear in those who see the one who reads it, even if
+the reader is invisible. Allies of the reader will remain unaffected. Monsters
+that are non-living, undead, demonic, holy, plants, berserk, or frenzied cannot
+be feared.
 %%%%
 scroll of fog
 
@@ -1011,10 +1009,6 @@ scroll of random uselessness
 
 A scroll with no apparent practical use.
 %%%%
-scroll of recharging
-
-A scroll that restores the charges of any magical wand chosen by its reader.
-%%%%
 scroll of remove curse
 
 A scroll that removes any curses from the reader's equipped items.
@@ -1040,6 +1034,7 @@ of those beings found within the reader's immediate vicinity.
 scroll of teleportation
 
 A scroll that translocates the reader to a random position after a short delay.
+Reading this scroll while waiting for a teleportation will instead cancel it.
 %%%%
 scroll of torment
 
@@ -1172,9 +1167,9 @@ A mesh of ropes knotted together with weights around the edge, used to entangle
 and entrap targets. Struggling victims can eventually destroy the net and break
 free, if they live long enough.
 %%%%
-tomahawk
+boomerang
 
-A small axe, designed for throwing.
+A curved, flat, throwing baton designed to return to its user.
 %%%%
 trident
 
@@ -1214,10 +1209,6 @@ increases this gives way to roaring flames, freezing vapours, and poisonous
 gas. At the highest tiers of power storm clouds, acidic fog and clouds of
 negative energy become available.
 %%%%
-wand of confusion
-
-A magical device which induces confusion and bewilderment in a target creature.
-%%%%
 wand of digging
 
 A magical device which drills tunnels through unworked rock.
@@ -1237,14 +1228,8 @@ A magical device which throws little puffs of flame.
 %%%%
 wand of iceblast
 
-A magical device which throws exploding shards of ice, partially harming even
-creatures resistant to cold.
-%%%%
-wand of lightning
-
-A magical device which throws great bolts of lightning. They inflict less
-damage than other similar bolts, but their damage partially bypasses armour
-and they can be bounced off walls to hit targets twice.
+A magical device which creates a loud explosion of ice shards, partially
+harming even creatures resistant to cold.
 %%%%
 wand of paralysis
 

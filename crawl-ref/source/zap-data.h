@@ -3,7 +3,7 @@
  * @brief Zap definitions. See zap_info struct in beam.cc.
 **/
 
-/* For reference -- Copied from beam.cc
+/*
 struct zap_info
 {
     zap_type ztype;
@@ -21,9 +21,10 @@ struct zap_info
     bool can_beam;
     bool is_explosion;
     int hit_loudness;
-} */
+}
+*/
 
-// Boilerplate monster hex.
+/// Boilerplate monster hex.
 static zap_info _mon_hex_zap(zap_type ztype, beam_type beam,
                              int player_pow_cap = 100,
                              colour_t colour = BLACK)
@@ -202,8 +203,8 @@ _mon_hex_zap(ZAP_PARALYSE, BEAM_PARALYSIS),
     200,
     new calcdice_calculator<4, 14, 3, 5>,
     new tohit_calculator<10, 1, 25>,
-    /*  Water attack is weaker than the pure elemental damage attacks, but also
-        less resistible. */
+    // Water attack is weaker than the pure elemental damage attacks, but also
+    // less resistible.
     new dicedef_calculator<3, 6, 1, 12>,
     // Huge wave of water is hard to dodge.
     new tohit_calculator<14, 1, 35>,
@@ -713,24 +714,6 @@ _mon_hex_zap(ZAP_BANISHMENT, BEAM_BANISH, 150),
 },
 
 {
-    ZAP_ENSLAVE_SOUL,
-    "",
-    100,
-    nullptr,
-    nullptr,
-    nullptr,
-    nullptr,
-    BLACK,
-    true,
-    BEAM_ENSLAVE_SOUL,
-    NUM_DCHAR_TYPES,
-    false,
-    false,
-    false,
-    0
-},
-
-{
     ZAP_AGONY,
     "agony",
     100,
@@ -1196,7 +1179,7 @@ _mon_hex_zap(ZAP_SLEEP, BEAM_SLEEP),
     nullptr,
     new dicedef_calculator<2, 10, 1, 17>,
     new tohit_calculator<16, 1, 40>,
-    LIGHTCYAN, // match slug's own colour
+    LIGHTCYAN,
     false,
     BEAM_ELECTRICITY,
     DCHAR_FIRED_ZAP,
@@ -1214,7 +1197,7 @@ _mon_hex_zap(ZAP_SLEEP, BEAM_SLEEP),
     nullptr,
     new dicedef_calculator<2, 9, 1, 11>,
     new tohit_calculator<17, 1, 25>,
-    WHITE, // match slug's own colour
+    WHITE,
     false,
     BEAM_COLD,
     DCHAR_FIRED_ZAP,
@@ -1222,6 +1205,24 @@ _mon_hex_zap(ZAP_SLEEP, BEAM_SLEEP),
     true,
     false,
     0
+},
+
+{
+    ZAP_HARPOON_SHOT,
+    "harpoon shot",
+    50,
+    nullptr,
+    nullptr,
+    new dicedef_calculator<2, 7, 1, 20>,
+    new tohit_calculator<17, 1, 25>,
+    CYAN,
+    false,
+    BEAM_MMISSILE,
+    DCHAR_FIRED_MISSILE,
+    true,
+    false,
+    false,
+    1
 },
 
 _mon_hex_zap(ZAP_DIMENSION_ANCHOR, BEAM_DIMENSION_ANCHOR),
@@ -1265,6 +1266,114 @@ _mon_hex_zap(ZAP_DRAIN_MAGIC, BEAM_DRAIN_MAGIC),
     false,
     true,
     0 // handled by explosion
+},
+
+{
+    ZAP_MALMUTATE,
+    "malmutate",
+    200,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    ETC_MUTAGENIC,
+    true,
+    BEAM_MALMUTATE,
+    NUM_DCHAR_TYPES,
+    false,
+    false,
+    false,
+    0
+},
+
+{
+    ZAP_VILE_CLUTCH,
+    "",
+    200,
+    nullptr,
+    nullptr,
+    nullptr,
+    nullptr,
+    GREEN,
+    true,
+    BEAM_VILE_CLUTCH,
+    DCHAR_FIRED_BURST,
+    true,
+    false,
+    true,
+    0 // handled by explosion
+},
+
+{
+    ZAP_REFRIGERATE,
+    "refrigeration",
+    200,
+    new calcdice_calculator<3, 15, 3, 10>,
+    new tohit_calculator<40>,
+    new calcdice_calculator<3, 15, 3, 10>,
+    new tohit_calculator<40>,
+    LIGHTCYAN,
+    false,
+    BEAM_COLD,
+    NUM_DCHAR_TYPES,
+    true,
+    false,
+    false,
+    0 // No additional effect noise.
+},
+
+{
+    ZAP_DRAIN_LIFE,
+    "drain life",
+    200,
+    new calcdice_calculator<1, 10, 1, 1>,
+    new tohit_calculator<40>,
+    new calcdice_calculator<1, 10, 1, 1>,
+    new tohit_calculator<40>,
+    DARKGREY,
+    false,
+    BEAM_NEG,
+    NUM_DCHAR_TYPES,
+    true,
+    false,
+    false,
+    0 // No additional effect noise.
+},
+
+{
+    ZAP_SONIC_WAVE,
+    "sonic wave",
+    200,
+    new calcdice_calculator<2, 5, 1, 5>,
+    new tohit_calculator<40>,
+    new calcdice_calculator<2, 5, 1, 5>,
+    new tohit_calculator<40>,
+    YELLOW,
+    false,
+    BEAM_MMISSILE,
+    NUM_DCHAR_TYPES,
+    true,
+    false,
+    false,
+    0 // No additional effect noise.
+},
+
+{
+    ZAP_THROW_PIE,
+    "klown pie",
+    200,
+    nullptr,
+    nullptr,
+    new dicedef_calculator<3, 20, 0, 1>,
+    new tohit_calculator<16, 1, 25>,
+    BROWN,
+    false,
+    BEAM_MMISSILE,
+    DCHAR_FIRED_MISSILE,
+    true,
+    false,
+    false,
+    6
 },
 
 {

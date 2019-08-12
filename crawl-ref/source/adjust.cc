@@ -15,6 +15,7 @@
 #include "message.h"
 #include "prompt.h"
 #include "spl-util.h"
+#include "ui.h"
 
 static void _adjust_spell();
 static void _adjust_ability();
@@ -39,6 +40,9 @@ void adjust()
 
 void adjust_item(int from_slot)
 {
+#ifdef USE_TILE_WEB
+    ui::cutoff_point ui_cutoff_point;
+#endif
     if (inv_count() < 1)
     {
         canned_msg(MSG_NOTHING_CARRIED);
@@ -47,7 +51,8 @@ void adjust_item(int from_slot)
 
     if (from_slot == -1)
     {
-        from_slot = prompt_invent_item("Adjust which item?", MT_INVLIST, -1);
+        from_slot = prompt_invent_item("Adjust which item?",
+                                       menu_type::invlist, OSEL_ANY);
         if (prompt_failed(from_slot))
             return;
 
@@ -55,8 +60,8 @@ void adjust_item(int from_slot)
     }
 
     const int to_slot = prompt_invent_item("Adjust to which letter? ",
-                                           MT_INVLIST,
-                                           -1, OPER_ANY,
+                                           menu_type::invlist,
+                                           OSEL_ANY, OPER_ANY,
                                            invprompt_flag::unthings_ok
                                             | invprompt_flag::manual_list);
     if (to_slot == PROMPT_ABORT
@@ -234,4 +239,6 @@ void swap_inv_slots(int from_slot, int to_slot, bool verbose)
         if (to_count > 0)
             last_pickup[from_slot] = to_count;
     }
+    if (you.last_unequip == from_slot)
+        you.last_unequip = to_slot;
 }

@@ -24,6 +24,7 @@
 #include "libutil.h"
 #include "message.h"
 #include "mon-death.h"
+#include "mon-gear.h"
 #include "mon-place.h"
 #include "mon-tentacle.h"
 #include "notes.h"
@@ -204,21 +205,21 @@ void change_monster_type(monster* mons, monster_type targetc)
     bool could_see     = you.can_see(*mons);
     bool slimified = _jiyva_slime_target(targetc);
 
-    /*  Quietly remove the old monster's invisibility before transforming
-        it. If we don't do this, it'll stay invisible even after losing
-        the invisibility enchantment below. */
+    // Quietly remove the old monster's invisibility before transforming
+    // it. If we don't do this, it'll stay invisible even after losing
+    // the invisibility enchantment below.
     mons->del_ench(ENCH_INVIS, false, false);
 
-    /*  Remove replacement tile, since it probably doesn't work for the
-        new monster. */
+    // Remove replacement tile, since it probably doesn't work for the
+    // new monster.
     mons->props.erase("monster_tile_name");
     mons->props.erase("monster_tile");
 
-    /*  Even if the monster transforms from one type that can behold the
-        player into a different type which can also behold the player,
-        the polymorph disrupts the beholding process. Do this before
-        changing mons->type, since unbeholding can only happen while
-        the monster is still a siren/merfolk avatar. */
+    // Even if the monster transforms from one type that can behold the
+    // player into a different type which can also behold the player,
+    // the polymorph disrupts the beholding process. Do this before
+    // changing mons->type, since unbeholding can only happen while
+    // the monster is still a siren/merfolk avatar.
     you.remove_beholder(*mons);
     you.remove_fearmonger(mons);
 
@@ -325,6 +326,7 @@ void change_monster_type(monster* mons, monster_type targetc)
     mon_enchant vines     = mons->get_ench(ENCH_AWAKEN_VINES);
     mon_enchant forest    = mons->get_ench(ENCH_AWAKEN_FOREST);
     mon_enchant hexed     = mons->get_ench(ENCH_HEXED);
+    mon_enchant insanity  = mons->get_ench(ENCH_INSANE);
 
     mons->number       = 0;
 
@@ -354,7 +356,7 @@ void change_monster_type(monster* mons, monster_type targetc)
     mons->props.erase("speech_prefix");
 
     // Make sure we have a god if we've been polymorphed into a priest.
-    mons->god = mons->is_priest() ? GOD_NAMELESS : god;
+    mons->god = (mons->is_priest() && god == GOD_NO_GOD) ? GOD_NAMELESS : god;
 
     mons->add_ench(abj);
     mons->add_ench(fabj);
@@ -366,6 +368,7 @@ void change_monster_type(monster* mons, monster_type targetc)
     mons->add_ench(vines);
     mons->add_ench(forest);
     mons->add_ench(hexed);
+    mons->add_ench(insanity);
 
     // Allows for handling of submerged monsters which polymorph into
     // monsters that can't submerge on this square.
@@ -410,7 +413,7 @@ void change_monster_type(monster* mons, monster_type targetc)
     // current constrictor. Rather than trying to handle these as special
     // cases, just stop the constriction entirely. The usual message about
     // evaporating and reforming justifies this behaviour.
-    mons->stop_constricting_all(false);
+    mons->stop_constricting_all();
     mons->stop_being_constricted();
 
     mons->check_clinging(false);
@@ -570,7 +573,7 @@ bool mon_can_be_slimified(const monster* mons)
            && (holi & (MH_UNDEAD | MH_NATURAL) && !mons_is_slime(*mons));
 }
 
-void slimify_monster(monster* mon, bool hostile)
+void slimify_monster(monster* mon)
 {
     monster_type target = MONS_JELLY;
 
@@ -608,10 +611,7 @@ void slimify_monster(monster* mon, bool hostile)
 
     monster_polymorph(mon, target);
 
-    if (!hostile)
-        mon->attitude = ATT_STRICT_NEUTRAL;
-    else
-        mon->attitude = ATT_HOSTILE;
+    mon->attitude = ATT_STRICT_NEUTRAL;
 
     mons_make_god_gift(*mon, GOD_JIYVA);
 
@@ -629,10 +629,12 @@ void seen_monster(monster* mons)
     set_auto_exclude(mons);
     set_unique_annotation(mons);
 
+    // id equipment (do this every time we see them, it may have changed)
+    view_monster_equipment(mons);
+
     item_def* weapon = mons->weapon();
     if (weapon && is_range_weapon(*weapon))
         mons->flags |= MF_SEEN_RANGED;
-    mark_mon_equipment_seen(mons);
 
     // Monster was viewed this turn
     mons->flags |= MF_WAS_IN_VIEW;
@@ -656,6 +658,9 @@ void seen_monster(monster* mons)
         }
         take_note(Note(NOTE_SEEN_MONSTER, mons->type, 0, name));
     }
+
+    // attempt any god conversions on first sight
+    do_conversions(mons);
 
     if (!(mons->flags & MF_TSO_SEEN))
     {

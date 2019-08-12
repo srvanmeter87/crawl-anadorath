@@ -1,3 +1,6 @@
+/*** Dungeon building monster functions (dlua only).
+ * @module mons
+ */
 #include "AppHdr.h"
 
 #include "l-libs.h"
@@ -6,10 +9,12 @@
 #include "cluautil.h"
 #include "database.h"
 #include "dlua.h"
+#include "items.h"
 #include "libutil.h"
 #include "mon-act.h"
 #include "mon-behv.h"
 #include "mon-death.h"
+#include "mon-pick.h"
 #include "mon-speak.h"
 #include "monster.h"
 #include "mon-util.h"
@@ -24,9 +29,6 @@
         luaL_argerror(ls, 1, "Invalid monster wrapper");             \
     } \
     monster *name(___mw ? ___mw->mons : nullptr)
-
-/////////////////////////////////////////////////////////////////////
-// Monster handling
 
 void push_monster(lua_State *ls, monster* mons)
 {
@@ -117,11 +119,24 @@ MDEF(energy)
     PLUARET(number, (mons->speed_increment - 79));
 }
 
+MDEF(in_local_population)
+{
+    // TODO: should this be in moninf? need a mons for the native check...
+    // The nativity check is because there are various cases where monsters are
+    // not in the population tables, but should be considered native, e.g.
+    // vault gaurds in vaults, orb guardians in zot 5
+    PLUARET(boolean,
+        mons_is_native_in_branch(*mons, you.where_are_you)
+     || monster_in_population(you.where_are_you, mons->type)
+     || monster_in_population(you.where_are_you, mons->mons_species(false))
+     || monster_in_population(you.where_are_you, mons->mons_species(true)));
+}
+
 LUAFN(l_mons_add_energy)
 {
     ASSERT_DLUA;
     monster* mons = clua_get_lightuserdata<monster>(ls, lua_upvalueindex(1));
-    mons->speed_increment += luaL_checkint(ls, 1);
+    mons->speed_increment += luaL_safe_checkint(ls, 1);
     return 0;
 }
 MDEFN(add_energy, add_energy)
@@ -207,6 +222,23 @@ MDEF(muse)
     return 0;
 }
 
+static int l_mons_get_inventory(lua_State *ls)
+{
+    monster* mons = clua_get_lightuserdata<monster>(ls, lua_upvalueindex(1));
+    lua_newtable(ls);
+    int index = 0;
+    for (mon_inv_iterator ii(*mons); ii; ++ii)
+    {
+        if (ii->defined())
+        {
+            clua_push_item(ls, &*ii);
+            lua_rawseti(ls, -2, ++index);
+        }
+    }
+    return 1;
+}
+MDEFN(inventory, get_inventory)
+
 static int l_mons_do_dismiss(lua_State *ls)
 {
     // dismiss is only callable from dlua, not from managed VMs (i.e.
@@ -230,7 +262,7 @@ static int l_mons_set_hp(lua_State *ls)
     monster* mons =
         clua_get_lightuserdata<monster>(ls, lua_upvalueindex(1));
 
-    int hp = luaL_checkint(ls, 1);
+    int hp = luaL_safe_checkint(ls, 1);
     if (hp <= 0)
     {
         luaL_argerror(ls, 1, "hp must be positive");
@@ -249,7 +281,7 @@ static int l_mons_set_max_hp(lua_State *ls)
     monster* mons =
         clua_get_lightuserdata<monster>(ls, lua_upvalueindex(1));
 
-    int maxhp = luaL_checkint(ls, 1);
+    int maxhp = luaL_safe_checkint(ls, 1);
     if (maxhp <= 0)
     {
         luaL_argerror(ls, 1, "maxhp must be positive");
@@ -320,7 +352,7 @@ static int l_mons_do_set_prop(lua_State *ls)
     // NOTE: number has to be before string, or numbers will get converted
     // into strings.
     else if (lua_isnumber(ls, 2))
-        mons->props[prop_name].get_int() = luaL_checklong(ls, 2);
+        mons->props[prop_name].get_int() = luaL_safe_checklong(ls, 2);
     else if (lua_isstring(ls, 2))
         mons->props[prop_name] = lua_tostring(ls, 2);
     else if (lua_isfunction(ls, 2))
@@ -422,8 +454,8 @@ static int l_mons_do_add_ench(lua_State *ls)
         return 0;
     }
 
-    mons->add_ench(mon_enchant(met, luaL_checkint(ls, 2), 0,
-                               luaL_checkint(ls, 3)));
+    mons->add_ench(mon_enchant(met, luaL_safe_checkint(ls, 2), 0,
+                               luaL_safe_checkint(ls, 3)));
     return 0;
 }
 
@@ -474,6 +506,18 @@ static int l_mons_do_speak(lua_State *ls)
 
 MDEFN(speak, do_speak)
 
+static int l_mons_do_get_info(lua_State *ls)
+{
+    // for a non-dlua version, see monster.get_monster_at
+    ASSERT_DLUA;
+    monster* m = clua_get_lightuserdata<monster>(ls, lua_upvalueindex(1));
+    monster_info mi(m);
+    lua_push_moninf(ls, &mi);
+    return 1;
+}
+
+MDEFN(get_info, do_get_info)
+
 struct MonsAccessor
 {
     const char *attribute;
@@ -521,8 +565,11 @@ static MonsAccessor mons_attrs[] =
     { "add_ench",        l_mons_add_ench        },
     { "del_ench",        l_mons_del_ench        },
     { "you_can_see",     l_mons_you_can_see     },
+    { "get_inventory",   l_mons_inventory       },
+    { "in_local_population", l_mons_in_local_population },
 
-    { "speak",           l_mons_speak           }
+    { "speak",           l_mons_speak           },
+    { "get_info",        l_mons_get_info        }
 };
 
 static int monster_get(lua_State *ls)
@@ -591,7 +638,7 @@ static int monster_set(lua_State *ls)
     if (!strcmp(attr, "beh"))
     {
         const beh_type beh =
-            lua_isnumber(ls, 3) ? static_cast<beh_type>(luaL_checkint(ls, 3)) :
+            lua_isnumber(ls, 3) ? static_cast<beh_type>(luaL_safe_checkint(ls, 3)) :
             lua_isstring(ls, 3) ? behaviour_by_name(lua_tostring(ls, 3))
                                 : NUM_BEHAVIOURS;
 
@@ -599,9 +646,9 @@ static int monster_set(lua_State *ls)
             mw->mons->behaviour = beh;
     }
     else if (!strcmp(attr, "targetx"))
-        mw->mons->target.x = luaL_checkint(ls, 3);
+        mw->mons->target.x = luaL_safe_checkint(ls, 3);
     else if (!strcmp(attr, "targety"))
-        mw->mons->target.y = luaL_checkint(ls, 3);
+        mw->mons->target.y = luaL_safe_checkint(ls, 3);
 
     return 0;
 }

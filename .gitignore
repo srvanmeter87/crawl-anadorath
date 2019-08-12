@@ -1,2 +1,9 @@
-# Ignore vscode settings
-.vscode/
+.cquery_cache/
+.DS_Store
+.vscode/*
+crawl-ref/source/.ctags
+crawl-ref/source/sounds/
+crawl-ref/source/GPATH
+crawl-ref/source/GRTAGS
+crawl-ref/source/GTAGS
+crawl-ref/settings/*

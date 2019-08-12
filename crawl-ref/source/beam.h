@@ -105,7 +105,7 @@ struct bolt
                                   // FROST etc so that we can change mulch rate
     // Do we draw animations?
     bool   animate = bool(Options.use_animations & UA_BEAM);
-    ac_type ac_rule = AC_NORMAL;   // How defender's AC affects damage.
+    ac_type ac_rule = ac_type::normal;   // How defender's AC affects damage.
 #ifdef DEBUG_DIAGNOSTICS
     bool   quiet_debug = false;    // Disable any debug spam.
 #endif
@@ -128,7 +128,7 @@ struct bolt
     bool passed_target = false;   // Beam progressed beyond target.
     bool in_explosion_phase = false; // explosion phase (as opposed to beam phase)
     mon_attitude_type attitude = ATT_HOSTILE; // attitude of whoever fired tracer
-    int foe_ratio = 0;           // 100* foe ratio (see mons_should_fire())
+    int foe_ratio = 0;   // 100* foe ratio (see mons_should_fire())
     map<mid_t, int> hit_count;   // how many times targets were affected
 
     tracer_info foe_info;
@@ -180,9 +180,10 @@ public:
     bool visible() const;
 
     bool can_affect_actor(const actor *act) const;
-    bool can_affect_wall(const coord_def& p) const;
+    bool can_affect_wall(const coord_def& p, bool map_knowledge = false) const;
     bool ignores_monster(const monster* mon) const;
-    bool can_knockback(const actor *act = nullptr, int dam = -1) const;
+    bool can_knockback(const actor &act, int dam = -1) const;
+    bool can_pull(const actor &act, int dam = -1) const;
     bool god_cares() const; // Will the god be unforgiving about this beam?
     bool is_harmless(const monster* mon) const;
     bool nasty_to(const monster* mon) const;
@@ -279,6 +280,7 @@ private:
     void internal_ouch(int dam);
     // for both
     void knockback_actor(actor *act, int dam);
+    void pull_actor(actor *act, int dam);
 
     // tracers
     void tracer_affect_player();
@@ -305,7 +307,7 @@ bool enchant_monster_invisible(monster* mon, const string &how);
 
 bool ench_flavour_affects_monster(beam_type flavour, const monster* mon,
                                                   bool intrinsic_only = false);
-spret_type mass_enchantment(enchant_type wh_enchant, int pow,
+spret mass_enchantment(enchant_type wh_enchant, int pow,
                             bool fail = false);
 int ench_power_stepdown(int pow);
 
@@ -321,7 +323,7 @@ void fire_tracer(const monster* mons, bolt &pbolt,
                   bool explode_only = false, bool explosion_hole = false);
 bool imb_can_splash(coord_def origin, coord_def center,
                     vector<coord_def> path_taken, coord_def target);
-spret_type zapping(zap_type ztype, int power, bolt &pbolt,
+spret zapping(zap_type ztype, int power, bolt &pbolt,
                    bool needs_tracer = false, const char* msg = nullptr,
                    bool fail = false);
 bool player_tracer(zap_type ztype, int power, bolt &pbolt, int range = 0);

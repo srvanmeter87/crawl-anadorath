@@ -45,7 +45,7 @@ static void _mark_unseen_monsters();
  */
 static void _calc_hp_artefact()
 {
-    recalc_and_scale_hp();
+    calc_hp();
     if (you.hp_max <= 0) // Borgnjor's abusers...
         ouch(0, KILLED_BY_DRAINING);
 }
@@ -83,6 +83,7 @@ bool unequip_item(equipment_type slot, bool msg)
         else
             you.melded.set(slot, false);
         ash_check_bondage();
+        you.last_unequip = item_slot;
         return true;
     }
 }
@@ -295,9 +296,25 @@ static void _unequip_invis()
     }
 }
 
+static void _unequip_fragile_artefact(item_def& item, bool meld)
+{
+    ASSERT(is_artefact(item));
+
+    artefact_properties_t proprt;
+    artefact_known_props_t known;
+    artefact_properties(item, proprt, known);
+
+    if (proprt[ARTP_FRAGILE] && !meld)
+    {
+        mprf("%s crumbles to dust!", item.name(DESC_THE).c_str());
+        dec_inv_item_quantity(item.link, 1);
+    }
+}
+
 static void _unequip_artefact_effect(item_def &item,
                                      bool *show_msgs, bool meld,
-                                     equipment_type slot)
+                                     equipment_type slot,
+                                     bool weapon)
 {
     ASSERT(is_artefact(item));
 
@@ -361,17 +378,16 @@ static void _unequip_artefact_effect(item_def &item,
             you.unrand_reacts.set(slot, false);
     }
 
-    // this must be last!
-    if (proprt[ARTP_FRAGILE] && !meld)
-    {
-        mprf("%s crumbles to dust!", item.name(DESC_THE).c_str());
-        dec_inv_item_quantity(item.link, 1);
-    }
+    // If the item is a weapon, then we call it from unequip_weapon_effect
+    // separately, to make sure the message order makes sense.
+    if (!weapon)
+        _unequip_fragile_artefact(item, meld);
 }
 
 static void _equip_use_warning(const item_def& item)
 {
-    if (is_holy_item(item) && you_worship(GOD_YREDELEMNUL))
+    if (is_holy_item(item)
+        && you_worship(GOD_YREDELEMNUL) || you_worship(GOD_ANADORATH))
         mpr("You really shouldn't be using a holy item like this.");
     else if (is_corpse_violating_item(item) && you_worship(GOD_FEDHAS))
         mpr("You really shouldn't be using a corpse-violating item like this.");
@@ -383,10 +399,10 @@ static void _equip_use_warning(const item_def& item)
         mpr("You really shouldn't be using a chaotic item like this.");
     else if (is_hasty_item(item) && you_worship(GOD_CHEIBRIADOS))
         mpr("You really shouldn't be using a hasty item like this.");
-    else if (is_fiery_item(item) && you_worship(GOD_DITHMENOS))
-        mpr("You really shouldn't be using a fiery item like this.");
+#if TAG_MAJOR_VERSION == 34
     else if (is_channeling_item(item) && you_worship(GOD_PAKELLAS))
         mpr("You really shouldn't be trying to channel magic like this.");
+#endif
 }
 
 static void _wield_cursed(item_def& item, bool known_cursed, bool unmeld)
@@ -519,10 +535,8 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
                 case SPWPN_VAMPIRISM:
                     if (you.species == SP_VAMPIRE)
                         mpr("You feel a bloodthirsty glee!");
-                    else if (you.undead_state() == US_ALIVE && !you_foodless())
-                        mpr("You feel a dreadful hunger.");
                     else
-                        mpr("You feel an empty sense of dread.");
+                        mpr("You feel a sense of dread.");
                     break;
 
                 case SPWPN_PAIN:
@@ -587,16 +601,6 @@ static void _equip_weapon_effect(item_def& item, bool showMsgs, bool unmeld)
             // effect second
             switch (special)
             {
-            case SPWPN_VAMPIRISM:
-                if (you.species != SP_VAMPIRE
-                    && you.undead_state() == US_ALIVE
-                    && !you_foodless()
-                    && !unmeld)
-                {
-                    make_hungry(4500, false, false);
-                }
-                break;
-
             case SPWPN_DISTORTION:
                 if (!was_known)
                 {
@@ -638,7 +642,10 @@ static void _unequip_weapon_effect(item_def& real_item, bool showMsgs,
     // Call this first, so that the unrandart func can set showMsgs to
     // false if it does its own message handling.
     if (is_artefact(item))
-        _unequip_artefact_effect(real_item, &showMsgs, meld, EQ_WEAPON);
+    {
+        _unequip_artefact_effect(real_item, &showMsgs, meld, EQ_WEAPON,
+                                 true);
+    }
 
     if (item.base_type == OBJ_WEAPONS)
     {
@@ -716,8 +723,8 @@ static void _unequip_weapon_effect(item_def& real_item, bool showMsgs,
                     // Makes no sense to discourage unwielding a temporarily
                     // branded weapon since you can wait it out. This also
                     // fixes problems with unwield prompts (mantis #793).
-                    MiscastEffect(&you, nullptr, WIELD_MISCAST,
-                                  SPTYP_TRANSLOCATION, 9, 90,
+                    MiscastEffect(&you, nullptr, {miscast_source::wield},
+                                  spschool::translocation, 9, 90,
                                   "a distortion unwield");
                 }
                 break;
@@ -748,6 +755,9 @@ static void _unequip_weapon_effect(item_def& real_item, bool showMsgs,
         canned_msg(MSG_MANA_DECREASE);
     }
 
+    if (is_artefact(item))
+        _unequip_fragile_artefact(item, meld);
+
     // Unwielding dismisses an active spectral weapon
     monster *spectral_weapon = find_spectral_weapon(&you);
     if (spectral_weapon)
@@ -764,16 +774,18 @@ static void _spirit_shield_message(bool unmeld)
     {
         dec_mp(you.magic_points);
         mpr("You feel your power drawn to a protective spirit.");
+#if TAG_MAJOR_VERSION == 34
         if (you.species == SP_DEEP_DWARF
             && !(have_passive(passive_t::no_mp_regen)
                  || player_under_penance(GOD_PAKELLAS)))
         {
             mpr("Now linked to your health, your magic stops regenerating.");
         }
+#endif
     }
     else if (!unmeld && you.get_mutation_level(MUT_MANA_SHIELD))
         mpr("You feel the presence of a powerless spirit.");
-    else // unmeld or already spirit-shielded
+    else if (!you.get_mutation_level(MUT_MANA_SHIELD))
         mpr("You feel spirits watching over you.");
 }
 
@@ -902,7 +914,13 @@ static void _equip_armour_effect(item_def& arm, bool unmeld,
             break;
 
         case SPARM_CLOUD_IMMUNE:
-            mpr("You feel immune to the effects of clouds.");
+            // player::cloud_immunity checks the scarf + passives, so can't
+            // call it here.
+            if (have_passive(passive_t::cloud_immunity)
+                || have_passive(passive_t::elemental_protection))
+                mpr("Your immunity to the effects of clouds is unaffected.");
+            else
+                mpr("You feel immune to the effects of clouds.");
             break;
         }
     }
@@ -1068,7 +1086,8 @@ static void _unequip_armour_effect(item_def& item, bool meld,
         break;
 
     case SPARM_CLOUD_IMMUNE:
-        mpr("You feel vulnerable to the effects of clouds.");
+        if (!you.cloud_immune())
+            mpr("You feel vulnerable to the effects of clouds.");
         break;
 
     default:
@@ -1076,7 +1095,7 @@ static void _unequip_armour_effect(item_def& item, bool meld,
     }
 
     if (is_artefact(item))
-        _unequip_artefact_effect(item, nullptr, meld, slot);
+        _unequip_artefact_effect(item, nullptr, meld, slot, false);
 }
 
 static void _remove_amulet_of_faith(item_def &item)
@@ -1137,6 +1156,28 @@ static void _equip_amulet_of_regeneration()
             " body.");
         you.props[REGEN_AMULET_ACTIVE] = 0;
     }
+}
+
+static void _equip_amulet_of_the_acrobat()
+{
+    if (you.hp == you.hp_max)
+    {
+        you.props[ACROBAT_AMULET_ACTIVE] = 1;
+        mpr("You feel ready to tumble and roll out of harm's way.");
+    }
+    else
+    {
+        mpr("Your injuries prevent the amulet from attuning itself.");
+        you.props[ACROBAT_AMULET_ACTIVE] = 0;
+    }
+}
+
+bool acrobat_boost_active()
+{
+    return you.props[ACROBAT_AMULET_ACTIVE].get_int() == 1
+           && you.duration[DUR_ACROBAT]
+           && (!you.caught())
+           && (!you.is_constricted());
 }
 
 static void _equip_amulet_of_mana_regeneration()
@@ -1233,14 +1274,34 @@ static void _equip_jewellery_effect(item_def &item, bool unmeld,
         break;
 
     case AMU_THE_GOURMAND:
-        // What's this supposed to achieve? (jpeg)
-        you.duration[DUR_GOURMAND] = 0;
-        mpr("You feel a craving for the dungeon's cuisine.");
+        if (you_foodless() // Mummy, vampire, or in lichform
+            || you.get_mutation_level(MUT_HERBIVOROUS) > 0) // Spriggan
+        {
+            mpr("After a brief, frighteningly intense craving, "
+                "your appetite remains unchanged.");
+        }
+        else if (you.get_mutation_level(MUT_CARNIVOROUS) > 0  // Fe, Ko, Gh
+                 || you.get_mutation_level(MUT_GOURMAND) > 0) // Troll
+        {
+            mpr("After a brief, strange feeling in your gut, "
+                "your appetite remains unchanged.");
+        }
+        else
+        {
+            mpr("You feel a craving for the dungeon's cuisine.");
+            // What's this supposed to achieve? (jpeg)
+            you.duration[DUR_GOURMAND] = 0;
+        }
         break;
 
     case AMU_REGENERATION:
         if (!unmeld)
             _equip_amulet_of_regeneration();
+        break;
+
+    case AMU_ACROBAT:
+        if (!unmeld)
+            _equip_amulet_of_the_acrobat();
         break;
 
     case AMU_MANA_REGENERATION:
@@ -1302,7 +1363,7 @@ static void _unequip_jewellery_effect(item_def &item, bool mesg, bool meld,
     switch (item.sub_type)
     {
     case RING_FIRE:
-    case RING_LOUDNESS:
+    case RING_ATTENTION:
     case RING_ICE:
     case RING_LIFE_PROTECTION:
     case RING_POISON_RESISTANCE:
@@ -1374,7 +1435,7 @@ static void _unequip_jewellery_effect(item_def &item, bool mesg, bool meld,
     }
 
     if (is_artefact(item))
-        _unequip_artefact_effect(item, &mesg, meld, slot);
+        _unequip_artefact_effect(item, &mesg, meld, slot, false);
 
     // Must occur after ring is removed. -- bwr
     calc_mp();

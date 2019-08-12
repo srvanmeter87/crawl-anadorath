@@ -242,9 +242,12 @@ void tile_default_flv(branch_type br, int depth, tile_flavour &flv)
         flv.floor = TILE_FLOOR_VAULT;
         return;
 
+#if TAG_MAJOR_VERSION == 34
     case BRANCH_LABYRINTH:
+#endif
+    case BRANCH_GAUNTLET:
         flv.wall  = TILE_WALL_LAB_ROCK;
-        flv.floor = TILE_FLOOR_LABYRINTH;
+        flv.floor = TILE_FLOOR_GAUNTLET;
         return;
 
     case BRANCH_SEWER:
@@ -312,7 +315,8 @@ void tile_init_flavour()
     vector<unsigned int> output;
     {
         domino::DominoSet<domino::EdgeDomino> dominoes(domino::cohen_set, 8);
-        uint64_t seed[] = { get_uint64(RNG_UI), get_uint64(RNG_UI) };
+        uint64_t seed[] = { static_cast<uint64_t>(you.where_are_you ^ you.game_seed),
+            static_cast<uint64_t>(you.depth) };
         PcgRNG rng(seed, ARRAYSZ(seed));
         dominoes.Generate(X_WIDTH, Y_WIDTH, output, rng);
     }
@@ -361,12 +365,13 @@ static void _get_depths_wall_tiles_by_depth(int depth, vector<tileidx_t>& t)
         t.push_back(TILE_WALL_BRICK_DARK_6_TORCH);  // ...and on Depths:$
 }
 
-static int _find_variants(tileidx_t idx, int variant, map<tileidx_t, int> &out)
+static int _find_variants(tileidx_t idx, int variant, vector<int> &out)
 {
     const int count = tile_dngn_count(idx);
+    out.reserve(count);
     if (count == 1)
     {
-        out[idx] = 1;
+        out.push_back(1);
         return 1;
     }
 
@@ -380,17 +385,17 @@ static int _find_variants(tileidx_t idx, int variant, map<tileidx_t, int> &out)
         {
             int weight = curr_prob - last_prob;
             total += weight;
-            out[idx + i] = weight;
+            out.push_back(weight);
         }
+        else
+            out.push_back(0);
     }
-    if (out.empty())
+    if (!total)
     {
-        out[idx] = tile_dngn_probs(idx);
+        out.clear();
+        out.push_back(tile_dngn_probs(idx));
         for (int i = 1; i < count; ++i)
-        {
-            out[idx + i] = tile_dngn_probs(idx + i)
-                           - tile_dngn_probs(idx + i - 1);
-        }
+            out.push_back(tile_dngn_probs(idx + i) - tile_dngn_probs(idx + i - 1));
         return tile_dngn_probs(idx + count - 1);
     }
     return total;
@@ -399,17 +404,18 @@ static int _find_variants(tileidx_t idx, int variant, map<tileidx_t, int> &out)
 tileidx_t pick_dngn_tile(tileidx_t idx, int value, int domino)
 {
     ASSERT_LESS(idx, TILE_DNGN_MAX);
-    map<tileidx_t, int> choices;
-    int total = _find_variants(idx, domino, choices);
-    if (choices.size() == 1)
-        return choices.begin()->first;
-    int rand  = value % total;
+    static vector<int> weights;
+    weights.clear();
 
-    for (const auto& elem : choices)
+    int total = _find_variants(idx, domino, weights);
+    if (weights.size() == 1)
+        return idx;
+    int rand = value % total;
+
+    for (size_t i = 0; i < weights.size(); ++i)
     {
-        rand -= elem.second;
-        if (rand < 0)
-            return elem.first;
+        rand -= weights[i];
+        if (rand < 0) return idx + i;
     }
 
     return idx;
@@ -445,12 +451,14 @@ static tileidx_t _pick_dngn_tile_multi(vector<tileidx_t> candidates, int value)
 static bool _same_door_at(dungeon_feature_type feat, const coord_def &gc)
 {
     const dungeon_feature_type door = grd(gc);
-    return feat_is_closed_door(door) && feat == DNGN_SEALED_DOOR
-           || door == DNGN_SEALED_DOOR && feat_is_closed_door(feat)
+
+    return door == feat
 #if TAG_MAJOR_VERSION == 34
-           || map_masked(gc, MMT_WAS_DOOR_MIMIC)
+        || map_masked(gc, MMT_WAS_DOOR_MIMIC)
 #endif
-           || door == feat;
+        || feat_is_closed_door(door)
+           && feat_is_opaque(feat) == feat_is_opaque(door)
+           && (feat_is_sealed(feat) || feat_is_sealed(door));
 }
 
 void tile_init_flavour(const coord_def &gc, const int domino)
@@ -461,8 +469,8 @@ void tile_init_flavour(const coord_def &gc, const int domino)
     uint32_t seed = you.birth_time + you.where_are_you +
         (you.depth << 8) + (gc.x << 16) + (gc.y << 24);
 
-    int rand1 = hash_rand(INT_MAX, seed, 0);
-    int rand2 = hash_rand(INT_MAX, seed, 1);
+    int rand1 = hash_with_seed(INT_MAX, seed, 0);
+    int rand2 = hash_with_seed(INT_MAX, seed, 1);
 
     if (!env.tile_flv(gc).floor)
     {
@@ -551,7 +559,7 @@ void tile_init_flavour(const coord_def &gc, const int domino)
             env.tile_flv(gc).special = 0;
     }
     else if (!env.tile_flv(gc).special)
-        env.tile_flv(gc).special = hash_rand(256, seed, 10);
+        env.tile_flv(gc).special = hash_with_seed(256, seed, 10);
 }
 
 enum SpecialIdx
@@ -781,6 +789,7 @@ void tile_floor_halo(dungeon_feature_type target, tileidx_t tile)
                 continue;
             }
 
+            // TODO: these conditions are guaranteed?
             int right_spc = x < GXM - 1 ? env.tile_flv[x+1][y].floor - tile
                                         : SPECIAL_FULL;
             int down_spc  = y < GYM - 1 ? env.tile_flv[x][y+1].floor - tile
@@ -861,7 +870,10 @@ void tile_forget_map(const coord_def &gc)
     env.tile_bk_fg(gc) = 0;
     env.tile_bk_bg(gc) = 0;
     env.tile_bk_cloud(gc) = 0;
-    tiles.update_minimap(gc);
+    // This may have changed the explore horizon, so update adjacent minimap
+    // squares as well.
+    for (adjacent_iterator ai(gc, false); ai; ++ai)
+        tiles.update_minimap(*ai);
 }
 
 static void _tile_place_item(const coord_def &gc, const item_info &item,
@@ -1241,7 +1253,7 @@ void apply_variations(const tile_flavour &flv, tileidx_t *bg,
     tileidx_t flag = (*bg) & (~TILE_FLAG_MASK);
 
     // TODO: allow the stone type to be set in a cleaner way.
-    if (player_in_branch(BRANCH_LABYRINTH))
+    if (player_in_branch(BRANCH_GAUNTLET))
     {
         if (orig == TILE_DNGN_STONE_WALL)
             orig = TILE_WALL_LAB_STONE;
@@ -1330,9 +1342,7 @@ void apply_variations(const tile_flavour &flv, tileidx_t *bg,
     else if (is_door_tile(orig))
     {
         tileidx_t override = flv.feat;
-        /*
-          Was: secret doors. Is it ever needed anymore?
-         */
+        // For vaults overriding door tiles, like Cigotuvi's Fleshworks.
         if (is_door_tile(override))
         {
             bool opened = (orig == TILE_DNGN_OPEN_DOOR);
@@ -1401,6 +1411,9 @@ void tile_apply_properties(const coord_def &gc, packed_cell &cell)
         cell.halo = HALO_RANGE;
     else
         cell.halo = HALO_NONE;
+
+    if (mc.monsterinfo() && mc.monsterinfo()->is(MB_HIGHLIGHTED_SUMMONER))
+        cell.is_highlighted_summoner = true;
 
     if (mc.flags & MAP_LIQUEFIED)
         cell.is_liquefied = true;

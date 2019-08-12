@@ -7,8 +7,11 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
 
     function DungeonCellRenderer()
     {
+        // see also, renderer_settings in game.js. In fact, do these values
+        // do anything?
+        var ratio = window.devicePixelRatio;
         this.set_cell_size(32, 32);
-        this.glyph_mode_font_size = 24;
+        this.glyph_mode_font_size = 24 * ratio;
         this.glyph_mode_font = "monospace";
     }
 
@@ -92,14 +95,20 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
         {
             this.cell_width = Math.floor(w);
             this.cell_height = Math.floor(h);
-            this.x_scale = w / 32;
-            this.y_scale = h / 32;
+            this.x_scale = this.cell_width / 32;
+            this.y_scale = this.cell_height / 32;
         },
 
         glyph_mode_font_name: function ()
         {
-            return (this.glyph_mode_font_size + "px " +
-                    this.glyph_mode_font);
+            var glyph_scale;
+            if (this.ui_state == enums.ui.VIEW_MAP)
+                glyph_scale = options.get("tile_map_scale");
+            else
+                glyph_scale = options.get("tile_viewport_scale");
+
+            return (Math.floor(this.glyph_mode_font_size * glyph_scale / 100)
+                + "px " + this.glyph_mode_font);
         },
 
         render_cursors: function(cx, cy, x, y)
@@ -552,17 +561,14 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
             var bg_idx = cell.bg.value;
             var renderer = this;
 
-            if (bg_idx > dngn.DNGN_UNSEEN)
-            {
-                if (bg.RAY)
-                    this.draw_dngn(dngn.RAY, x, y);
-                else if (bg.RAY_OOR)
-                    this.draw_dngn(dngn.RAY_OUT_OF_RANGE, x, y);
-                else if (bg.LANDING)
-                    this.draw_dngn(dngn.LANDING, x, y);
-                else if (bg.RAY_MULTI)
-                    this.draw_dngn(dngn.RAY_MULTI, x, y);
-            }
+            if (bg.RAY)
+                this.draw_dngn(dngn.RAY, x, y);
+            else if (bg.RAY_OOR)
+                this.draw_dngn(dngn.RAY_OUT_OF_RANGE, x, y);
+            else if (bg.LANDING)
+                this.draw_dngn(dngn.LANDING, x, y);
+            else if (bg.RAY_MULTI)
+                this.draw_dngn(dngn.RAY_MULTI, x, y);
         },
 
         draw_background: function(x, y, cell)
@@ -695,6 +701,9 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
                             this.draw_dngn(dngn.HALO_GD_NEUTRAL, x, y);
                         else if (fg.NEUTRAL)
                             this.draw_dngn(dngn.HALO_NEUTRAL, x, y);
+
+                        if (cell.highlighted_summoner)
+                            this.draw_dngn(dngn.HALO_SUMMONER, x, y);
                     }
 
 
@@ -838,6 +847,11 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
                 this.draw_icon(icons.CONSTRICTED, x, y, -status_shift, 0);
                 status_shift += 11;
             }
+            if (fg.VILE_CLUTCH)
+            {
+                this.draw_icon(icons.VILE_CLUTCH, x, y, -status_shift, 0);
+                status_shift += 11;
+            }
             if (fg.GLOWING)
             {
                 this.draw_icon(icons.GLOWING, x, y, -status_shift, 0);
@@ -906,6 +920,11 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
             if (fg.INFESTED)
             {
                 this.draw_icon(icons.INFESTED, x, y, -status_shift, 0);
+                status_shift += 6;
+            }
+            if (fg.PINNED)
+            {
+                this.draw_icon(icons.PINNED, x, y, -status_shift, 0);
                 status_shift += 6;
             }
             if (fg.RECALL)
@@ -1001,7 +1020,7 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
 
 
         // Helper functions for drawing from specific textures
-        draw_tile: function(idx, x, y, mod, ofsx, ofsy, y_max)
+        draw_tile: function(idx, x, y, mod, ofsx, ofsy, y_max, centre)
         {
             var info = mod.get_tile_info(idx);
             var img = get_img(mod.get_img(idx));
@@ -1009,8 +1028,9 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
             {
                 throw ("Tile not found: " + idx);
             }
-            var size_ox = 32 / 2 - info.w / 2;
-            var size_oy = 32 - info.h;
+            centre = centre === undefined ? true : centre;
+            var size_ox = !centre ? 0 : 32 / 2 - info.w / 2;
+            var size_oy = !centre ? 0 : 32 - info.h;
             var pos_sy_adjust = (ofsy || 0) + info.oy + size_oy;
             var pos_ey_adjust = pos_sy_adjust + info.ey - info.sy;
             var sy = pos_sy_adjust;
@@ -1065,10 +1085,10 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
             this.draw_tile(idx, x, y, icons, ofsx, ofsy);
         },
 
-        draw_from_texture: function (idx, x, y, tex, ofsx, ofsy, y_max)
+        draw_from_texture: function (idx, x, y, tex, ofsx, ofsy, y_max, centre)
         {
             var mod = tileinfos(tex);
-            this.draw_tile(idx, x, y, mod, ofsx, ofsy);
+            this.draw_tile(idx, x, y, mod, ofsx, ofsy, y_max, centre);
         },
     });
 

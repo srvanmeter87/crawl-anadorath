@@ -1,8 +1,3 @@
-/**
- * @file
- * @brief Wizmode-specific bindings
-**/
-
 /*
 --- General game bindings
 
@@ -16,15 +11,13 @@ module "crawl"
 #include "cluautil.h"
 #include "mon-util.h"
 #include "stringutil.h"
+#include "wiz-dgn.h"
 #include "wiz-fsim.h"
+#include "wiz-item.h"
 
 #ifdef WIZARD
 
-/////////////////////////////////////////////////////////////////////
-// User accessible
 //
-
-/////////////////////////////////////////////////////////////////////
 // Non-user-accessible bindings (dlua).
 //
 
@@ -39,19 +32,24 @@ LUAFN(wiz_quick_fsim)
         string err = make_stringf("No such monster: '%s'.", mon_name.c_str());
         return luaL_argerror(ls, 1, err.c_str());
     }
-    const int fsim_rounds = luaL_checkint(ls, 2);
+    const int fsim_rounds = luaL_safe_checkint(ls, 2);
 
     Options.fsim_mons = mon_name;
     Options.fsim_rounds = fsim_rounds;
 
     fight_data fdata = wizard_quick_fsim_raw(false);
-    PLUARET(number, fdata.av_eff_dam);
+    PLUARET(number, fdata.player.av_eff_dam);
 }
+
+LUAWRAP(wiz_identify_all_items, wizard_identify_all_items())
+
+LUAWRAP(wiz_map_level, wizard_map_level())
 
 static const struct luaL_reg wiz_dlib[] =
 {
 { "quick_fsim", wiz_quick_fsim },
-
+{ "identify_all_items", wiz_identify_all_items},
+{ "map_level", wiz_map_level},
 { nullptr, nullptr }
 };
 

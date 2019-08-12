@@ -4,8 +4,9 @@
 
 #include "activity-interrupt-type.h"
 #include "char-set-type.h"
-#include "confirm-level-type.h"
+#include "confirm-butcher-type.h"
 #include "confirm-prompt-type.h"
+#include "easy-confirm-type.h"
 #include "feature.h"
 #include "flang-t.h"
 #include "flush-reason-type.h"
@@ -170,7 +171,9 @@ public:
                                 // should be accessible by different people.
     vector<string> additional_macro_files;
 
-    uint32_t    seed;   // Non-random games.
+    uint64_t    seed;           // Non-random games.
+    uint64_t    seed_from_rc;
+    bool        pregen_dungeon; // Is the dungeon generated at the beginning?
 
 #ifdef DGL_SIMPLE_MESSAGING
     bool        messaging;      // Check for messages.
@@ -185,6 +188,7 @@ public:
     int         mlist_min_height;
     int         msg_min_height;
     int         msg_max_height;
+    int         msg_webtiles_height;
     bool        mlist_allow_alternate_layout;
     bool        messages_at_top;
     bool        msg_condense_repeats;
@@ -218,6 +222,7 @@ public:
     bool        show_newturn_mark;// Show underscore prefix in messages for new turn
     bool        show_game_time; // Show game time instead of player turns.
     bool        equip_bar; // Show equip bar instead of noise bar.
+    bool        animate_equip_bar; // Animate colours in equip bar.
 
     FixedBitVector<NUM_OBJECT_CLASSES> autopickups; // items to autopickup
     bool        auto_switch;     // switch melee&ranged weapons according to enemy range
@@ -228,11 +233,12 @@ public:
     bool        easy_door;       // 'O', 'C' don't prompt with just one door.
     bool        warn_hatches;    // offer a y/n prompt when the player uses an escape hatch
     bool        enable_recast_spell; // Allow recasting spells with 'z' Enter.
-    int         confirm_butcher; // When to prompt for butchery
+    confirm_butcher_type confirm_butcher; // When to prompt for butchery
     hunger_state_t auto_butcher; // auto-butcher corpses while travelling
     bool        easy_eat_chunks; // make 'e' auto-eat the oldest safe chunk
     bool        auto_eat_chunks; // allow eating chunks while resting or travelling
     skill_focus_mode skill_focus; // is the focus skills available
+    bool        auto_hide_spells; // hide new spells
 
     bool        note_all_skill_levels;  // take note for all skill levels (1-27)
     bool        note_skill_max;   // take note when skills reach new max
@@ -241,7 +247,7 @@ public:
     bool        note_xom_effects; // take note of all Xom effects
     bool        note_chat_messages; // log chat in Webtiles
     bool        note_dgl_messages; // log chat in DGL
-    confirm_level_type easy_confirm;    // make yesno() confirming easier
+    easy_confirm_type easy_confirm;    // make yesno() confirming easier
     bool        easy_quit_item_prompts; // make item prompts quitable on space
     confirm_prompt_type allow_self_target;      // yes, no, prompt
     bool        simple_targeting; // disable smart spell targeting
@@ -270,6 +276,9 @@ public:
     int         autofight_warning;      // Amount of real time required between
                                         // two autofight commands
     bool        cloud_status;     // Whether to show a cloud status light
+
+    bool        wall_jump_prompt; // Whether to ask for confirmation before jumps.
+    bool        wall_jump_move;   // Whether to allow wall jump via movement
 
     int         fire_items_start; // index of first item for fire command
     vector<unsigned> fire_order;  // missile search order for 'f' command
@@ -392,29 +401,35 @@ public:
 
     int         dump_item_origins;  // Show where items came from?
     int         dump_item_origin_price;
-    bool        dump_book_spells;
 
     // Order of sections in the character dump.
     vector<string> dump_order;
 
     int         pickup_menu_limit;  // Over this number of items, menu for
                                     // pickup
-    bool        easy_exit_menu;     // Menus are easier to get out of
     bool        ability_menu;       // 'a'bility starts with a full-screen menu
     bool        easy_floor_use;     // , selects the floor item if there's 1
+    bool        bad_item_prompt;    // Confirm before using a bad consumable
 
     int         assign_item_slot;   // How free slots are assigned
     maybe_bool  show_god_gift;      // Show {god gift} in item names
 
-    bool        restart_after_game; // If true, Crawl will not close on game-end
+    maybe_bool  restart_after_game; // If true, Crawl will not close on game-end
+                                    // If maybe, Crawl will restart only if the
+                                    // CL options would bring up the startup
+                                    // menu.
     bool        restart_after_save; // .. or on save
+    bool        newgame_after_quit; // override the restart_after_game behavior
+                                    // to always start a new game on quit.
 
+    bool        name_bypasses_menu; // should the menu be skipped if there is
+                                    // a name set on game start
     bool        read_persist_options; // If true, Crawl will try to load
                                       // options from c_persist.options
 
     vector<text_pattern> drop_filter;
 
-    map<string, FixedBitVector<NUM_AINTERRUPTS>> activity_interrupts;
+    map<string, FixedBitVector<NUM_ACTIVITY_INTERRUPTS>> activity_interrupts;
 #ifdef DEBUG_DIAGNOSTICS
     FixedBitVector<NUM_DIAGNOSTICS> quiet_debug_messages;
 #endif
@@ -440,6 +455,10 @@ public:
 
     bool        rest_wait_both; // Stop resting only when both HP and MP are
                                 // fully restored.
+
+    bool        rest_wait_ancestor;// Stop resting only if the ancestor's HP
+                                   // is fully restored.
+
     int         rest_wait_percent; // Stop resting after restoring this
                                    // fraction of HP or MP
 
@@ -476,29 +495,31 @@ public:
     bool        tile_menu_icons; // display icons in menus?
 
     // minimap colours
-    VColour     tile_player_col;
-    VColour     tile_monster_col;
-    VColour     tile_plant_col;
-    VColour     tile_item_col;
     VColour     tile_unseen_col;
     VColour     tile_floor_col;
     VColour     tile_wall_col;
     VColour     tile_mapped_floor_col;
     VColour     tile_mapped_wall_col;
     VColour     tile_door_col;
-    VColour     tile_downstairs_col;
+    VColour     tile_item_col;
+    VColour     tile_monster_col;
+    VColour     tile_plant_col;
     VColour     tile_upstairs_col;
+    VColour     tile_downstairs_col;
+    VColour     tile_branchstairs_col;
+    VColour     tile_feature_col;
+    VColour     tile_water_col;
+    VColour     tile_lava_col;
+    VColour     tile_trap_col;
+    VColour     tile_excl_centre_col;
+    VColour     tile_excluded_col;
+    VColour     tile_player_col;
+    VColour     tile_deep_water_col;
+    VColour     tile_portal_col;
     VColour     tile_transporter_col;
     VColour     tile_transporter_landing_col;
-    VColour     tile_branchstairs_col;
-    VColour     tile_portal_col;
-    VColour     tile_feature_col;
-    VColour     tile_trap_col;
-    VColour     tile_water_col;
-    VColour     tile_deep_water_col;
-    VColour     tile_lava_col;
-    VColour     tile_excluded_col;
-    VColour     tile_excl_centre_col;
+    VColour     tile_explore_horizon_col;
+
     VColour     tile_window_col;
 #ifdef USE_TILE_LOCAL
     // font settings
@@ -507,6 +528,7 @@ public:
     string      tile_font_stat_file;
     string      tile_font_lbl_file;
     string      tile_font_tip_file;
+    bool        tile_single_column_menus;
 #endif
 #ifdef USE_TILE_WEB
     string      tile_font_crt_family;
@@ -530,6 +552,8 @@ public:
     maybe_bool  tile_use_small_layout;
 #endif
     int         tile_cell_pixels;
+    int         tile_viewport_scale;
+    int         tile_map_scale;
     bool        tile_filter_scaling;
     int         tile_map_pixels;
 
@@ -593,7 +617,7 @@ private:
     message_filter parse_message_filter(const string &s);
 
     void set_default_activity_interrupts();
-    void set_activity_interrupt(FixedBitVector<NUM_AINTERRUPTS> &eints,
+    void set_activity_interrupt(FixedBitVector<NUM_ACTIVITY_INTERRUPTS> &eints,
                                 const string &interrupt);
     void set_activity_interrupt(const string &activity_name,
                                 const string &interrupt_names,

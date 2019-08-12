@@ -19,6 +19,9 @@ enum artefact_prop_type
     ARTP_SEE_INVISIBLE,
     ARTP_INVISIBLE,
     ARTP_FLY,
+#if TAG_MAJOR_VERSION > 34
+    ARTP_FOG,
+#endif
     ARTP_BLINK,
     ARTP_BERSERK,
     ARTP_NOISE,
@@ -61,5 +64,6 @@ enum artefact_prop_type
     ARTP_SLOW,
     ARTP_FRAGILE,
     ARTP_SHIELDING,
+    ARTP_HARM,
     ARTP_NUM_PROPERTIES
 };

@@ -9,6 +9,7 @@
 
 #include <string>
 #include <cctype>
+#include <cinttypes>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -42,8 +43,10 @@
 #include "place.h"
 #include "prompt.h"
 #include "religion.h"
+#include "scroller.h"
 #include "showsymb.h"
 #include "skills.h"
+#include "spl-book.h"
 #include "spl-util.h"
 #include "state.h"
 #include "stringutil.h"
@@ -208,6 +211,15 @@ static void _sdump_header(dump_params &par)
     par.text += " (console)";
 #endif
     par.text += " character file.\n\n";
+
+    if (you.game_is_seeded
+#ifdef DGAMELAUNCH
+        && par.se // for online games, only show seed for a dead char
+#endif
+        )
+    {
+        par.text += make_stringf("Game seed: %" PRIu64 "\n\n", crawl_state.seed);
+    }
 }
 
 static void _sdump_stats(dump_params &par)
@@ -235,15 +247,18 @@ static void _sdump_transform(dump_params &par)
 
 static branch_type single_portals[] =
 {
-    BRANCH_LABYRINTH,
     BRANCH_TROVE,
     BRANCH_SEWER,
     BRANCH_OSSUARY,
     BRANCH_BAILEY,
+    BRANCH_GAUNTLET,
     BRANCH_ICE_CAVE,
     BRANCH_VOLCANO,
     BRANCH_WIZLAB,
     BRANCH_DESOLATION,
+#if TAG_MAJOR_VERSION == 34
+    BRANCH_LABYRINTH,
+#endif
 };
 
 static void _sdump_visits(dump_params &par)
@@ -258,7 +273,7 @@ static void _sdump_visits(dump_params &par)
         seen = "saw";
     }
 
-    vector<PlaceInfo> branches_visited = you.get_all_place_info(true, true);
+    const vector<PlaceInfo> branches_visited = you.get_all_place_info(true, true);
 
     PlaceInfo branches_total;
     for (const PlaceInfo &branch : branches_visited)
@@ -274,62 +289,70 @@ static void _sdump_visits(dump_params &par)
                              seen.c_str(), branches_total.levels_seen);
     }
 
-    PlaceInfo place_info = you.get_place_info(BRANCH_PANDEMONIUM);
-    if (place_info.num_visits > 0)
     {
-        text += make_stringf("You %svisited Pandemonium %d time",
-                             have.c_str(), place_info.num_visits);
-        if (place_info.num_visits > 1)
-            text += "s";
-        text += make_stringf(", and %s %d of its levels.\n",
-                             seen.c_str(), place_info.levels_seen);
+        const PlaceInfo place_info = you.get_place_info(BRANCH_PANDEMONIUM);
+        if (place_info.num_visits > 0)
+        {
+            text += make_stringf("You %svisited Pandemonium %d time",
+                                 have.c_str(), place_info.num_visits);
+            if (place_info.num_visits > 1)
+                text += "s";
+            text += make_stringf(", and %s %d of its levels.\n",
+                                 seen.c_str(), place_info.levels_seen);
+        }
     }
 
-    place_info = you.get_place_info(BRANCH_ABYSS);
-    if (place_info.num_visits > 0)
     {
-        text += make_stringf("You %svisited the Abyss %d time",
-                             have.c_str(), place_info.num_visits);
-        if (place_info.num_visits > 1)
-            text += "s";
-        text += ".\n";
+        const PlaceInfo place_info = you.get_place_info(BRANCH_ABYSS);
+        if (place_info.num_visits > 0)
+        {
+            text += make_stringf("You %svisited the Abyss %d time",
+                                 have.c_str(), place_info.num_visits);
+            if (place_info.num_visits > 1)
+                text += "s";
+            text += ".\n";
+        }
     }
 
-    place_info = you.get_place_info(BRANCH_BAZAAR);
-    if (place_info.num_visits > 0)
     {
-        text += make_stringf("You %svisited %d bazaar",
-                             have.c_str(), place_info.num_visits);
-        if (place_info.num_visits > 1)
-            text += "s";
-        text += ".\n";
+        const PlaceInfo place_info = you.get_place_info(BRANCH_BAZAAR);
+        if (place_info.num_visits > 0)
+        {
+            text += make_stringf("You %svisited %d bazaar",
+                                 have.c_str(), place_info.num_visits);
+            if (place_info.num_visits > 1)
+                text += "s";
+            text += ".\n";
+        }
     }
 
-    place_info = you.get_place_info(BRANCH_ZIGGURAT);
-    if (place_info.num_visits > 0)
     {
-        int num_zigs = place_info.num_visits;
-        text += make_stringf("You %s%s %d ziggurat",
-                             have.c_str(),
-                             (num_zigs == you.zigs_completed) ? "completed"
-                                                              : "visited",
-                             num_zigs);
-        if (num_zigs > 1)
-            text += "s";
-        if (num_zigs != you.zigs_completed && you.zigs_completed)
-            text += make_stringf(" (completing %d)", you.zigs_completed);
-        text += make_stringf(", and %s %d of %s levels",
-                             seen.c_str(), place_info.levels_seen,
-                             num_zigs > 1 ? "their" : "its");
-        if (num_zigs != 1 && !you.zigs_completed)
-            text += make_stringf(" (deepest: %d)", you.zig_max);
-        text += ".\n";
+        const PlaceInfo place_info = you.get_place_info(BRANCH_ZIGGURAT);
+        if (place_info.num_visits > 0)
+        {
+            int num_zigs = place_info.num_visits;
+            text += make_stringf("You %s%s %d ziggurat",
+                                 have.c_str(),
+                                 (num_zigs == you.zigs_completed) ? "completed"
+                                                                  : "visited",
+                                 num_zigs);
+            if (num_zigs > 1)
+                text += "s";
+            if (num_zigs != you.zigs_completed && you.zigs_completed)
+                text += make_stringf(" (completing %d)", you.zigs_completed);
+            text += make_stringf(", and %s %d of %s levels",
+                                 seen.c_str(), place_info.levels_seen,
+                                 num_zigs > 1 ? "their" : "its");
+            if (num_zigs != 1 && !you.zigs_completed)
+                text += make_stringf(" (deepest: %d)", you.zig_max);
+            text += ".\n";
+        }
     }
 
     vector<string> misc_portals;
     for (branch_type br : single_portals)
     {
-        place_info = you.get_place_info(br);
+        const PlaceInfo place_info = you.get_place_info(br);
         if (!place_info.num_visits)
             continue;
         string name = branches[br].shortname;
@@ -419,9 +442,9 @@ static string _denanify(const string &s)
     return out;
 }
 
-static string _sdump_turns_place_info(PlaceInfo place_info, string name = "")
+static string _sdump_turns_place_info(const PlaceInfo place_info, string name = "")
 {
-    PlaceInfo   gi = you.global_info;
+    const PlaceInfo   gi = you.global_info;
     string out;
 
     if (name.empty())
@@ -456,18 +479,16 @@ static string _sdump_level_xp_info(LevelXPInfo xp_info, string name = "")
         name = xp_info.level.describe();
 
     float c, f;
-    unsigned int total_xp = xp_info.spawn_xp + xp_info.generated_xp;
-    unsigned int total_count
-        = xp_info.spawn_count + xp_info.generated_count;
+    unsigned int total_xp = xp_info.vault_xp + xp_info.non_vault_xp;
+    unsigned int total_count = xp_info.vault_count + xp_info.non_vault_count;
 
-    c = TO_PERCENT(xp_info.spawn_xp, total_xp);
-    f = TO_PERCENT(xp_info.spawn_count, total_count);
+    c = TO_PERCENT(xp_info.vault_xp, total_xp);
+    f = TO_PERCENT(xp_info.vault_count, total_count);
 
     out =
-        make_stringf("%11s | %7d | %7d | %5.1f | %7d | %7d | %5.1f | %7d\n",
-                     name.c_str(), xp_info.spawn_xp, xp_info.generated_xp,
-                     c, xp_info.spawn_count, xp_info.generated_count, f,
-                     xp_info.turns);
+        make_stringf("%11s | %7d | %7d | %5.1f | %7d | %7d | %5.1f\n",
+                     name.c_str(), xp_info.non_vault_xp, xp_info.vault_xp,
+                     c, xp_info.non_vault_count, xp_info.vault_count, f);
 
     return _denanify(out);
 }
@@ -476,7 +497,7 @@ static void _sdump_turns_by_place(dump_params &par)
 {
     string &text(par.text);
 
-    vector<PlaceInfo> all_visited = you.get_all_place_info(true);
+    const vector<PlaceInfo> all_visited = you.get_all_place_info(true);
 
     text +=
 "Table legend:\n"
@@ -517,29 +538,28 @@ static void _sdump_xp_by_level(dump_params &par)
 
     text +=
 "Table legend:\n"
-" A = Spawn XP\n"
-" B = Non-spawn XP\n"
-" C = Spawn XP percentage of total XP\n"
-" D = Spawn monster count\n"
-" E = Non-spawn monster count\n"
-" F = Spawn count percentage of total count\n"
-" G = Total turns spent on level\n\n";
+" A = Non-vault XP\n"
+" B = Vault XP\n"
+" C = Vault XP percentage of total XP\n"
+" D = Non-vault monster count\n"
+" E = Vault monster count\n"
+" F = Vault count percentage of total count\n\n";
 
     text += "            ";
-    text += "     A         B        C        D         E        F        G    \n";
+    text += "     A         B        C        D         E        F   \n";
     text += "            ";
-    text += "+---------+---------+-------+---------+---------+-------+---------\n";
+    text += "+---------+---------+-------+---------+---------+-------\n";
 
     text += _sdump_level_xp_info(you.global_xp_info, "Total");
 
     text += "            ";
-    text += "+---------+---------+-------+---------+---------+-------+---------\n";
+    text += "+---------+---------+-------+---------+---------+-------\n";
 
     for (const LevelXPInfo &mi : all_info)
         text += _sdump_level_xp_info(mi);
 
     text += "            ";
-    text += "+---------+---------+-------+---------+---------+-------+---------\n";
+    text += "+---------+---------+-------+---------+---------+-------\n";
 
     text += "\n";
 }
@@ -621,8 +641,23 @@ static void _sdump_notes(dump_params &par)
     {
         if (note.hidden())
             continue;
-        text += note.describe();
-        text += "\n";
+
+        string prefix = note.describe(true, true, false);
+        string suffix = note.describe(false, false, true);
+        if (suffix.empty())
+            continue;
+        int spaceleft = 80 - prefix.length() - 1; // Use 100 cols
+        if (spaceleft <= 0)
+            return;
+
+        linebreak_string(suffix, spaceleft);
+        vector<string> parts = split_string("\n", suffix);
+        if (parts.empty()) // Disregard pure-whitespace notes.
+            continue;
+
+        text += prefix + parts[0] + "\n";
+        for (unsigned int j = 1; j < parts.size(); ++j)
+            text += string(prefix.length()-2, ' ') + string("| ") + parts[j] + "\n";
     }
     text += "\n";
 }
@@ -774,12 +809,8 @@ static void _sdump_inventory(dump_params &par)
                 if (origin_describable(item) && _dump_item_origin(item))
                     text += "\n" "   (" + origin_desc(item) + ")";
 
-                if (is_dumpable_artefact(item)
-                    || Options.dump_book_spells
-                       && item.base_type == OBJ_BOOKS)
-                {
+                if (is_dumpable_artefact(item))
                     text += chardump_desc(item);
-                }
                 else
                     text += "\n";
             }
@@ -799,7 +830,7 @@ static void _sdump_skills(dump_params &par)
     text += "\n";
 }
 
-static string spell_type_shortname(spschool_flag_type spell_class, bool slash)
+static string spell_type_shortname(spschool spell_class, bool slash)
 {
     string ret;
 
@@ -842,7 +873,7 @@ static void _sdump_spells(dump_params &par)
     {
         verb = par.se? "didn't" : "don't";
 
-        text += "You " + verb + " know any spells.\n\n";
+        text += "You " + verb + " know any spells.\n";
     }
     else
     {
@@ -897,6 +928,71 @@ static void _sdump_spells(dump_params &par)
                 text += spell_line;
             }
         }
+        text += "\n";
+    }
+
+    if (!you.spell_library.count())
+    {
+        verb = par.se ? "was" : "is";
+        text += "Your spell library " + verb + " empty.\n\n";
+    }
+    else
+    {
+        verb = par.se? "contained" : "contains";
+        text += "Your spell library " + verb + " the following spells:\n\n";
+        text += " Spells                   Type           Power        Failure   Level  Hunger" "\n";
+
+        auto const library = get_sorted_spell_list(true, false);
+
+        for (const spell_type spell : library)
+        {
+            const bool memorisable = you_can_memorise(spell);
+
+            string spell_line;
+
+            spell_line += ' ';
+            spell_line += spell_title(spell);
+
+            spell_line = chop_string(spell_line, 24);
+            spell_line += "  ";
+
+            bool already = false;
+
+            for (const auto bit : spschools_type::range())
+            {
+                if (spell_typematch(spell, bit))
+                {
+                    spell_line += spell_type_shortname(bit, already);
+                    already = true;
+                }
+            }
+
+            spell_line = chop_string(spell_line, 41);
+
+            if (memorisable)
+                spell_line += spell_power_string(spell);
+            else
+                spell_line += "Unusable";
+
+            spell_line = chop_string(spell_line, 54);
+
+            if (memorisable)
+                spell_line += failure_rate_to_string(raw_spell_fail(spell));
+            else
+                spell_line += "N/A";
+
+            spell_line = chop_string(spell_line, 66);
+
+            spell_line += make_stringf("%-5d", spell_difficulty(spell));
+
+            if (memorisable)
+                spell_line += spell_hunger_string(spell);
+            else
+                spell_line += "N/A";
+            spell_line += "\n";
+
+            text += spell_line;
+        }
         text += "\n\n";
     }
 }
@@ -907,7 +1003,7 @@ static void _sdump_kills(dump_params &par)
     par.text += "\n";
 }
 
-static string _sdump_kills_place_info(PlaceInfo place_info, string name = "")
+static string _sdump_kills_place_info(const PlaceInfo place_info, string name = "")
 {
     string out;
 
@@ -952,7 +1048,7 @@ static void _sdump_kills_by_place(dump_params &par)
 {
     string &text(par.text);
 
-    vector<PlaceInfo> all_visited = you.get_all_place_info(true);
+    const vector<PlaceInfo> all_visited = you.get_all_place_info(true);
 
     string result = "";
 
@@ -992,6 +1088,7 @@ static void _sdump_overview(dump_params &par)
     string overview =
         formatted_string::parse_string(overview_description_string(false));
     trim_string(overview);
+    linebreak_string(overview, 80);
     par.text += overview;
     par.text += "\n\n";
 }
@@ -1024,7 +1121,7 @@ static void _sdump_vault_list(dump_params &par)
 #endif
      )
     {
-        par.text += "Vault maps used:\n";
+        par.text += "Levels and vault maps discovered:\n";
         par.text += dump_vault_maps();
         par.text += "\n";
     }
@@ -1234,10 +1331,8 @@ static string _describe_action_subtype(caction_type type, int compound_subtype)
 #if TAG_MAJOR_VERSION == 34
         case EVOC_ROD:
             return "Rod";
-#endif
         case EVOC_DECK:
             return "Deck";
-#if TAG_MAJOR_VERSION == 34
         case EVOC_MISC:
             return "Miscellaneous";
         case EVOC_BUGGY_TOME:
@@ -1413,27 +1508,12 @@ static const char* hunger_names[] =
 };
 COMPILE_CHECK(ARRAYSZ(hunger_names) == HS_ENGORGED + 1);
 
-// Must match the order of hunger_state_t enums
-static const char* thirst_names[] =
-{
-    "bloodless",
-    "bloodless",
-    "near bloodless",
-    "very thirsty",
-    "thirsty",
-    "not thirsty",
-    "full",
-    "very full",
-    "almost alive",
-};
-COMPILE_CHECK(ARRAYSZ(thirst_names) == HS_ENGORGED + 1);
-
 const char *hunger_level()
 {
     ASSERT(you.hunger_state <= HS_ENGORGED);
 
     if (you.species == SP_VAMPIRE)
-        return thirst_names[you.hunger_state];
+        return you.vampire_alive ? "alive" : "bloodless";
     return hunger_names[you.hunger_state];
 }
 
@@ -1603,12 +1683,10 @@ static bool _write_dump(const string &fname, const dump_params &par, bool quiet)
 
 void display_notes()
 {
-    formatted_scroller scr;
-    scr.set_flags(MF_START_AT_END | MF_ALWAYS_SHOW_MORE);
+    formatted_scroller scr(FS_START_AT_END | FS_PREWRAPPED_TEXT);
     scr.set_more();
     scr.set_tag("notes");
-    scr.set_highlighter(new MenuHighlighter);
-    scr.set_title(new MenuEntry("Turn   | Place    | Note"));
+    scr.add_raw_text("Turn   | Place    | Note\n");
     for (const Note &note : note_list)
     {
         if (note.hidden())
@@ -1617,8 +1695,7 @@ void display_notes()
         string suffix = note.describe(false, false, true);
         if (suffix.empty())
             continue;
-
-        int spaceleft = get_number_of_cols() - prefix.length() - 1;
+        int spaceleft = 80 - prefix.length() - 1; // Use 100 cols
         if (spaceleft <= 0)
             return;
 
@@ -1627,26 +1704,20 @@ void display_notes()
         if (parts.empty()) // Disregard pure-whitespace notes.
             continue;
 
-        scr.add_entry(new MenuEntry(prefix + parts[0]));
+        scr.add_raw_text(prefix + parts[0] + "\n");
         for (unsigned int j = 1; j < parts.size(); ++j)
-        {
-            scr.add_entry(new MenuEntry(string(prefix.length()-2, ' ') +
-                                        string("| ") + parts[j]));
-        }
+            scr.add_raw_text(string(prefix.length()-2, ' ') + string("| ") + parts[j] + "\n");
     }
     scr.show();
-    redraw_screen();
 }
 
 void display_char_dump()
 {
-    formatted_scroller scr;
-    scr.set_flags(MF_ALWAYS_SHOW_MORE);
-    scr.add_raw_text(_get_dump().text, false, get_number_of_cols());
+    formatted_scroller scr(FS_PREWRAPPED_TEXT);
+    scr.add_raw_text(_get_dump().text, false);
     scr.set_more();
     scr.set_tag("dump");
     scr.show();
-    redraw_screen();
 }
 
 #ifdef DGL_WHEREIS

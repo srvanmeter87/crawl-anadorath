@@ -27,6 +27,10 @@
           <label for="remember_me">Stay logged in</label>
           <span class="extra_links">|
           <a id="reg_link" href="javascript:">Register</a>
+{% if getattr(config, "allow_password_reset", False) %}
+          <a id="forgot_link" href="javascript:">Forgot Password</a>
+{% end %}
+          <a id="chem_link" href="javascript:" style="display: none;">Change Email</a>
           <a id="logout_link" href="javascript:" style="display: none;">Logout</a></span>
         </div>
       </div>
@@ -46,11 +50,77 @@
           <label for="reg_email">Email address:</label>
           <input class="text" type="text" name="reg_email" id="reg_email">
           <br>
+          <p>If you do not enter an email, you can't recover your password.</p>
           <input class="button" type="button" name="cancel" id="reg_cancel"
                  value="Cancel">
           <input class="button" type="submit" name="submit" id="reg_submit" value="Submit">
         </form>
       </div>
+
+      <div id="change_email" class="floating_dialog" style="display: none;">
+        <p>Your current email address is: <span id="chem_current"></span></p>
+        <span id="chem_message"></span>
+        <form action="#" id="chem_form">
+          <label for="chem_email">Email:</label>
+          <input class="text" type="text" name="chem_email" id="chem_email">
+          <br />
+          <p>If you do not enter an email, you can't recover your password.</p>
+          <input class="button" type="button" name="cancel" id="chem_cancel" value="Cancel">
+          <input class="button" type="submit" name="submit" id="chem_submit" value="Submit">
+        </form>
+      </div>
+
+      <div id="change_email_2" class="floating_dialog" style="display: none;">
+        <span id="chem_confirmation_message"></span>
+        <input class="button" type="submit" name="submit" value="OK">
+      </div>
+
+{% if getattr(config, "allow_password_reset", False) %}
+      <div id="forgot" class="floating_dialog" style="display: none;">
+        <span id="forgot_message"></span>
+        <form action="#" id="forgot_form">
+          <label for="forgot_email">Email address:</label>
+          <input class="text" type="text" name="forgot_email" id="forgot_email">
+          <br>
+          <input class="button" type="button" name="cancel" id="forgot_cancel"
+                 value="Cancel">
+          <input class="button" type="submit" name="submit" id="forgot_submit" value="Submit">
+        </form>
+      </div>
+
+      <div id="forgot_2" class="floating_dialog" style="display: none;">
+        <span>If a matching account was found, then an email was sent to reset your password.</span>
+        <input class="button" type="submit" name="submit" value="OK">
+      </div>
+{% end %}
+
+{% if getattr(config, "allow_password_reset", False) and reset_token %}
+      <div id="reset_pw" class="floating_dialog" style="display: none;">
+  {% if reset_token_error %}
+        <form action="#" id="reset_pw_form">
+          <span>{{ reset_token_error }}</span>
+          <br><br>
+          <input class="button" type="button" name="cancel" id="reset_pw_cancel" value="Cancel">
+        </form>
+  {% else %}
+        <span>Please choose a new password.</span>
+        <br>
+        <span id="reset_pw_message"></span>
+        <form action="#" id="reset_pw_form">
+          <input class="text" type="hidden" readonly="readonly" name="reset_pw_token" id="reset_pw_token" value="{{ reset_token }}">
+          <br>
+          <label for="reset_pw_password">Password:</label>
+          <input class="text" type="password" name="reset_pw_password" id="reset_pw_password">
+          <br>
+          <label for="reset_pw_repeat_password">Repeat password:</label>
+          <input class="text" type="password" name="reset_pw_repeat_password" id="reset_pw_repeat_password">
+          <br>
+          <input class="button" type="button" name="cancel" id="reset_pw_cancel" value="Cancel">
+          <input class="button" type="submit" name="submit" id="reset_pw_submit" value="Submit">
+        </form>
+  {% end %}
+      </div>
+{% end %}
 
       <div id="rc_edit" class="floating_dialog" style="display: none;">
         <form action="#" id="rc_edit_form">
@@ -137,6 +207,7 @@
         <img style="display:none;" alt="" src="{{ static_url("title_baconkid_duvessa_dowan.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_baconkid_gastronok.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_baconkid_mnoleg.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_Cws_Minotauros.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_denzi_dragon.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_denzi_evil_mage.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_denzi_invasion.png") }}">
@@ -144,8 +215,14 @@
         <img style="display:none;" alt="" src="{{ static_url("title_denzi_summoner.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_denzi_undead_warrior.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_firemage.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_froggy_goodgod_tengu_gold.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_froggy_jiyva_felid.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_froggy_natasha_and_boris.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_froggy_rune_and_run_failed_on_dis.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_froggy_thunder_fist_nikola.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_omndra_zot_demon.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_peileppe_bloax_eye.png") }}">
+        <img style="display:none;" alt="" src="{{ static_url("title_ploomutoo_ijyb.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_pooryurik_knight.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_psiweapon_kiku.png") }}">
         <img style="display:none;" alt="" src="{{ static_url("title_psiweapon_roxanne.png") }}">
@@ -175,13 +252,12 @@
 
     <div id="overlay"></div>
 
-    <div>
-      <div id="message_box" class="floating_dialog"
-           style="display: none;">
-      </div>
-    </div>
+    <div id="chat_hidden" style="display: none;"><span><a href="javascript:">+</a></span></div>
 
     <div id="chat" style="display: none;">
+      <a href="javascript:" id="chat_hide_button">
+        <span id="chat_hide_button_span">(-)</span>
+      </a>
       <a href="javascript:" id="chat_caption">
         <span id="spectator_count">0 spectators</span>
         <span id="message_count">0 new messages</span>

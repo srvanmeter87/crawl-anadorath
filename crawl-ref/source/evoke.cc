@@ -19,7 +19,6 @@
 #include "chardump.h"
 #include "cloud.h"
 #include "coordit.h"
-#include "decks.h"
 #include "delay.h"
 #include "directn.h"
 #include "dungeon.h"
@@ -92,18 +91,28 @@ static bool _reaching_weapon_attack(const item_def& wpn)
 
     bool targ_mid = false;
     dist beam;
+    const reach_type reach_range = weapon_reach(wpn);
 
     direction_chooser_args args;
     args.restricts = DIR_TARGET;
     args.mode = TARG_HOSTILE;
-    args.range = 2;
+    args.range = reach_range;
     args.top_prompt = "Attack whom?";
-    args.self = CONFIRM_CANCEL;
-    targeter_reach hitfunc(&you, REACH_TWO);
-    args.hitfunc = &hitfunc;
+    args.self = confirm_prompt_type::cancel;
+
+    unique_ptr<targeter> hitfunc;
+    if (reach_range == REACH_TWO)
+        hitfunc = make_unique<targeter_reach>(&you, reach_range);
+    // Assume all longer forms of reach use smite targeting.
+    else
+    {
+        hitfunc = make_unique<targeter_smite>(&you, reach_range, 0, 0, false,
+                                              [](const coord_def& p) -> bool {
+                                              return you.pos() != p; });
+    }
+    args.hitfunc = hitfunc.get();
 
     direction(beam, args);
-
     if (!beam.isValid)
     {
         if (beam.isCancel)
@@ -125,26 +134,9 @@ static bool _reaching_weapon_attack(const item_def& wpn)
     if (mons && mons->submerged())
         mons = nullptr;
 
-    const int x_first_middle = you.pos().x + (delta.x)/2;
-    const int y_first_middle = you.pos().y + (delta.y)/2;
-    const int x_second_middle = beam.target.x - (delta.x)/2;
-    const int y_second_middle = beam.target.y - (delta.y)/2;
-    const coord_def first_middle(x_first_middle, y_first_middle);
-    const coord_def second_middle(x_second_middle, y_second_middle);
-
-    if (x_distance > 2 || y_distance > 2)
+    if (x_distance > reach_range || y_distance > reach_range)
     {
         mpr("Your weapon cannot reach that far!");
-        return false;
-    }
-
-    // Calculate attack delay now in case we have to apply it.
-    const int attack_delay = you.attack_delay().roll();
-
-    if (!feat_is_reachable_past(grd(first_middle))
-        && !feat_is_reachable_past(grd(second_middle)))
-    {
-        canned_msg(MSG_SOMETHING_IN_WAY);
         return false;
     }
 
@@ -154,41 +146,53 @@ static bool _reaching_weapon_attack(const item_def& wpn)
     if (mons)
         you.apply_berserk_penalty = false;
 
-    // Choose one of the two middle squares (which might be the same).
-    const coord_def middle =
-        !feat_is_reachable_past(grd(first_middle)) ? second_middle :
-        !feat_is_reachable_past(grd(second_middle)) ? first_middle :
-        random_choose(first_middle, second_middle);
+    // Calculate attack delay now in case we have to apply it.
+    const int attack_delay = you.attack_delay().roll();
 
     // Check for a monster in the way. If there is one, it blocks the reaching
     // attack 50% of the time, and the attack tries to hit it if it is hostile.
-
-    // If we're attacking more than a space away...
-    if (x_distance > 1 || y_distance > 1)
+    if (reach_range < REACH_THREE && (x_distance > 1 || y_distance > 1))
     {
+        const int x_first_middle = you.pos().x + (delta.x) / 2;
+        const int y_first_middle = you.pos().y + (delta.y) / 2;
+        const int x_second_middle = beam.target.x - (delta.x) / 2;
+        const int y_second_middle = beam.target.y - (delta.y) / 2;
+        const coord_def first_middle(x_first_middle, y_first_middle);
+        const coord_def second_middle(x_second_middle, y_second_middle);
+
+        if (!feat_is_reachable_past(grd(first_middle))
+            && !feat_is_reachable_past(grd(second_middle)))
+        {
+            canned_msg(MSG_SOMETHING_IN_WAY);
+            return false;
+        }
+
+        // Choose one of the two middle squares (which might be the same).
+        const coord_def middle =
+            !feat_is_reachable_past(grd(first_middle)) ? second_middle :
+            !feat_is_reachable_past(grd(second_middle)) ? first_middle :
+        random_choose(first_middle, second_middle);
+
         bool success = true;
         monster *midmons;
         if ((midmons = monster_at(middle))
-            && !midmons->submerged())
+            && !midmons->submerged()
+            && coinflip())
         {
-            // This chance should possibly depend on your skill with
-            // the weapon.
-            if (coinflip())
+            success = false;
+            beam.target = middle;
+            mons = midmons;
+            targ_mid = true;
+            if (mons->wont_attack())
             {
-                success = false;
-                beam.target = middle;
-                mons = midmons;
-                targ_mid = true;
-                if (mons->wont_attack())
-                {
-                    // Let's assume friendlies cooperate.
-                    mpr("You could not reach far enough!");
-                    you.time_taken = attack_delay;
-                    make_hungry(3, true);
-                    return true;
-                }
+                // Let's assume friendlies cooperate.
+                mpr("You could not reach far enough!");
+                you.time_taken = attack_delay;
+                make_hungry(3, true);
+                return true;
             }
         }
+
         if (success)
             mpr("You reach to attack!");
         else
@@ -236,8 +240,12 @@ static bool _evoke_horn_of_geryon()
         return false;
     }
 
+#if TAG_MAJOR_VERSION == 34
     const int surge = pakellas_surge_devices();
     surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
     mprf(MSGCH_SOUND, "You produce a hideous howling noise!");
     did_god_conduct(DID_EVIL, 3);
     int num = 1;
@@ -321,7 +329,9 @@ static void _spray_lightning(int range, int power)
     // range has no tracer, so randomness is ok
     beam.range = range;
     beam.source = you.pos();
-    beam.target = you.pos() + coord_def(random2(13)-6, random2(13)-6);
+    beam.target = you.pos();
+    beam.target.x += random2(13) - 6;
+    beam.target.y += random2(13) - 6;
     // Non-controlleable, so no player tracer.
     zapping(which_zap, power, beam);
 }
@@ -340,14 +350,18 @@ static bool _lightning_rod()
         return false;
     }
 
+#if TAG_MAJOR_VERSION == 34
     const int surge = pakellas_surge_devices();
     surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
     const int power =
         player_adjust_evoc_power(5 + you.skill(SK_EVOCATIONS, 3), surge);
 
-    const spret_type ret = your_spells(SPELL_THUNDERBOLT, power, false);
+    const spret ret = your_spells(SPELL_THUNDERBOLT, power, false);
 
-    if (ret == SPRET_ABORT)
+    if (ret == spret::abort)
         return false;
 
     return true;
@@ -368,22 +382,19 @@ void black_drac_breath()
 }
 
 /**
- * Returns the MP cost of zapping a wand. Usually zero.
+ * Returns the MP cost of zapping a wand:
+ *     3 if player has MP-powered wands and enough MP available,
+ *     1-2 if player has MP-powered wands and only 1-2 MP left,
+ *     0 otherwise.
  */
 int wand_mp_cost()
 {
     // Update mutation-data.h when updating this value.
-    return you.get_mutation_level(MUT_MP_WANDS) * 3;
+    return min(you.magic_points, you.get_mutation_level(MUT_MP_WANDS) * 3);
 }
 
 void zap_wand(int slot)
 {
-    if (!form_can_use_wand())
-    {
-        mpr("You have no means to grasp a wand firmly enough.");
-        return;
-    }
-
     if (inv_count() < 1)
     {
         canned_msg(MSG_NOTHING_CARRIED);
@@ -408,16 +419,16 @@ void zap_wand(int slot)
         return;
     }
 
+#if TAG_MAJOR_VERSION == 34
     if (player_under_penance(GOD_PAKELLAS))
     {
         simple_god_message("'s wrath prevents you from evoking devices!",
                            GOD_PAKELLAS);
         return;
     }
+#endif
 
     const int mp_cost = wand_mp_cost();
-    if (!enough_mp(mp_cost, false))
-        return;
 
     int item_slot;
     if (slot != -1)
@@ -425,7 +436,7 @@ void zap_wand(int slot)
     else
     {
         item_slot = prompt_invent_item("Zap which item?",
-                                       MT_INVLIST,
+                                       menu_type::invlist,
                                        OBJ_WANDS,
                                        OPER_ZAP);
     }
@@ -448,183 +459,48 @@ void zap_wand(int slot)
     if (you.equip[EQ_WEAPON] == item_slot)
         you.wield_change = true;
 
-    const bool has_charges = wand.charges > 0;
-    if (!has_charges && wand.used_count == ZAPCOUNT_EMPTY)
+    if (wand.charges <= 0)
     {
         mpr("This wand has no charges.");
         return;
     }
 
-    // Will waste charges.
-    const bool wasteful = !item_ident(wand, ISFLAG_KNOW_PLUSES);
-    int power = (15 + you.skill(SK_EVOCATIONS, 7) / 2)
-                * (you.get_mutation_level(MUT_MP_WANDS) + 3) / 3;
+    int power = (15 + you.skill(SK_EVOCATIONS, 7) / 2) * (mp_cost + 9) / 9;
 
     const spell_type spell =
         spell_in_wand(static_cast<wand_type>(wand.sub_type));
 
-    spret_type ret = your_spells(spell, power, false, &wand);
+    spret ret = your_spells(spell, power, false, &wand);
 
-    if (ret == SPRET_ABORT)
+    if (ret == spret::abort)
         return;
-    else if (ret == SPRET_FAIL)
+    else if (ret == spret::fail)
     {
         canned_msg(MSG_NOTHING_HAPPENS);
-        // It's an empty wand; inscribe it that way.
-        wand.used_count = ZAPCOUNT_EMPTY;
         you.turn_is_over = true;
         return;
     }
 
     // Spend MP.
-    dec_mp(mp_cost, false);
+    if (mp_cost)
+        dec_mp(mp_cost, false);
 
     // Take off a charge.
     wand.charges--;
-    // And a few more, if you didn't know the wand's charges.
-    int wasted_charges = 0;
-    if (wasteful)
+
+    if (wand.charges == 0)
     {
-#ifdef DEBUG_DIAGNOSTICS
-        const int initial_charge = wand.plus;
-#endif
+        ASSERT(in_inventory(wand));
 
-        wasted_charges = 1 + random2(2); //1-2
-        wand.charges = max(0, wand.charges - wasted_charges);
-
-        dprf("Wasted %d charges (wand %d -> %d)", wasted_charges,
-             initial_charge, wand.charges);
-        mpr("Evoking this partially-identified wand wasted a few charges.");
+        mpr("The now-empty wand crumbles to dust.");
+        dec_inv_item_quantity(wand.link, 1);
     }
-
-    // Zap counts count from the last recharge.
-    if (wand.used_count == ZAPCOUNT_RECHARGED)
-        wand.used_count = 0;
-    // Increment zap count.
-    if (wand.used_count >= 0)
-    {
-        wand.used_count++;
-        if (wasteful)
-            wand.used_count += wasted_charges;
-    }
-
-    if (item_type_known(wand)
-        && (item_ident(wand, ISFLAG_KNOW_PLUSES)
-            || you.skill_rdiv(SK_EVOCATIONS) > random2(27)))
-    {
-        if (!item_ident(wand, ISFLAG_KNOW_PLUSES))
-        {
-            mpr("Your skill with magical items lets you calculate "
-                "the power of this device...");
-        }
-
-        mprf("This wand has %d charge%s left.",
-             wand.plus, wand.plus == 1 ? "" : "s");
-
-        set_ident_flags(wand, ISFLAG_KNOW_PLUSES);
-    }
-    // Mark as empty if necessary.
-    if (wand.charges == 0 && wand.flags & ISFLAG_KNOW_PLUSES)
-        wand.used_count = ZAPCOUNT_EMPTY;
 
     practise_evoking(1);
     count_action(CACT_EVOKE, EVOC_WAND);
     alert_nearby_monsters();
 
     you.turn_is_over = true;
-}
-
-int recharge_wand(bool known, const string &pre_msg, int num, int den)
-{
-    int item_slot = -1;
-    bool divine = num >= 0 && den >= 0;
-    do
-    {
-        if (item_slot == -1)
-        {
-            item_slot = prompt_invent_item("Charge which item?", MT_INVLIST,
-                                           OSEL_RECHARGE,
-                                           OPER_ANY,
-                                           invprompt_flag::escape_only);
-        }
-
-        if (item_slot == PROMPT_NOTHING)
-            return known ? -1 : 0;
-
-        if (item_slot == PROMPT_ABORT)
-        {
-            if (known
-                || crawl_state.seen_hups
-                || yesno("Really abort (and waste the scroll)?", false, 0))
-            {
-                canned_msg(MSG_OK);
-                return known ? -1 : 0;
-            }
-            else
-            {
-                item_slot = -1;
-                continue;
-            }
-        }
-
-        item_def &wand = you.inv[ item_slot ];
-
-        if (!item_is_rechargeable(wand, known))
-        {
-            mpr("Choose an item to recharge, or Esc to abort.");
-            more();
-
-            // Try again.
-            item_slot = -1;
-            continue;
-        }
-
-        int charge_gain = wand_max_charges(wand) / 3;
-
-        const int new_charges =
-            divine
-            ? min<int>(charge_gain * 3,
-                       max<int>(wand.charges + 1,
-                                wand.charges + 3 * charge_gain * num / den))
-            : max<int>(wand.charges,
-                       min(charge_gain * 3,
-                           wand.charges +
-                           1 + random2avg(((charge_gain - 1) * 3) + 1, 3)));
-
-        const bool charged = (new_charges > wand.plus);
-
-        string desc;
-
-        if (charged && item_ident(wand, ISFLAG_KNOW_PLUSES))
-        {
-            desc = make_stringf(" and now has %d charge%s",
-                                new_charges, new_charges == 1 ? "" : "s");
-        }
-
-        if (known && !pre_msg.empty())
-            mpr(pre_msg);
-
-        mprf("%s %s for a moment%s.",
-             wand.name(DESC_YOUR).c_str(),
-             charged ? "glows" : "flickers",
-             desc.c_str());
-
-        if (!charged && !item_ident(wand, ISFLAG_KNOW_PLUSES))
-        {
-            mprf("It has %d charges and is fully charged.", new_charges);
-            set_ident_flags(wand, ISFLAG_KNOW_PLUSES);
-        }
-
-        // Reinitialise zap counts.
-        wand.charges  = new_charges;
-        wand.used_count = ZAPCOUNT_RECHARGED;
-
-        you.wield_change = true;
-        return 1;
-    }
-    while (true);
-
-    return 0;
 }
 
 // return a slot that has manual for given skill, or -1 if none exists
@@ -740,15 +616,21 @@ static const pop_entry pop_spiders[] =
 
 static bool _box_of_beasts(item_def &box)
 {
-    const int surge = pakellas_surge_devices() + you.spec_evoke();
-    surge_power(surge);
+#if TAG_MAJOR_VERSION == 34
+    const int surge = pakellas_surge_devices();
+    surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
     mpr("You open the lid...");
 
     // two rolls to reduce std deviation - +-6 so can get < max even at 27 sk
+    int rnd_factor = random2(7);
+    rnd_factor -= random2(7);
     const int hd_min = min(27,
                            player_adjust_evoc_power(
                                you.skill(SK_EVOCATIONS)
-                               + random2(7) - random2(7), surge));
+                               + rnd_factor, surge));
     const int tier = mutant_beast_tier(hd_min);
     ASSERT(tier < NUM_BEAST_TIERS);
 
@@ -756,10 +638,6 @@ static bool _box_of_beasts(item_def &box)
                  MG_AUTOFOE);
     mg.set_summoned(&you, 3 + random2(3), 0);
 
-    auto &avoids = mg.props[MUTANT_BEAST_AVOID_FACETS].get_vector();
-    for (int facet = BF_FIRST; facet <= BF_LAST; ++facet)
-        if (god_hates_beast_facet(you.religion, static_cast<beast_facet>(facet)))
-            avoids.push_back(facet);
     mg.hd = beast_tiers[tier];
     dprf("hd %d (min %d, tier %d)", mg.hd, hd_min, tier);
     const monster* mons = create_monster(mg);
@@ -795,13 +673,18 @@ static bool _sack_of_spiders_veto_mon(monster_type mon)
 
 static bool _sack_of_spiders(item_def &sack)
 {
-    const int surge = pakellas_surge_devices() + you.spec_evoke();
-    surge_power(surge);
+#if TAG_MAJOR_VERSION == 34
+    const int surge = pakellas_surge_devices();
+    surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
     mpr("You reach into the bag...");
 
     const int evo_skill = you.skill(SK_EVOCATIONS);
+    int rnd_factor = 1 + random2(2);
     int count = player_adjust_evoc_power(
-            1 + random2(2) + random2(div_rand_round(evo_skill * 10, 30)), surge);
+            rnd_factor + random2(div_rand_round(evo_skill * 10, 30)), surge);
     const int power = player_adjust_evoc_power(evo_skill, surge);
 
     if (x_chance_in_y(5, 10 + power))
@@ -910,8 +793,12 @@ static bool _ball_of_energy()
     bool ret = false;
 
     mpr("You gaze into the crystal ball.");
+#if TAG_MAJOR_VERSION == 34
     const int surge = pakellas_surge_devices();
     surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
 
     int use = player_adjust_evoc_power(random2(you.skill(SK_EVOCATIONS, 6)),
                                        surge);
@@ -990,8 +877,10 @@ static vector<coord_def> _get_jitter_path(coord_def source, coord_def target,
     {
         for (int n = 0; n < NUM_TRIES; ++n)
         {
-            coord_def jitter = clamp_in_bounds(target + coord_def(random_range(-2, 2),
-                                                                  random_range(-2, 2)));
+            coord_def jitter_rnd;
+            jitter_rnd.x = random_range(-2, 2);
+            jitter_rnd.y = random_range(-2, 2);
+            coord_def jitter = clamp_in_bounds(target + jitter_rnd);
             if (jitter == target || jitter == source || cell_is_solid(jitter))
                 continue;
 
@@ -1017,8 +906,10 @@ static vector<coord_def> _get_jitter_path(coord_def source, coord_def target,
 
     for (int n = 0; n < NUM_TRIES; ++n)
     {
-        coord_def jitter = clamp_in_bounds(mid + coord_def(random_range(-3, 3),
-                                                           random_range(-3, 3)));
+        coord_def jitter_rnd;
+        jitter_rnd.x = random_range(-3, 3);
+        jitter_rnd.y = random_range(-3, 3);
+        coord_def jitter = clamp_in_bounds(mid + jitter_rnd);
         if (jitter == mid || jitter.distance_from(mid) < 2 || jitter == source
             || cell_is_solid(jitter)
             || !cell_see_cell(source, jitter, LOS_NO_TRANS)
@@ -1142,15 +1033,18 @@ static bool _lamp_of_fire()
     args.restricts = DIR_TARGET;
     args.mode = TARG_HOSTILE;
     args.top_prompt = "Aim the lamp in which direction?";
-    args.self = CONFIRM_CANCEL;
+    args.self = confirm_prompt_type::cancel;
     if (spell_direction(target, base_beam, &args))
     {
         if (you.confused())
             target.confusion_fuzz();
 
+#if TAG_MAJOR_VERSION == 34
         const int surge = pakellas_surge_devices();
         surge_power(you.spec_evoke() + surge);
-        did_god_conduct(DID_FIRE, 6 + random2(3));
+#else
+        const int surge = 0;
+#endif
 
         mpr("The flames dance!");
 
@@ -1452,8 +1346,12 @@ static bool _phial_of_floods()
             beam.set_target(target);
         }
 
+#if TAG_MAJOR_VERSION == 34
         const int surge = pakellas_surge_devices();
         surge_power(you.spec_evoke() + surge);
+#else
+        const int surge = 0;
+#endif
         const int power = player_adjust_evoc_power(base_pow, surge);
         // use real power to recalc hit/dam
         zappy(ZAP_PRIMAL_WAVE, power, false, beam);
@@ -1463,8 +1361,9 @@ static bool _phial_of_floods()
         vector<coord_def> elementals;
         // Flood the endpoint
         coord_def center = beam.path_taken.back();
+        const int rnd_factor = random2(7);
         int num = player_adjust_evoc_power(
-                      5 + you.skill_rdiv(SK_EVOCATIONS, 3, 5) + random2(7),
+                      5 + you.skill_rdiv(SK_EVOCATIONS, 3, 5) + rnd_factor,
                       surge);
         int dur = player_adjust_evoc_power(
                       40 + you.skill_rdiv(SK_EVOCATIONS, 8, 3),
@@ -1510,7 +1409,7 @@ static bool _phial_of_floods()
     return false;
 }
 
-static spret_type _phantom_mirror()
+static spret _phantom_mirror()
 {
     bolt beam;
     monster* victim = nullptr;
@@ -1520,11 +1419,11 @@ static spret_type _phantom_mirror()
     direction_chooser_args args;
     args.restricts = DIR_TARGET;
     args.needs_path = false;
-    args.self = CONFIRM_CANCEL;
+    args.self = confirm_prompt_type::cancel;
     args.top_prompt = "Aiming: <white>Phantom Mirror</white>";
     args.hitfunc = &tgt;
     if (!spell_direction(spd, beam, &args))
-        return SPRET_ABORT;
+        return spret::abort;
     victim = monster_at(beam.target);
     if (!victim || !you.can_see(*victim))
     {
@@ -1532,7 +1431,7 @@ static spret_type _phantom_mirror()
             mpr("You can't use the mirror on yourself.");
         else
             mpr("You can't see anything there to clone.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     // Mirrored monsters (including by Mara, rakshasas) can still be
@@ -1541,26 +1440,24 @@ static spret_type _phantom_mirror()
         && !victim->has_ench(ENCH_PHANTOM_MIRROR))
     {
         mpr("The mirror can't reflect that.");
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
-    if (player_will_anger_monster(*victim))
-    {
-        if (you.get_mutation_level(MUT_NO_LOVE))
-            mpr("The reflection would only feel hate for you!");
-        else
-            simple_god_message(" forbids your reflecting this monster.");
-        return SPRET_ABORT;
-    }
+    if (player_angers_monster(victim, false))
+        return spret::abort;
 
+#if TAG_MAJOR_VERSION == 34
     const int surge = pakellas_surge_devices();
     surge_power(you.spec_evoke() + surge);
+#else
+    const int surge = 0;
+#endif
 
-    monster* mon = clone_mons(victim, true);
+    monster* mon = clone_mons(victim, true, nullptr, ATT_FRIENDLY);
     if (!mon)
     {
         canned_msg(MSG_NOTHING_HAPPENS);
-        return SPRET_FAIL;
+        return spret::fail;
     }
     const int power = player_adjust_evoc_power(5 + you.skill(SK_EVOCATIONS, 3),
                                                surge);
@@ -1570,7 +1467,6 @@ static spret_type _phantom_mirror()
                              surge)
                          * (100 - victim->check_res_magic(power)) / 100));
 
-    mon->attitude = ATT_FRIENDLY;
     mon->mark_summoned(dur, true, SPELL_PHANTOM_MIRROR);
 
     mon->summoner = MID_PLAYER;
@@ -1586,7 +1482,7 @@ static spret_type _phantom_mirror()
     mprf("You reflect %s with the mirror, and the mirror shatters!",
          victim->name(DESC_THE).c_str());
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 bool evoke_check(int slot, bool quiet)
@@ -1612,7 +1508,7 @@ bool evoke_item(int slot, bool check_range)
     if (slot == -1)
     {
         slot = prompt_invent_item("Evoke which item? (* to show all)",
-                                   MT_INVLIST,
+                                   menu_type::invlist,
                                    OSEL_EVOKABLE, OPER_EVOKE);
 
         if (prompt_failed(slot))
@@ -1629,7 +1525,7 @@ bool evoke_item(int slot, bool check_range)
 
     item_def& item = you.inv[slot];
     // Also handles messages.
-    if (!item_is_evokable(item, true, false, false, true))
+    if (!item_is_evokable(item, true, false, true))
         return false;
 
     bool did_work   = false;  // "Nothing happens" message
@@ -1691,8 +1587,7 @@ bool evoke_item(int slot, bool check_range)
             return false;
         }
 
-        if (you.undead_state() == US_ALIVE && !you_foodless()
-            && you.hunger_state <= HS_STARVING)
+        if (apply_starvation_penalties())
         {
             canned_msg(MSG_TOO_HUNGRY);
             return false;
@@ -1721,27 +1616,21 @@ bool evoke_item(int slot, bool check_range)
     case OBJ_MISCELLANY:
         did_work = true; // easier to do it this way for misc items
 
-        if ((you.get_mutation_level(MUT_NO_ARTIFICE)
-             || player_under_penance(GOD_PAKELLAS))
-            && !is_deck(item)
-            && item.sub_type != MISC_ZIGGURAT)
+        if (item.sub_type != MISC_ZIGGURAT)
         {
             if (you.get_mutation_level(MUT_NO_ARTIFICE))
+            {
                 mpr("You cannot evoke magical items.");
-            else
+                return false;
+            }
+#if TAG_MAJOR_VERSION == 34
+            if (player_under_penance(GOD_PAKELLAS))
             {
                 simple_god_message("'s wrath prevents you from evoking "
                                    "devices!", GOD_PAKELLAS);
+                return false;
             }
-            return false;
-        }
-
-        if (is_deck(item))
-        {
-            evoke_deck(item);
-            practise_using_deck();
-            count_action(CACT_EVOKE, EVOC_DECK);
-            break;
+#endif
         }
 
         switch (item.sub_type)
@@ -1760,8 +1649,12 @@ bool evoke_item(int slot, bool check_range)
                 return false;
             }
 
+#if TAG_MAJOR_VERSION == 34
             const int surge = pakellas_surge_devices();
             surge_power(you.spec_evoke() + surge);
+#else
+            const int surge = 0;
+#endif
             wind_blast(&you,
                        player_adjust_evoc_power(you.skill(SK_EVOCATIONS, 15),
                                                 surge),
@@ -1869,14 +1762,14 @@ bool evoke_item(int slot, bool check_range)
             switch (_phantom_mirror())
             {
                 default:
-                case SPRET_ABORT:
+                case spret::abort:
                     return false;
 
-                case SPRET_SUCCESS:
+                case spret::success:
                     ASSERT(in_inventory(item));
                     dec_inv_item_quantity(item.link, 1);
                     // deliberate fall-through
-                case SPRET_FAIL:
+                case spret::fail:
                     practise_evoking(1);
                     break;
             }

@@ -6,11 +6,12 @@
 
 #include "ability.h"
 #include "cio.h"
+#include "describe.h"
 #include "libutil.h"
 #include "macro.h"
 #include "message.h"
 #include "output.h"
-#include "process-desc.h"
+#include "stringutil.h"
 #include "tile-inventory-flags.h"
 #include "tiledef-icons.h"
 #include "tilepick.h"
@@ -75,7 +76,7 @@ int AbilityRegion::handle_mouse(MouseEvent &event)
     }
     else if (ability != NUM_ABILITIES && event.button == MouseEvent::RIGHT)
     {
-        describe_talent(get_talent(ability, false));
+        describe_ability(ability);
         redraw_screen();
         return CK_MOUSE_CMD;
     }
@@ -113,6 +114,9 @@ bool AbilityRegion::update_tip_text(string& tip)
         cmd.push_back(CMD_USE_ABILITY);
     }
 
+    tip += "\n[R-Click] Describe";
+    insert_commands(tip, cmd);
+
     return true;
 }
 
@@ -138,11 +142,7 @@ bool AbilityRegion::update_alt_text(string &alt)
     describe_info inf;
     inf.body << get_ability_desc(ability);
 
-    alt_desc_proc proc(crawl_view.msgsz.x, crawl_view.msgsz.y);
-    process_description<alt_desc_proc>(proc, inf);
-
-    proc.get_string(alt);
-
+    alt = process_description(inf);
     return true;
 }
 
@@ -192,7 +192,7 @@ static InventoryTile _tile_for_ability(ability_type ability)
     desc.idx      = (int) ability;
     desc.quantity = ability_mp_cost(ability);
 
-    if (!check_ability_possible(ability, true, true))
+    if (!check_ability_possible(ability, true))
         desc.flag |= TILEI_FLAG_INVALID;
 
     return desc;

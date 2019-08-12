@@ -1,0 +1,37 @@
+-h .h.H.hh.hpp.hxx.h++
+-o tags
+--append=no
+--exclude=android-project
+--exclude=contrib
+--exclude=Crawl.xcodeproj
+--exclude=debian
+--exclude=mac
+--exclude=morgue
+--exclude=MSVC
+--exclude=saves
+--exclude=sounds
+--exclude=.cflags
+--exclude=ctags
+--exclude=Makefile
+--extra=+fq
+--fields=+iK-k
+--file-scope=yes
+--filter=no
+--if0=no
+--langdef=crawlmap
+--langmap=crawlmap:+.des
+--languages=crawlmap,C,C++,Flex,Lua,Perl,Python,Sh
+--line-directives=no
+--links=yes
+--recurse=yes
+--regex-crawlmap=/^ *NAME: *([^ ]*)/\1/q,map,map definition/
+--regex-c++=/^ *DEF_BITFIELD *\( *([a-zA-Z0-9_:]*)/\1/t/
+--regex-c++=/^ *FEATFN_MEMOIZED *\( *([a-zA-Z0-9_:]*)/\1/f/
+-I decltype+
+-I override
+-I PURE
+-I IMMUTABLE
+--sort=yes
+--tag-relative=yes
+--totals=yes
+--verbose=no

@@ -204,6 +204,8 @@ define(function () {
     fg_flags.flags.INFESTED     = [0, 0x400000];
     fg_flags.flags.CORRODED     = [0, 0x800000];
     fg_flags.flags.SWIFT        = [0, 0x1000000];
+    fg_flags.flags.PINNED       = [0, 0x2000000];
+    fg_flags.flags.VILE_CLUTCH  = [0, 0x4000000];
 
     // MDAM has 5 possibilities, so uses 3 bits.
     fg_flags.exclusive_flags.push({
@@ -292,7 +294,6 @@ define(function () {
     mf.ALLOW_FILTER     = 0x0100;
     mf.ALLOW_FORMATTING = 0x0200;
     mf.SHOW_PAGENUMBERS = 0x0400;
-    mf.EASY_EXIT        = 0x1000;
     mf.START_AT_END     = 0x2000;
     mf.PRESELECTED      = 0x4000;
     exports.menu_flag = mf;

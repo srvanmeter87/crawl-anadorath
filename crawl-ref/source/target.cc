@@ -8,15 +8,19 @@
 #include "cloud.h"
 #include "coord.h"
 #include "coordit.h"
+#include "directn.h"
 #include "english.h"
 #include "env.h"
 #include "fight.h"
+#include "god-abil.h"
 #include "libutil.h"
 #include "los-def.h"
 #include "losglobal.h"
 #include "mon-tentacle.h"
 #include "spl-damage.h"
 #include "spl-goditem.h" // player_is_debuffable
+#include "spl-other.h"
+#include "stringutil.h"
 #include "terrain.h"
 
 #define notify_fail(x) (why_not = (x), false)
@@ -31,14 +35,27 @@ static string _wallmsg(coord_def c)
 bool targeter::set_aim(coord_def a)
 {
     // This matches a condition in direction_chooser::move_is_ok().
-    if (agent && !cell_see_cell(agent->pos(), a, LOS_NO_TRANS))
+    if (agent && !can_affect_unseen() &&
+            !cell_see_cell(agent->pos(), a, LOS_NO_TRANS))
+    {
         return false;
+    }
 
     aim = a;
     return true;
 }
 
 bool targeter::can_affect_outside_range()
+{
+    return false;
+}
+
+bool targeter::can_affect_unseen()
+{
+    return false;
+}
+
+bool targeter::can_affect_walls()
 {
     return false;
 }
@@ -136,7 +153,8 @@ void targeter_beam::set_explosion_target(bolt &tempbeam)
 
 bool targeter_beam::valid_aim(coord_def a)
 {
-    if (a != origin && !cell_see_cell(origin, a, LOS_NO_TRANS))
+    if (a != origin && !can_affect_unseen() &&
+            !cell_see_cell(origin, a, LOS_NO_TRANS))
     {
         if (agent->see_cell(a))
             return notify_fail("There's something in the way.");
@@ -438,6 +456,11 @@ bool targeter_smite::can_affect_outside_range()
     return exp_range_max > 0;
 }
 
+bool targeter_smite::can_affect_walls()
+{
+    return affects_walls;
+}
+
 aff_type targeter_smite::is_affected(coord_def loc)
 {
     if (!valid_aim(aim))
@@ -468,19 +491,159 @@ targeter_walljump::targeter_walljump() :
 {
 }
 
+bool targeter_walljump::valid_aim(coord_def a)
+{
+    return wu_jian_can_wall_jump(a, why_not);
+}
+
 aff_type targeter_walljump::is_affected(coord_def loc)
 {
     if (!valid_aim(aim))
         return AFF_NO;
 
-    if ((loc - aim).rdist() > 9)
-        return AFF_NO;
+    auto wall_jump_direction = (you.pos() - aim).sgn();
+    auto wall_jump_landing_spot = (you.pos() + wall_jump_direction
+                                   + wall_jump_direction);
+    if (loc == wall_jump_landing_spot)
+        return AFF_YES;
 
-    coord_def centre(9,9);
-    if (exp_map_min(loc - aim + centre) < INT_MAX)
-        return AFF_NO;
+    if (loc.distance_from(wall_jump_landing_spot) == 1 && monster_at(loc))
+        return AFF_YES;
 
-    return AFF_YES;
+    return AFF_NO;
+}
+
+targeter_passwall::targeter_passwall(int max_range) :
+    targeter_smite(&you, max_range, 1, 1, true, nullptr)
+{
+}
+
+bool targeter_passwall::valid_aim(coord_def a)
+{
+    passwall_path tmp_path(you, a - you.pos(), range);
+    string failmsg;
+    tmp_path.is_valid(&failmsg);
+    if (!tmp_path.spell_succeeds())
+        return notify_fail(failmsg);
+    return true;
+}
+
+bool targeter_passwall::set_aim(coord_def a)
+{
+    cur_path = make_unique<passwall_path>(you, a - you.pos(), range);
+    return true;
+}
+
+aff_type targeter_passwall::is_affected(coord_def loc)
+{
+    if (!cur_path)
+        return AFF_NO;
+    // not very efficient...
+    for (auto p : cur_path->path)
+        if (p == loc)
+            return AFF_YES;
+    return AFF_NO;
+}
+
+bool targeter_passwall::can_affect_outside_range()
+{
+    return true;
+}
+
+bool targeter_passwall::can_affect_unseen()
+{
+    return true;
+}
+
+bool targeter_passwall::affects_monster(const monster_info& mon)
+{
+    return false;
+}
+
+targeter_dig::targeter_dig(int max_range) :
+    targeter_beam(&you, max_range, ZAP_DIG, 0, 0, 0)
+{
+}
+
+bool targeter_dig::valid_aim(coord_def a)
+{
+    if (a == origin)
+        return notify_fail("Please select a direction to dig.");
+    if ((origin - a).rdist() > range || !in_bounds(a))
+        return notify_fail("Out of range.");
+    int possible_squares_affected;
+    if (aim_test_cache.count(a))
+        possible_squares_affected = aim_test_cache[a];
+    else
+    {
+        // TODO: maybe shouldn't use set_aim? ugly side-effect, but it does take
+        // care of all the beam management.
+        if (!set_aim(a))
+            possible_squares_affected = -1; // can't happen?
+        else
+        {
+            possible_squares_affected = 0;
+            for (auto p : path_taken)
+                if (beam.can_affect_wall(p) ||
+                        in_bounds(p) && env.map_knowledge(p).feat() == DNGN_UNSEEN)
+                {
+                    possible_squares_affected++;
+                }
+        }
+        aim_test_cache[a] = possible_squares_affected;
+    }
+    if (possible_squares_affected == 0)
+        return notify_fail("Digging in that direction won't affect any walls.");
+    else if (possible_squares_affected < 0)
+        return false;
+    else
+        return true;
+}
+
+bool targeter_dig::can_affect_unseen()
+{
+    return true;
+}
+
+bool targeter_dig::affects_monster(const monster_info& mon)
+{
+    return false;
+}
+
+bool targeter_dig::can_affect_walls()
+{
+    return true;
+}
+
+aff_type targeter_dig::is_affected(coord_def loc)
+{
+    aff_type current = AFF_YES;
+    bool hit_barrier = false;
+    for (auto pc : path_taken)
+    {
+        if (hit_barrier)
+            return AFF_NO; // some previous iteration hit a barrier
+        current = AFF_YES;
+        // uses comparison to DNGN_UNSEEN so that this works sensibly with magic
+        // mapping etc. TODO: console tracers use the same symbol/color as
+        // mmapped walls.
+        if (in_bounds(pc) && env.map_knowledge(pc).feat() != DNGN_UNSEEN)
+        {
+            if (!cell_is_solid(pc))
+                current = AFF_TRACER;
+            else if (!beam.can_affect_wall(pc))
+            {
+                current = AFF_TRACER; // show tracer at the barrier cell
+                hit_barrier = true;
+            }
+            // otherwise, default to AFF_YES
+        }
+        // unseen squares default to AFF_YES
+        if (pc == loc)
+            return current;
+    }
+    // path never intersected loc at all
+    return AFF_NO;
 }
 
 targeter_transference::targeter_transference(const actor* act, int aoe) :
@@ -523,11 +686,8 @@ bool targeter_fragment::valid_aim(coord_def a)
 
     bolt tempbeam;
     bool temp;
-    if (!setup_fragmentation_beam(tempbeam, pow, agent, a, false,
-                                  true, true, nullptr, temp, temp))
-    {
+    if (!setup_fragmentation_beam(tempbeam, pow, agent, a, true, nullptr, temp))
         return notify_fail("You cannot affect that.");
-    }
     return true;
 }
 
@@ -539,12 +699,9 @@ bool targeter_fragment::set_aim(coord_def a)
     bolt tempbeam;
     bool temp;
 
-    if (setup_fragmentation_beam(tempbeam, pow, agent, a, false,
-                                 false, true, nullptr, temp, temp))
+    if (setup_fragmentation_beam(tempbeam, pow, agent, a, true, nullptr, temp))
     {
         exp_range_min = tempbeam.ex_size;
-        setup_fragmentation_beam(tempbeam, pow, agent, a, false,
-                                 true, true, nullptr, temp, temp);
         exp_range_max = tempbeam.ex_size;
     }
     else
@@ -553,7 +710,6 @@ bool targeter_fragment::set_aim(coord_def a)
         return false;
     }
 
-    coord_def centre(9,9);
     bolt beam;
     beam.target = a;
     beam.use_target_as_pos = true;
@@ -1004,7 +1160,6 @@ targeter_shadow_step::targeter_shadow_step(const actor* act, int r) :
 
 bool targeter_shadow_step::valid_aim(coord_def a)
 {
-    coord_def c, shadow_step_pos;
     ray_def ray;
 
     if (origin == a)
@@ -1026,17 +1181,15 @@ bool targeter_shadow_step::valid_aim(coord_def a)
     {
         switch (no_landing_reason)
         {
-        case BLOCKED_MOVE:
-        case BLOCKED_OCCUPIED:
+        case shadow_step_blocked::move:
+        case shadow_step_blocked::occupied:
             return notify_fail("There is no safe place near that"
                                " location.");
-        case BLOCKED_PATH:
+        case shadow_step_blocked::path:
             return notify_fail("There's something in the way.");
-        case BLOCKED_NO_TARGET:
+        case shadow_step_blocked::no_target:
             return notify_fail("There isn't a shadow there.");
-        case BLOCKED_MOBILE:
-            return notify_fail("That shadow isn't sufficiently still.");
-        case BLOCKED_NONE:
+        case shadow_step_blocked::none:
             die("buggy no_landing_reason");
         }
     }
@@ -1050,7 +1203,7 @@ bool targeter_shadow_step::valid_landing(coord_def a, bool check_invis)
 
     if (!agent->is_habitable(a))
     {
-        blocked_landing_reason = BLOCKED_MOVE;
+        blocked_landing_reason = shadow_step_blocked::move;
         return false;
     }
     if (agent->is_player())
@@ -1058,20 +1211,20 @@ bool targeter_shadow_step::valid_landing(coord_def a, bool check_invis)
         monster* beholder = you.get_beholder(a);
         if (beholder)
         {
-            blocked_landing_reason = BLOCKED_MOVE;
+            blocked_landing_reason = shadow_step_blocked::move;
             return false;
         }
 
         monster* fearmonger = you.get_fearmonger(a);
         if (fearmonger)
         {
-            blocked_landing_reason = BLOCKED_MOVE;
+            blocked_landing_reason = shadow_step_blocked::move;
             return false;
         }
     }
     if (!find_ray(agent->pos(), a, ray, opc_solid_see))
     {
-        blocked_landing_reason = BLOCKED_PATH;
+        blocked_landing_reason = shadow_step_blocked::path;
         return false;
     }
 
@@ -1085,7 +1238,7 @@ bool targeter_shadow_step::valid_landing(coord_def a, bool check_invis)
         {
             if (act && (!check_invis || agent->can_see(*act)))
             {
-                blocked_landing_reason = BLOCKED_OCCUPIED;
+                blocked_landing_reason = shadow_step_blocked::occupied;
                 return false;
             }
             break;
@@ -1106,9 +1259,10 @@ aff_type targeter_shadow_step::is_affected(coord_def loc)
     return aff;
 }
 
-// If something unseen either occupies the aim position or blocks the shadow_step path,
-// indicate that with step_is_blocked, but still return true so long there is at
-// least one valid landing position from the player's perspective.
+// If something unseen either occupies the aim position or blocks the
+// shadow_step path, indicate that with step_is_blocked, but still return true
+// so long there is at least one valid landing position from the player's
+// perspective.
 bool targeter_shadow_step::set_aim(coord_def a)
 {
     if (a == origin)
@@ -1118,8 +1272,8 @@ bool targeter_shadow_step::set_aim(coord_def a)
 
     step_is_blocked = false;
 
-    // Find our set of landing sites, choose one at random to be the destination
-    // and see if it's actually blocked.
+    // Find our set of landing sites, choose one at random to be the
+    // destination and see if it's actually blocked.
     set_additional_sites(aim);
     if (additional_sites.size())
     {
@@ -1155,18 +1309,11 @@ void targeter_shadow_step::get_additional_sites(coord_def a)
         || !agent->can_see(*victim)
         || !victim->umbraed())
     {
-        no_landing_reason = BLOCKED_NO_TARGET;
-        return;
-    }
-    if (!victim->is_stationary()
-        && !victim->cannot_move()
-        && !victim->asleep())
-    {
-        no_landing_reason = BLOCKED_MOBILE;
+        no_landing_reason = shadow_step_blocked::no_target;
         return;
     }
 
-    no_landing_reason = BLOCKED_NONE;
+    no_landing_reason = shadow_step_blocked::none;
     for (adjacent_iterator ai(a, false); ai; ++ai)
     {
         // See if site is valid, record a putative reason for why no sites were
@@ -1176,7 +1323,7 @@ void targeter_shadow_step::get_additional_sites(coord_def a)
             if (valid_landing(*ai))
             {
                 temp_sites.insert(*ai);
-                no_landing_reason = BLOCKED_NONE;
+                no_landing_reason = shadow_step_blocked::none;
             }
             else
                 no_landing_reason = blocked_landing_reason;

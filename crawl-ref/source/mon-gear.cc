@@ -12,6 +12,7 @@
 #include "artefact.h"
 #include "art-enum.h"
 #include "dungeon.h"
+#include "item-name.h"
 #include "item-prop.h"
 #include "item-status-flag-type.h"
 #include "items.h"
@@ -171,20 +172,7 @@ static void _give_wand(monster* mon, int level)
 
 static void _give_potion(monster* mon, int level)
 {
-    if (mons_species(mon->type) == MONS_VAMPIRE
-        && (one_chance_in(5) || mon->type == MONS_JORY))
-    {
-        // This handles initialization of stack timer.
-        const int thing_created =
-            items(false, OBJ_POTIONS, POT_BLOOD, level);
-
-        if (thing_created == NON_ITEM)
-            return;
-
-        mitm[thing_created].flags = ISFLAG_KNOW_TYPE;
-        give_specific_item(mon, thing_created);
-    }
-    else if (mons_is_unique(mon->type) && one_chance_in(4)
+    if (mons_is_unique(mon->type) && one_chance_in(4)
                 && _should_give_unique_item(mon))
     {
         const int thing_created = items(false, OBJ_POTIONS, OBJ_RANDOM,
@@ -908,6 +896,22 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
               { WPN_DEMON_BLADE,        4 },
               { WPN_DOUBLE_SWORD,       1 }, },
         } },
+        { MONS_KILLER_KLOWN, {
+            { { WPN_CLUB,             10 }, },
+            { 1, 8, 12 },
+            { { SPWPN_NORMAL,         20 },
+              { SPWPN_FLAMING,        20 },
+              { SPWPN_FREEZING,       10 },
+              { SPWPN_VORPAL  ,       10 },
+              { SPWPN_ELECTROCUTION,  10 },
+              { SPWPN_VENOM,          10 },
+              { SPWPN_VAMPIRISM,       5 },
+              { SPWPN_ANTIMAGIC,       5 },
+              { SPWPN_PAIN,            4 },
+              { SPWPN_HOLY_WRATH,      3 },
+              { SPWPN_DISTORTION,      2 },
+              { SPWPN_CHAOS,           1 }, },
+        } },
     };
 
     static const weapon_list ORC_KNIGHT_BOWS =
@@ -953,7 +957,6 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
                 { WPN_SHORTBOW,                 1 },
                 { WPN_LONGBOW,                  1 },
         } } },
-        { MONS_SONJA, { { { WPN_BLOWGUN, 1 } } } },
         // salamanders only have secondary weapons; melee or bow, not both
         { MONS_SALAMANDER, {
             { { WPN_HALBERD,                    5 },
@@ -962,10 +965,6 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
               { WPN_GLAIVE,                     2 },
               { WPN_SHORTBOW,                   5 }, },
             { 4, 0, 4 },
-        } },
-        { MONS_SPRIGGAN_RIDER, {
-            { { WPN_BLOWGUN,                    1 },
-              { NUM_WEAPONS,                    14 }, },
         } },
         { MONS_WARMONGER, {
             { { WPN_LONGBOW,                    10 }, // total 60
@@ -1005,14 +1004,6 @@ int make_mons_weapon(monster_type type, int level, bool melee_only)
     switch (type)
     {
     case MONS_KOBOLD:
-        // A few of the smarter kobolds have blowguns.
-        if (one_chance_in(10) && level > 1)
-        {
-            item.base_type = OBJ_WEAPONS;
-            item.sub_type  = WPN_BLOWGUN;
-            break;
-        }
-        // intentional fallthrough
     case MONS_BIG_KOBOLD:
         if (x_chance_in_y(3, 5))     // give hand weapon
         {
@@ -1328,33 +1319,6 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
 
         if (thing_created == NON_ITEM)
             return;
-
-        if (xitt == MI_NEEDLE)
-        {
-            if (mon->type == MONS_SONJA)
-            {
-                set_item_ego_type(mitm[thing_created], OBJ_MISSILES,
-                                  SPMSL_CURARE);
-
-                mitm[thing_created].quantity = random_range(4, 10);
-            }
-            else if (mon->type == MONS_SPRIGGAN_RIDER)
-            {
-                set_item_ego_type(mitm[thing_created], OBJ_MISSILES,
-                                  SPMSL_CURARE);
-
-                mitm[thing_created].quantity = random_range(2, 4);
-            }
-            else
-            {
-                set_item_ego_type(mitm[thing_created], OBJ_MISSILES,
-                                  got_curare_roll(level) ? SPMSL_CURARE
-                                                         : SPMSL_POISONED);
-
-                if (get_ammo_brand(mitm[thing_created]) == SPMSL_CURARE)
-                    mitm[thing_created].quantity = random_range(2, 8);
-            }
-        }
         else
         {
             // Sanity check to avoid useless brands.
@@ -1389,9 +1353,19 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
         // Give some monsters throwables.
         int weap_type = -1;
         int qty = 0;
+        int brand = SPMSL_NORMAL;
+
         switch (mon->type)
         {
         case MONS_KOBOLD:
+            if (one_chance_in(10) && level > 1)
+            {
+                weap_type  = MI_DART;
+                qty = random_range(2, 8);
+                brand = got_curare_roll(level) ? SPMSL_CURARE : SPMSL_POISONED;
+                break;
+            }
+            // intentional fallthrough
         case MONS_BIG_KOBOLD:
             if (x_chance_in_y(2, 5))
             {
@@ -1400,11 +1374,26 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
             }
             break;
 
+        case MONS_SONJA:
+            weap_type = MI_DART;
+            brand = SPMSL_CURARE;
+            qty = random_range(4, 10);
+            break;
+
+        case MONS_SPRIGGAN_RIDER:
+            if (one_chance_in(15))
+            {
+                weap_type = MI_DART;
+                brand = SPMSL_CURARE;
+                qty = random_range(2, 8);
+            }
+            break;
+
         case MONS_ORC_WARRIOR:
             if (one_chance_in(
                     player_in_branch(BRANCH_ORC)? 9 : 20))
             {
-                weap_type = MI_TOMAHAWK;
+                weap_type = MI_BOOMERANG;
                 qty       = random_range(4, 8);
             }
             break;
@@ -1412,7 +1401,7 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
         case MONS_ORC:
             if (one_chance_in(20))
             {
-                weap_type = MI_TOMAHAWK;
+                weap_type = MI_BOOMERANG;
                 qty       = random_range(2, 5);
             }
             break;
@@ -1424,6 +1413,7 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
 
         case MONS_CHUCK:
             weap_type  = MI_LARGE_ROCK;
+            brand = SPMSL_RETURNING;
             qty = 2;
             break;
 
@@ -1433,6 +1423,7 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
             break;
 
         case MONS_MERFOLK_JAVELINEER:
+        case MONS_MINOTAUR:
             weap_type  = MI_JAVELIN;
             qty        = random_range(9, 23, 2);
             if (one_chance_in(3))
@@ -1443,7 +1434,7 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
             if (one_chance_in(3)
                 || active_monster_band == BAND_MERFOLK_JAVELINEER)
             {
-                weap_type  = MI_TOMAHAWK;
+                weap_type  = MI_BOOMERANG;
                 qty        = random_range(4, 8);
                 if (active_monster_band == BAND_MERFOLK_JAVELINEER)
                     break;
@@ -1489,8 +1480,8 @@ static void _give_ammo(monster* mon, int level, bool mons_summoned)
         {
             item_def& w(mitm[thing_created]);
 
-            if (mon->type == MONS_CHUCK)
-                set_item_ego_type(w, OBJ_MISSILES, SPMSL_RETURNING);
+            if (brand != SPMSL_NORMAL)
+                set_item_ego_type(w, OBJ_MISSILES, brand);
 
             w.quantity = qty;
             give_specific_item(mon, thing_created);
@@ -1753,11 +1744,6 @@ int make_mons_armour(monster_type type, int level)
         item.sub_type  = ARM_ROBE;
         break;
 
-    case MONS_HAROLD:
-        item.base_type = OBJ_ARMOUR;
-        item.sub_type  = ARM_RING_MAIL;
-        break;
-
     case MONS_GNOLL_SHAMAN:
     case MONS_MELIAI:
         item.base_type = OBJ_ARMOUR;
@@ -1784,13 +1770,13 @@ int make_mons_armour(monster_type type, int level)
 
     case MONS_TERENCE:
     case MONS_URUG:
+    case MONS_HAROLD:
         item.base_type = OBJ_ARMOUR;
         item.sub_type  = random_choose_weighted(1, ARM_RING_MAIL,
                                                 3, ARM_SCALE_MAIL,
                                                 2, ARM_CHAIN_MAIL);
         break;
 
-    case MONS_SLAVE:
     case MONS_GRUM:
     case MONS_SPRIGGAN_BERSERKER:
         item.base_type = OBJ_ARMOUR;
@@ -1841,6 +1827,7 @@ int make_mons_armour(monster_type type, int level)
     case MONS_VAULT_GUARD:
     case MONS_VAULT_WARDEN:
     case MONS_ANCIENT_CHAMPION:
+    case MONS_MINOTAUR:
         item.base_type = OBJ_ARMOUR;
         item.sub_type  = random_choose(ARM_CHAIN_MAIL, ARM_PLATE_ARMOUR);
         break;
@@ -2191,4 +2178,19 @@ void give_item(monster *mons, int level_number, bool mons_summoned)
     _give_ammo(mons, level_number, mons_summoned);
     _give_armour(mons, 1 + level_number / 2);
     _give_shield(mons, 1 + level_number / 2);
+}
+
+void view_monster_equipment(monster* mon)
+{
+    for (unsigned int i = 0; i <= MSLOT_LAST_VISIBLE_SLOT; ++i)
+    {
+        if (mon->inv[i] == NON_ITEM)
+            continue;
+
+        item_def &item = mitm[mon->inv[i]];
+        item.flags |= ISFLAG_SEEN;
+        set_ident_flags(item, ISFLAG_IDENT_MASK);
+        if (item.base_type == OBJ_WANDS)
+            set_ident_type(item, true);
+    }
 }

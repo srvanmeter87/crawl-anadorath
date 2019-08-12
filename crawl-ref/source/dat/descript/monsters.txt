@@ -87,16 +87,16 @@ on to his ears with hooks?
 Dispater
 
 Greatest of the Lords of Hell, Dispater was born when first an iron sword drank
-mortal blood. It despises mortal vanities, the pursuit of ‘reason’ and ‘beauty’
-- the only art it enjoys is the art of war.
+mortal blood. They despise mortal vanities, the pursuit of ‘reason’ and
+‘beauty’ - the only art they enjoy is the art of war.
 %%%%
 Dissolution
 
 The Pits of Slime used to be a thriving civilization, and Dissolution was the
 prophet of their god. When the city was overtaken by its current residents,
-only Dissolution survived, for he alone turned faithfully to the Slime God.
-Dissolution became a tremendous mass of acidic ooze, yet retained his
-intelligence. He is filled with hatred for anything that can hold a form.
+only Dissolution survived, for they alone turned faithfully to the Slime God.
+Dissolution became a tremendous mass of acidic ooze, yet retained their
+intelligence. They are filled with hatred for anything that can hold a form.
 %%%%
 Donald
 
@@ -162,9 +162,9 @@ honour.
 %%%%
 Fannar
 
-A cold-hearted elven sorcerer, draped in robes of high office. He whispers
-grimly to himself as he stalks the dungeon, trailing ice crystals through the
-air behind him.
+A cold-hearted elven sorcerer, draped in robes of high office. They whisper
+grimly to themself as they stalk the dungeon, trailing ice crystals through the
+air behind them.
 %%%%
 Frances
 
@@ -223,7 +223,8 @@ test its edge.
 Ijyb
 
 A small and twisted goblin, wearing some ugly blue rags. She claims dominion
-over this level of the dungeon; the punishment for trespassing is death.
+over this level of the dungeon; those who trespass will find themselves
+tortured at wandpoint and killed.
 %%%%
 Ilsuiw
 
@@ -275,11 +276,11 @@ for prey to slake its bottomless appetite.
 %%%%
 Lom Lobon
 
-Stoic and inscrutable, Lom Lobon is an ancient demon infamous for its mastery
+Stoic and inscrutable, Lom Lobon is an ancient demon infamous for their mastery
 of magic. Rumoured to be the most learned being in the halls of Pandemonium,
-it is at times sought out by mortal wizards who offer their souls in exchange
-for the secrets of the arcane. Lacking the terrible wrath present in most
-demons, Lom Lobon's single eye instead hides a cold, impartial cruelty.
+they are at times sought out by mortal wizards who offer their souls in
+exchange for the secrets of the arcane. Lacking the terrible wrath present in
+most demons, Lom Lobon's single eye instead hides a cold, impartial cruelty.
 %%%%
 Louise
 
@@ -307,6 +308,7 @@ Maurice
 A sly, conniving thief. In his profession, Maurice is considered a legend — at
 least according to himself. He is skilled, nonetheless, and among all the
 thieves and rogues lured by the Orb, Maurice is undoubtedly the most crafty.
+He uses magic wands in addition to cloak and dagger.
 %%%%
 Menkaure
 
@@ -357,8 +359,8 @@ fear her; the dead obey her every command. She has a soft spot for the latter.
 %%%%
 Nessos
 
-A centaur warrior, skilled at warfare and deceit. He slew a mighty hydra, and
-now its deadly blood drips, still-fuming, from his arrows.
+A centaur warrior, skilled at warfare and deceit. They slew a mighty hydra, and
+now its deadly blood drips, still-fuming, from their arrows.
 %%%%
 Nikola
 
@@ -410,7 +412,7 @@ A human whose savage roars bring terror to all those who hear them.
 %%%%
 Saint Roka
 
-A mighty warlord. Some orcs even say he is the Chosen One of Beogh.
+A mighty warlord. Some orcs even say they are the Chosen One of Beogh.
 %%%%
 Sigmund
 
@@ -525,7 +527,7 @@ ancestor
 
 A humanoid construct of insubstantial memory, floating through the air. Though
 perhaps somewhat changed in shape and bearing few discernable features, still
-it seems somehow to resemble a warrior from the distantly remembered past.
+they seem somehow to resemble a warrior from the distantly remembered past.
 %%%%
 ancient champion
 
@@ -975,8 +977,6 @@ dream sheep
 A drowsy, fluffy ovine whose coat sparkles with motes of dream dust. It gathers
 in herds and fills the air with dream dust, overwhelming its victims and
 putting them to sleep.
-
-Its wool looks quite flammable.
 %%%%
 drowned soul
 
@@ -1606,7 +1606,7 @@ prey.
 %%%%
 meliai
 
-A nymphal hybrid, with a winged torso of a human ontop of the stinging abdomen
+A nymphal hybrid, with a winged torso of a human atop the stinging abdomen
 of a bee. The meliai serve under many roles: priestesses of nature, nurses to
 the divine, and warrior-champions for their hives.
 %%%%
@@ -1640,8 +1640,8 @@ A beguiling merfolk whose voice can mesmerize listeners.
 %%%%
 minotaur
 
-A large muscular human with the head of a bull. It makes its home in secluded
-labyrinths.
+A large muscular human with the head of a bull. It makes its home in a
+gauntlet where it awaits worthy challengers.
 %%%%
 molten gargoyle
 
@@ -1780,8 +1780,8 @@ orb of destruction
 
 A conjured globe of pure magic that homes onto a designated target, albeit with
 massive inertia. A smart and agile person may move out of its path, causing it
-to miss its target or damage its surroundings. It cannot be avoided by Dodging
-skill, and is able to make sharp turns to hit adjacent targets.
+to miss its target. It cannot be avoided by Dodging skill, and is able to make
+sharp turns to hit adjacent targets.
 %%%%
 orb of fire
 

@@ -23,6 +23,7 @@
 #include "mon-util.h"
 #include "notes.h"
 #include "ouch.h"
+#include "output.h"
 #include "player.h"
 #include "religion.h"
 #include "stat-type.h"
@@ -104,10 +105,6 @@ static void _handle_stat_change(stat_type stat);
  */
 bool attribute_increase()
 {
-    // Gnolls don't get stat gains
-    if (you.species == SP_GNOLL)
-        return true;
-
     const string stat_gain_message = make_stringf("Your experience leads to a%s "
                                                   "increase in your attributes!",
                                                   you.species == SP_DEMIGOD ?
@@ -115,20 +112,21 @@ bool attribute_increase()
     crawl_state.stat_gain_prompt = true;
 #ifdef TOUCH_UI
     learned_something_new(HINT_CHOOSE_STAT);
-    Popup pop{"Increase Attributes"};
+    Menu pop(MF_SINGLESELECT | MF_ANYPRINTABLE);
     MenuEntry * const status = new MenuEntry("", MEL_SUBTITLE);
-    MenuEntry * const s_me = new MenuEntry("Strength", MEL_ITEM, 0, 'S');
+    MenuEntry * const s_me = new MenuEntry("Strength", MEL_ITEM, 1, 'S');
     s_me->add_tile(tile_def(TILEG_FIGHTING_ON, TEX_GUI));
-    MenuEntry * const i_me = new MenuEntry("Intelligence", MEL_ITEM, 0, 'I');
+    MenuEntry * const i_me = new MenuEntry("Intelligence", MEL_ITEM, 1, 'I');
     i_me->add_tile(tile_def(TILEG_SPELLCASTING_ON, TEX_GUI));
-    MenuEntry * const d_me = new MenuEntry("Dexterity", MEL_ITEM, 0, 'D');
+    MenuEntry * const d_me = new MenuEntry("Dexterity", MEL_ITEM, 1, 'D');
     d_me->add_tile(tile_def(TILEG_DODGING_ON, TEX_GUI));
 
-    pop.push_entry(new MenuEntry(stat_gain_message + " Increase:", MEL_TITLE));
-    pop.push_entry(status);
-    pop.push_entry(s_me);
-    pop.push_entry(i_me);
-    pop.push_entry(d_me);
+    pop.set_title(new MenuEntry("Increase Attributes", MEL_TITLE));
+    pop.add_entry(new MenuEntry(stat_gain_message + " Increase:", MEL_TITLE));
+    pop.add_entry(status);
+    pop.add_entry(s_me);
+    pop.add_entry(i_me);
+    pop.add_entry(d_me);
 #else
     mprf(MSGCH_INTRINSIC_GAIN, "%s", stat_gain_message.c_str());
     learned_something_new(HINT_CHOOSE_STAT);
@@ -158,14 +156,16 @@ bool attribute_increase()
         {
             string result;
             clua.fnreturns(">s", &result);
-            keyin = result[0];
+            keyin = toupper_safe(result[0]);
         }
         else
         {
 #ifdef TOUCH_UI
-            keyin = pop.pop();
+            pop.show();
+            keyin = pop.getkey();
 #else
-            keyin = getchm();
+            while ((keyin = getchm()) == CK_REDRAW)
+                redraw_screen();
 #endif
         }
         tried_lua = true;
@@ -180,23 +180,30 @@ bool attribute_increase()
                 return false;
             break;
 
-        case 's':
         case 'S':
             for (int i = 0; i < statgain; i++)
                 modify_stat(STAT_STR, 1, false);
             return true;
 
-        case 'i':
         case 'I':
             for (int i = 0; i < statgain; i++)
                 modify_stat(STAT_INT, 1, false);
             return true;
 
-        case 'd':
         case 'D':
             for (int i = 0; i < statgain; i++)
                 modify_stat(STAT_DEX, 1, false);
             return true;
+
+        case 's':
+        case 'i':
+        case 'd':
+#ifdef TOUCH_UI
+            status->text = "Uppercase letters only, please.";
+#else
+            mprf(MSGCH_PROMPT, "Uppercase letters only, please.");
+#endif
+            break;
 #ifdef TOUCH_UI
         default:
             status->text = "Please choose an option below"; // too naggy?
@@ -319,7 +326,7 @@ void modify_stat(stat_type which_stat, int amount, bool suppress_msg)
 
     // Stop delays if a stat drops.
     if (amount < 0)
-        interrupt_activity(AI_STAT_CHANGE);
+        interrupt_activity(activity_interrupt::stat_change);
 
     if (which_stat == STAT_RANDOM)
         which_stat = static_cast<stat_type>(random2(NUM_STATS));
@@ -344,13 +351,9 @@ void notify_stat_change(stat_type which_stat, int amount, bool suppress_msg)
     if (amount == 0)
         return;
 
-    // Gnolls don't change stats, so don't notify
-    if (you.species == SP_GNOLL)
-        return;
-
     // Stop delays if a stat drops.
     if (amount < 0)
-        interrupt_activity(AI_STAT_CHANGE);
+        interrupt_activity(activity_interrupt::stat_change);
 
     if (which_stat == STAT_RANDOM)
         which_stat = static_cast<stat_type>(random2(NUM_STATS));
@@ -378,10 +381,6 @@ static int _mut_level(mutation_type mut, bool innate_only)
 
 static int _strength_modifier(bool innate_only)
 {
-    // Gnolls can't modify their stats
-    if (you.species == SP_GNOLL)
-        return 0;
-
     int result = 0;
 
     if (!innate_only)
@@ -420,9 +419,6 @@ static int _strength_modifier(bool innate_only)
 
 static int _int_modifier(bool innate_only)
 {
-    if (you.species == SP_GNOLL)
-        return 0;
-
     int result = 0;
 
     if (!innate_only)
@@ -454,10 +450,6 @@ static int _int_modifier(bool innate_only)
 
 static int _dex_modifier(bool innate_only)
 {
-    // Gnolls can't modify their stats
-    if (you.species == SP_GNOLL)
-        return 0;
-
     int result = 0;
 
     if (!innate_only)
@@ -534,10 +526,6 @@ int stat_loss_roll()
 
 bool lose_stat(stat_type which_stat, int stat_loss, bool force)
 {
-    // Gnolls cannot be stat drained
-    if (you.species == SP_GNOLL)
-        return false;
-
     if (stat_loss <= 0)
         return false;
 

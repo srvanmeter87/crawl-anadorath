@@ -521,11 +521,11 @@ static int _issue_orders_prompt()
     if (!you.cannot_speak())
     {
         string cap_shout = you.shout_verb(false);
-        cap_shout[0] = toupper(cap_shout[0]);
+        cap_shout[0] = toupper_safe(cap_shout[0]);
         mprf(" t - %s!", cap_shout.c_str());
     }
 
-    if (!you.berserk())
+    if (!you.berserk() && !you.confused())
     {
         string previous;
         if (_can_target_prev())
@@ -541,8 +541,7 @@ static int _issue_orders_prompt()
     }
     mpr(" Anything else - Cancel.");
 
-    if (you.berserk())
-        flush_prev_message(); // buffer doesn't get flushed otherwise
+    flush_prev_message(); // buffer doesn't get flushed otherwise
 
     const int keyn = get_ch();
     clear_messages();
@@ -560,9 +559,9 @@ static int _issue_orders_prompt()
  */
 static bool _issue_order(int keyn, int &mons_targd)
 {
-    if (you.berserk())
+    if (you.berserk() || you.confused())
     {
-        canned_msg(MSG_TOO_BERSERK);
+        canned_msg(MSG_OK);
         return false;
     }
 
@@ -1228,10 +1227,12 @@ coord_def noise_grid::noise_perceived_position(actor *act,
         : noise.noise_source;
 
     const int fuzz = extra_distance_covered;
+    coord_def fuzz_rnd;
+    fuzz_rnd.x = random_range(-fuzz, fuzz, 2);
+    fuzz_rnd.y = random_range(-fuzz, fuzz, 2);
     const coord_def perceived_point =
         fuzz?
-        noise_centroid + coord_def(random_range(-fuzz, fuzz, 2),
-                                   random_range(-fuzz, fuzz, 2))
+        noise_centroid + fuzz_rnd
         : noise_centroid;
 
     const coord_def final_perceived_point =

@@ -69,22 +69,18 @@ tileidx_t tilep_equ_weapon(const item_def &item)
         case MISC_HORN_OF_GERYON:             return TILEP_HAND1_HORN;
         case MISC_BOX_OF_BEASTS:              return TILEP_HAND1_BOX;
 
+#if TAG_MAJOR_VERSION == 34
         case MISC_DECK_OF_ESCAPE:
         case MISC_DECK_OF_DESTRUCTION:
-#if TAG_MAJOR_VERSION == 34
         case MISC_DECK_OF_DUNGEONS:
-#endif
         case MISC_DECK_OF_SUMMONING:
-#if TAG_MAJOR_VERSION == 34
         case MISC_DECK_OF_WONDERS:
-#endif
         case MISC_DECK_OF_PUNISHMENT:
-#if TAG_MAJOR_VERSION == 34
         case MISC_DECK_OF_WAR:
         case MISC_DECK_OF_CHANGES:
         case MISC_DECK_OF_DEFENCE:
+            return 0;
 #endif
-            return TILEP_HAND1_DECK;
         }
     }
 
@@ -252,9 +248,11 @@ tileidx_t tilep_equ_weapon(const item_def &item)
     case WPN_TRIPLE_CROSSBOW:
         tile = TILEP_HAND1_TRIPLE_CROSSBOW;
         break;
+#if TAG_MAJOR_VERSION == 34
     case WPN_BLOWGUN:
         tile = TILEP_HAND1_BLOWGUN;
         break;
+#endif
     case WPN_LONGBOW:
         tile = TILEP_HAND1_BOW3;
         break;
@@ -630,6 +628,8 @@ tileidx_t tilep_species_to_base_tile(int sp, int level)
         return TILEP_BASE_VINE_STALKER;
     case SP_BARACHI:
         return TILEP_BASE_BARACHI;
+    case SP_GNOLL:
+        return TILEP_BASE_GNOLL;
     default:
         return TILEP_BASE_HUMAN;
     }
@@ -673,15 +673,6 @@ void tilep_race_default(int sp, int level, dolls_data *doll)
         case SP_DEEP_ELF:
             hair = TILEP_HAIR_ELF_WHITE;
             break;
-        case SP_HILL_ORC:
-            hair = 0;
-            break;
-        case SP_KOBOLD:
-            hair = 0;
-            break;
-        case SP_MUMMY:
-            hair = 0;
-            break;
         case SP_TROLL:
             hair = TILEP_HAIR_TROLL;
             break;
@@ -699,15 +690,6 @@ void tilep_race_default(int sp, int level, dolls_data *doll)
             hair   = 0;
             break;
         }
-        case SP_MINOTAUR:
-            hair = 0;
-            break;
-        case SP_DEMONSPAWN:
-            hair = 0;
-            break;
-        case SP_GHOUL:
-            hair = 0;
-            break;
         case SP_MERFOLK:
             result = you.fishtail ? TILEP_BASE_MERFOLK_WATER
                                   : TILEP_BASE_MERFOLK;
@@ -727,7 +709,17 @@ void tilep_race_default(int sp, int level, dolls_data *doll)
             hair = 0;
             beard = TILEP_BEARD_MEDIUM_GREEN;
             break;
+        case SP_MINOTAUR:
+        case SP_DEMONSPAWN:
+        case SP_GHOUL:
+        case SP_HILL_ORC:
+        case SP_KOBOLD:
+        case SP_MUMMY:
         case SP_FORMICID:
+        case SP_BARACHI:
+        case SP_GNOLL:
+        case SP_GARGOYLE:
+        case SP_VINE_STALKER:
             hair = 0;
             break;
         default:

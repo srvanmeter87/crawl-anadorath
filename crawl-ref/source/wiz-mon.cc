@@ -177,10 +177,10 @@ void wizard_create_spec_monster_name()
         }
         ghost.job = static_cast<job_type>(job_id);
         ghost.xl = 7;
+        ghost.max_hp = 20;
+        ASSERT(debug_check_ghost(ghost));
 
         mon.set_ghost(ghost);
-
-        ghosts.push_back(ghost);
     }
 }
 
@@ -565,7 +565,7 @@ void debug_stethoscope(int mon)
 
     if (mons_is_ghost_demon(mons.type))
     {
-        ASSERT(mons.ghost.get());
+        ASSERT(mons.ghost);
         const ghost_demon &ghost = *mons.ghost;
         mprf(MSGCH_DIAGNOSTICS, "Ghost damage: %d; brand: %d; att_type: %d; "
                                 "att_flav: %d",
@@ -709,7 +709,7 @@ void wizard_give_monster_item(monster* mon)
     }
 
     int player_slot = prompt_invent_item("Give which item to monster?",
-                                          MT_DROP, -1);
+                                          menu_type::drop, OSEL_ANY);
 
     if (prompt_failed(player_slot))
         return;
@@ -757,7 +757,7 @@ static void _move_monster(const coord_def& where, int idx1)
 {
     dist moves;
     direction_chooser_args args;
-    args.needs_path = false;
+    args.unrestricted = true;
     args.top_prompt = "Move monster to where?";
     args.default_place = where;
     direction(moves, args);
@@ -780,6 +780,11 @@ static void _move_monster(const coord_def& where, int idx1)
     {
         mon2->moveto(where);
         mon1->check_redraw(where);
+    }
+    if (!you.see_cell(moves.target))
+    {
+        mon1->flags &= ~(MF_WAS_IN_VIEW | MF_SEEN);
+        mon1->seen_context = SC_NONE;
     }
 }
 
@@ -1038,30 +1043,30 @@ void debug_miscast(int target_index)
     }
 
     spell_type         spell  = spell_by_name(specs, true);
-    spschool_flag_type school = school_by_name(specs);
+    spschool school = school_by_name(specs);
 
     // Prefer exact matches for school name over partial matches for
     // spell name.
-    if (school != SPTYP_NONE
+    if (school != spschool::none
         && (strcasecmp(specs, spelltype_short_name(school)) == 0
             || strcasecmp(specs, spelltype_long_name(school)) == 0))
     {
         spell = SPELL_NO_SPELL;
     }
 
-    if (spell == SPELL_NO_SPELL && school == SPTYP_NONE)
+    if (spell == SPELL_NO_SPELL && school == spschool::none)
     {
         mpr("No matching spell or spell school.");
         return;
     }
-    else if (spell != SPELL_NO_SPELL && school != SPTYP_NONE)
+    else if (spell != SPELL_NO_SPELL && school != spschool::none)
     {
         mprf("Ambiguous: can be spell '%s' or school '%s'.",
             spell_title(spell), spelltype_short_name(school));
         return;
     }
 
-    spschools_type disciplines = SPTYP_NONE;
+    spschools_type disciplines = spschool::none;
     if (spell != SPELL_NO_SPELL)
     {
         disciplines = get_spell_disciplines(spell);
@@ -1136,29 +1141,30 @@ void debug_miscast(int target_index)
     // Suppress "nothing happens" message for monster miscasts which are
     // only harmless messages, since a large number of those are missing
     // monster messages.
-    nothing_happens_when_type nothing = NH_DEFAULT;
+    nothing_happens nothing = nothing_happens::DEFAULT;
     if (target_index != NON_MONSTER && level == 0)
-        nothing = NH_NEVER;
+        nothing = nothing_happens::NEVER;
 
     MiscastEffect *miscast;
 
     if (spell != SPELL_NO_SPELL)
     {
-        miscast = new MiscastEffect(target, target, WIZARD_MISCAST, spell, pow,
-                                    fail, "", nothing);
+        miscast = new MiscastEffect(target, target, {miscast_source::wizard},
+                                    spell, pow, fail, "", nothing);
     }
     else
     {
         if (level != -1)
         {
-            miscast = new MiscastEffect(target, target, WIZARD_MISCAST, school,
-                                        level, "wizard testing miscast",
-                                        nothing);
+            miscast = new MiscastEffect(target, target,
+                                        {miscast_source::wizard}, school, level,
+                                        "wizard testing miscast", nothing);
         }
         else
         {
-            miscast = new MiscastEffect(target, target, WIZARD_MISCAST, school,
-                                        pow, fail, "wizard testing miscast",
+            miscast = new MiscastEffect(target, target,
+                                        {miscast_source::wizard}, school, pow,
+                                        fail, "wizard testing miscast",
                                         nothing);
         }
     }
@@ -1188,13 +1194,15 @@ void debug_miscast(int target_index)
 #ifdef DEBUG_BONES
 void debug_ghosts()
 {
-    mprf(MSGCH_PROMPT, "(C)reate or (L)oad bones file?");
+    mprf(MSGCH_PROMPT, "(C)reate, create (T)emporary, or (L)oad bones file?");
     const char c = toalower(getchm());
 
     if (c == 'c')
-        save_ghost(true);
+        save_ghosts(ghost_demon::find_ghosts(), true, true);
+    else if (c == 't')
+        save_ghosts(ghost_demon::find_ghosts(), true, false);
     else if (c == 'l')
-        load_ghost(false);
+        load_ghosts(MAX_GHOSTS, false);
     else
         canned_msg(MSG_OK);
 }

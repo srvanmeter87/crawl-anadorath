@@ -1,4 +1,4 @@
-: require("dlua/sprint.lua")
+: crawl_require("dlua/sprint.lua")
 
 {{
 function sprint_mu_zot_mons_gen(data, triggerable, triggerer, marker, ev)
@@ -168,7 +168,7 @@ MONS: patrolling phantom hd:2 / patrolling wolf hd:2 / patrolling scorpion / \
 MONS: patrolling human hd:2 hp:35
 KITEM: * = potion of flight ident:all q:2 / potion of flight q:1 / any potion, \
  potion of mutation ident:all q:2 / potion of mutation q:1 / any potion, \
- meat ration / bread ration / royal jelly w:20 / fruit, \
+ ration w:20, \
  scroll of remove curse ident:all q:2 / scroll of remove curse q:1 / any scroll, \
  scroll of identify ident:all q:2/ scroll of identify q:1 / any scroll, \
  scroll of torment / scroll of holy word / scroll of immolation, \
@@ -201,7 +201,7 @@ MONS: patrolling phantom hd:2 / patrolling wolf hd:2 / patrolling scorpion / \
 MONS: patrolling human hd:2 hp:35
 KITEM: * = potion of flight ident:all q:2 / potion of flight q:1 / any potion, \
  potion of mutation ident:all q:2 / potion of mutation q:1 / any potion, \
- meat ration / bread ration / royal jelly w:20 / fruit, \
+ ration w:20, \
  scroll of remove curse ident:all q:2 / scroll of remove curse q:1 / any scroll, \
  scroll of identify ident:all q:2 / scroll of identify q:1 / any scroll, \
  scroll of torment / scroll of holy word / scroll of immolation, \
@@ -237,7 +237,8 @@ KITEM: e = potion of curing / potion of heal wounds
 KFEAT: B = altar_beogh
 KFEAT: O = altar_okawaru
 KFEAT: T = altar_trog
-KFEAT: o = altar_uskayaw
+KFEAT: U = altar_uskayaw
+KFEAT: o = altar_wu_jian
 KMONS: o = patrolling human ; potion of might ident:all
 KITEM: o = any armour
 KMONS: t = patrolling human ; potion of berserk rage ident:all
@@ -252,7 +253,6 @@ NSUBST: f = 1:f / *:W
 KFEAT: f = fountain_blue
 KFEAT: W = fountain_blue
 KMONS: W = water elemental hd:4
-KFEAT: U = altar_wu_jian
 KFEAT: V = altar_vehumet
 KFEAT: S = altar_sif_muna
 KFEAT: K = altar_kikubaaqudgha
@@ -274,11 +274,9 @@ KFEAT: l = altar_lugonu
 KFEAT: J = altar_jiyva
 KMONS: m = shadow
 KMONS: j = patrolling jelly
-KITEM: * = royal jelly
+KITEM: * = ration
 COLOUR: # = yellow
 KFEAT: # = closed_door
-# Disable Wu in the stable version.
-: if crawl.unavailable_god("Wu Jian") then _G.subst("U = .") end
 : lua_marker('#', props_marker {
 :           door_description_suffix=" to the Ecumenical Temple",
 :           })
@@ -453,9 +451,9 @@ ENDMAP
 NAME: sprint_mu_hive_nellie
 TAGS: sprint_mu_hive no_rotate no_hmirror no_vmirror
 KMONS: 1 = killer bee
-KITEM: 1 = royal jelly w:30 / nothing
+KITEM: 1 = ration / nothing w:20
 KMONS: 2 = queen bee
-KITEM: 2 = royal jelly
+KITEM: 2 = ration
 KMONS: 3 = generate_awake Nellie
 KITEM: 3 = demonic rune of zot
 : acq_on_sight(_G, '3', {"food","misc","wand"})
@@ -515,8 +513,7 @@ KMONS: g = tyrant leech
 KMONS: A = lindwurm
 KMONS: h = redback
 KMONS: i = hydra
-KMONS: j = patrolling spriggan ; blowgun . q:5 needle ego:sleep | \
- q:5 needle ego:paralysis | q:5 needle ego:frenzy
+KMONS: j = patrolling spriggan ; q:5 dart ego:atropa | q:5 dart ego:datura
 KMONS: k = patrolling spriggan druid
 KMONS: q = electric eel
 KFEAT: q = deep_water
@@ -524,7 +521,7 @@ KMONS: r = hydra simulacrum / fire dragon simulacrum / polar bear simulacrum /\
  wolf simulacrum / black mamba simulacrum
 KITEM: r = any, any, any, any, any, superb_item / w:1 wand of acid /\
  w:1 wand of disintegration
-KITEM: % = fruit q:6
+KITEM: % = ration
 KFEAT: _ = altar_fedhas
 KMONS: s = patrolling Urug
 KMONS: u = death drake
@@ -746,7 +743,7 @@ MARKER:  ! = lua:fog_machine { \
                  size = 2, size_buildup_amnt = 3, \
                  size_buildup_time = 5, cloud_type = "foul pestilence" \
              }
-COLOUR: t = darkgrey, w:8 lightgrey
+COLOUR: t = darkgrey / w:8 lightgrey
 : elseif swamprnd == 2 then
 MONS: swamp drake simulacrum, ice dragon, hydra, hydra simulacrum
 MARKER:  ! = lua:fog_machine { \
@@ -819,33 +816,33 @@ KMONS: a = patrolling Sigmund hd:15 hp:100 \
         iskenderun's_mystic_blast.16.wizard \
  ; scythe ego:distortion
 KMONS: b = patrolling Edmund hp:150 ; great mace ego:freezing \
- . blowgun . needle ego:curare q:7
+ . dart ego:curare q:7
 : elseif d2rnd == 1 then
 KMONS: a = patrolling Dowan hd:15 hp:100 \
  spells:bolt_of_cold.11.wizard;corona.11.wizard;blink_range.11.wizard;\
         bolt_of_fire.11.wizard;;haste_other.11.wizard;minor_healing.11.wizard \
  ; morningstar ego:distortion
 KMONS: b = patrolling Duvessa hp:150 ; great sword ego:freezing \
- . blowgun . needle ego:curare q:7
+ . dart ego:curare q:7
 : elseif d2rnd == 2 then
 KMONS: a = patrolling Harold hd:15 hp:100 \
  spells:poison_arrow.16.wizard;teleport_other.16.wizard;\
         minor_healing.16.wizard;slow.16.wizard \
  ; dire flail ego:distortion
 KMONS: b = patrolling Joseph hd:5 hp:150 ; quarterstaff ego:freezing \
- . blowgun . needle ego:curare q:7
+ . dart ego:curare q:7
 : else
 KMONS: a = patrolling Donald ; war axe ego:holy_wrath . scale mail \
  . shield ego:reflection
 KMONS: b = patrolling Frances ; war axe ego:holy_wrath \
- . blowgun . needle ego:curare q:7
+ . dart ego:curare q:7
 :end
 KITEM: & = lamp of fire, scroll of acquirement q:1 ident:all, \
  scroll of acquirement q:1 ident:all / w:15 scroll of torment ident:all, \
  scroll of acquirement q:1 ident:all / w:25 scroll of torment ident:all
 NSUBST: L = 1:& / *:l
 KMONS: A = patrolling Azrael
-KITEM: " = any weapon, any armour, any wand, gold, fruit
+KITEM: " = any weapon, any armour, any wand, gold, ration
 
 MARKER:  ! = lua:fog_machine { \
                 pow_max = 15, delay_min = 100, delay_max = 150, \
@@ -1050,7 +1047,7 @@ KMONS: 7 = patrolling simulacrum
 SUBST: 1 = 1122334455667
 KITEM: 1234567 = star_item / nothing
 KFEAT: ^ = zot trap
-KFEAT: - = spear trap / needle trap / net trap / blade trap / bolt trap
+KFEAT: - = spear trap / dart trap / net trap / blade trap / bolt trap
 NSUBST: ~ = 1:^ / 10:- / *:.
 SUBST: ! = +
 
@@ -1072,7 +1069,7 @@ MONS: patrolling iron golem, patrolling necromancer
 MONS: patrolling hell knight, patrolling skeletal warrior
 KMONS: 5 = lich
 KITEM: 5 = star_item, star_item, star_item, star_item, star_item, star_item
-KFEAT: - = spear trap / needle trap / net trap / blade trap / bolt trap
+KFEAT: - = spear trap / dart trap / net trap / blade trap / bolt trap
 NSUBST: . = 6:- / *:.
 
 MAP
@@ -1090,7 +1087,7 @@ ENDMAP
 NAME: sprint_mu_crypt_lich
 TAGS: sprint_mu_crypt no_rotate no_hmirror no_vmirror
 MONS: ancient lich, skeletal warrior
-KFEAT: - = spear trap / needle trap / net trap / blade trap / bolt trap
+KFEAT: - = spear trap / dart trap / net trap / blade trap / bolt trap
 NSUBST: . = 10:- / *:.
 SUBST: : = .
 
@@ -1112,7 +1109,7 @@ NAME: sprint_mu_tomb_spiral
 TAGS: sprint_mu_tomb no_rotate no_hmirror no_vmirror
 MONS: patrolling greater mummy, patrolling mummy priest
 MONS: patrolling guardian mummy, patrolling sphinx
-KFEAT: - = needle trap / net trap / blade trap / bolt trap / spear trap / zot trap
+KFEAT: - = dart trap / net trap / blade trap / bolt trap / spear trap / zot trap
 SUBST: . = -----.................332
 KITEM: $ = golden rune of zot
 KITEM: ? = scroll of acquirement ident:all q:5
@@ -1426,9 +1423,9 @@ MARKER: # = lua:props_marker({ \
 MARKER: # = lua:restrict_door()
 SUBST: . = ..........2233445
 MARKER: ! = lua:fog_machine { \
-                pow_max = 1000, delay_min = 1, delay_max = 1, \
-                size = 1000, size_buildup_amnt = 111, \
-                size_buildup_time = 1, cloud_type = "purple smoke" }
+                pow_max = 10, delay_min = 10, delay_max = 40, \
+                size = 2, size_buildup_amnt = 3, \
+                size_buildup_time = 25, cloud_type = "purple smoke" }
 MAP
 ccccccc#cccccc
 c!..c....c..!c
@@ -1513,13 +1510,13 @@ MARKER: # = lua:props_marker({ \
         door_description_suffix=" to the Realm of Zot", \
         door_description_noun="gate", \
         veto_reason="You need three runes to open the Realm of Zot!", \
-        veto_shatter="veto", veto_disintegrate="veto", veto_fragmentation="veto" \
+        veto_shatter="veto", veto_dig="veto" \
         })
 MARKER: # = lua:lock_door {}
 MARKER: # = lua:restrict_door {}
 MARKER: ~ = lua:props_marker({ \
         door_description_prefix="magically reinforced ", \
-        veto_shatter="veto", veto_disintegrate="veto", veto_fragmentation="veto", door_restrict="veto" \
+        veto_shatter="veto", veto_dig="veto", door_restrict="veto" \
         })
 KPROP: X#kpq+^ag78yL45il%3x21*To$. = no_tele_into
 MAP

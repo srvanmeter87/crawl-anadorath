@@ -44,39 +44,39 @@ cloud_struct* cloud_at(coord_def pos)
     return map_find(env.cloud, pos);
 }
 
-// damage = base + random2avg(random, random/15 + 1)
+/// damage = base + random2avg(random, random/15 + 1)
 struct cloud_damage
 {
-    int base; // Flat damage on every hit, pre-defenses.
-    int random; // Damage rolled on hit.
-    bool extra_player_dam; // HACK: does 4+random2(8) extra damage to players.
+    int base; ///< Flat damage on every hit, pre-defenses.
+    int random; ///< Damage rolled on hit.
+    bool extra_player_dam; //< HACK: does 4+random2(8) extra damage to players.
     // Yes, we really hate players, damn their guts.
 };
 
-// Damage for most damaging clouds.
+/// Damage for most damaging clouds.
 static const cloud_damage NORMAL_CLOUD_DAM = { 6, 16, true };
 // 6+r2a(16,2) for monsters, 10+r2a(23,2) for players
 
-// A portrait of a cloud_type.
+/// A portrait of a cloud_type.
 struct cloud_data
 {
-    // A (relatively) short name for the cloud. May be referenced from lua.
+    /// A (relatively) short name for the cloud. May be referenced from lua.
     const char* terse_name;
-    // Another name for the cloud. If nullptr, defaults to terse name.
+    /// Another name for the cloud. If nullptr, defaults to terse name.
     const char* verbose_name;
-    // The colour of the cloud in console.
+    /// The colour of the cloud in console.
     colour_t colour;
-    // Info for calculating cloud tiles.
+    /// Info for calculating cloud tiles.
     cloud_tile_info tile_info;
-    // The associated "beam" (effect) for this cloud type.
+    /// The associated "beam" (effect) for this cloud type.
     beam_type beam_effect;
-    // How much damage the cloud does before defenses & resists.
+    /// How much damage the cloud does before defenses & resists.
     cloud_damage damage;
-    // Do multiple squares of this cloud block LOS?
+    /// Do multiple squares of this cloud block LOS?
     bool opaque;
 };
 
-// A map from cloud_type to cloud_data.
+/// A map from cloud_type to cloud_data.
 static const cloud_data clouds[] = {
     // CLOUD_NONE,
     { "?", "?",                                 // terse, verbose name
@@ -317,6 +317,8 @@ static int _actual_spread_rate(cloud_type type, int spread_rate)
     case CLOUD_STEAM:
     case CLOUD_GREY_SMOKE:
     case CLOUD_BLACK_SMOKE:
+    case CLOUD_PURPLE_SMOKE:
+    case CLOUD_BLUE_SMOKE:
     case CLOUD_FLUFFY:
         return 22;
     case CLOUD_RAIN:
@@ -502,7 +504,8 @@ static int _cloud_dissipation_rate(const cloud_struct &cloud)
 
     // Player-created non-opaque clouds vanish instantly when outside LOS.
     // (Opaque clouds don't to prevent cloud suicide.)
-    if (cloud.source == MID_PLAYER && !you.see_cell_no_trans(cloud.pos)
+    if ((cloud.source == MID_PLAYER || cloud.source == MID_YOU_FAULTLESS)
+        && !you.see_cell_no_trans(cloud.pos)
         && !is_opaque_cloud(cloud.type))
     {
         return cloud.decay;
@@ -658,8 +661,8 @@ void delete_cloud(coord_def p)
 
 void delete_all_clouds()
 {
-    /*  We can't iterate over env.cloud directly because delete_cloud
-        will remove this cloud and invalidate our iterator. */
+    // We can't iterate over env.cloud directly because delete_cloud
+    // will remove this cloud and invalidate our iterator.
     vector<coord_def> cloud_locs;
     for (auto& entry : env.cloud)
         cloud_locs.push_back(entry.first);
@@ -668,8 +671,8 @@ void delete_all_clouds()
         delete_cloud(pos);
 }
 
-/*  The current use of this function is for shifting in the abyss, so
-    that clouds get moved along with the rest of the map. */
+// The current use of this function is for shifting in the abyss, so
+// that clouds get moved along with the rest of the map.
 void move_cloud(coord_def src, coord_def newpos)
 {
     if (!cloud_at(src))
@@ -709,8 +712,8 @@ void swap_clouds(coord_def p1, coord_def p2)
     _los_cloud_changed(p2, env.cloud[p2].type, env.cloud[p1].type);
 }
 
-/*  Places a cloud with the given stats assuming one doesn't already
-    exist at that point. */
+// Places a cloud with the given stats assuming one doesn't already
+// exist at that point.
 void check_place_cloud(cloud_type cl_type, const coord_def& p, int lifetime,
                        const actor *agent, int spread_rate, int excl_rad)
 {
@@ -722,13 +725,14 @@ void check_place_cloud(cloud_type cl_type, const coord_def& p, int lifetime,
 
 static bool _cloud_is_stronger(cloud_type ct, const cloud_struct& cloud)
 {
-    return is_harmless_cloud(cloud.type)
+    return (is_harmless_cloud(cloud.type) &&
+                (!is_opaque_cloud(cloud.type) || is_opaque_cloud(ct)))
            || cloud.type == CLOUD_STEAM
            || ct == CLOUD_TORNADO; // soon gone
 }
 
-/*  Places a cloud with the given stats. Will overwrite an old
-    cloud under some circumstances. */
+//   Places a cloud with the given stats. Will overwrite an old
+//   cloud under some circumstances.
 void place_cloud(cloud_type cl_type, const coord_def& ctarget, int cl_range,
                  const actor *agent, int _spread_rate, int excl_rad)
 {
@@ -807,8 +811,8 @@ int max_cloud_damage(cloud_type cl_type, int power)
     return _actor_cloud_damage(&you, cloud, true);
 }
 
-/*  Returns true if the cloud type has negative side effects beyond
-    plain damage and inventory destruction effects. */
+// Returns true if the cloud type has negative side effects beyond
+// plain damage and inventory destruction effects.
 static bool _cloud_has_negative_side_effects(cloud_type cloud)
 {
     switch (cloud)
@@ -835,8 +839,8 @@ static int _cloud_damage_calc(int size, int n_average, int extra,
            : random2avg(size, n_average) + extra;
 }
 
-/*  Calculates the base damage that the cloud does to an actor without
-    considering resistances and time spent in the cloud. */
+// Calculates the base damage that the cloud does to an actor without
+// considering resistances and time spent in the cloud.
 static int _cloud_base_damage(const actor *act,
                               cloud_type flavour,
                               bool maximum_damage)
@@ -857,8 +861,8 @@ static int _cloud_base_damage(const actor *act,
  */
 bool actor_cloud_immune(const actor &act, cloud_type type)
 {
-    /*  Qazlalites and scarfwearers get immunity to clouds.
-        and the Cloud Mage too! */
+    // Qazlalites and scarfwearers get immunity to clouds.
+    // and the Cloud Mage too!
     if (is_harmless_cloud(type) || act.cloud_immune())
         return true;
 
@@ -897,23 +901,24 @@ bool actor_cloud_immune(const actor &act, cloud_type type)
         case CLOUD_NEGATIVE_ENERGY:
             return act.res_negative_energy() >= 3;
         case CLOUD_TORNADO:
-            return act.res_wind();
+            return act.res_tornado();
         case CLOUD_RAIN:
             return !act.is_fiery();
         case CLOUD_ELEMENTAL_CHAOS:
-            return (act.res_cold() >= 3 && act.res_elec() > 0
+            return (act.res_cold() >= 3
+                    && act.res_elec() > 0
                     && act.res_fire() >= 3);
         default:
             return false;
     }
 }
 
-/*  Returns true if the actor is immune to cloud damage and other negative
-    side effects of the given cloud (other than opaque clouds + invis).
-
-    Note that actor_cloud_immune may be false even if the actor will
-    not be harmed by the cloud. The cloud may have positive
-    side-effects on the actor. */
+// Returns true if the actor is immune to cloud damage and other negative
+// side effects of the given cloud (other than opaque clouds + invis).
+//
+// Note that actor_cloud_immune may be false even if the actor will
+// not be harmed by the cloud. The cloud may have positive
+// side-effects on the actor.
 bool actor_cloud_immune(const actor &act, const cloud_struct &cloud)
 {
     if (actor_cloud_immune(act, cloud.type))
@@ -931,12 +936,20 @@ bool actor_cloud_immune(const actor &act, const cloud_struct &cloud)
         return true;
     }
 
+    int summon_type = 0;
+    act.is_summoned(nullptr, &summon_type);
+    if (!player && have_passive(passive_t::cloud_immunity)
+        && (act.as_monster()->friendly() && summon_type == MON_SUMM_AID))
+    {
+        return true;
+    }
+
     return false;
 }
 
-/*  Returns a numeric resistance value for the actor's resistance to
-    the cloud's effects. If the actor is immune to the cloud's damage,
-    returns MAG_IMMUNE. */
+// Returns a numeric resistance value for the actor's resistance to
+// the cloud's effects. If the actor is immune to the cloud's damage,
+// returns MAG_IMMUNE.
 static int _actor_cloud_resist(const actor *act, const cloud_struct &cloud)
 {
     if (actor_cloud_immune(*act, cloud))
@@ -960,8 +973,10 @@ static int _actor_cloud_resist(const actor *act, const cloud_struct &cloud)
         return act->res_elec();
     case CLOUD_NEGATIVE_ENERGY:
         return act->res_negative_energy();
-    /** case CLOUD_ELEMENTAL_CHAOS:
-            return act->res_elemental_chaos(); **/
+/*     
+    case CLOUD_ELEMENTAL_CHAOS:
+        return act->res_elemental_chaos();
+ */
     default:
         return 0;
     }
@@ -974,9 +989,9 @@ static bool _mephitic_cloud_roll(const monster* mons)
            : !x_chance_in_y(mons->get_hit_dice(), meph_hd_cap);
 }
 
-/*  Applies cloud messages and side-effects and returns true if the
-    cloud had a side-effect. This function does not check for cloud immunity.
-    ... but it's only called if the actor isn't immune */
+// Applies cloud messages and side-effects and returns true if the
+// cloud had a side-effect. This function does not check for cloud immunity.
+// ... but it's only called if the actor isn't immune
 static bool _actor_apply_cloud_side_effects(actor *act,
                                             const cloud_struct &cloud,
                                             int final_damage)
@@ -1011,8 +1026,8 @@ static bool _actor_apply_cloud_side_effects(actor *act,
             if (1 + random2(27) >= you.experience_level)
             {
                 mpr("You choke on the stench!");
-                /*  Effectively one or two turns, since it will be
-                    decremented right away */
+                // effectively one or two turns, since it will be
+                // decremented right away
                 confuse_player(random_range(2, 3));
                 return true;
             }
@@ -1083,9 +1098,9 @@ static bool _actor_apply_cloud_side_effects(actor *act,
         if (player)
         {
             mpr("The mutagenic energy flows into you.");
-            /*  It's possible that you got trampled into the mutagenic cloud
-                and it's not your fault... so we'll say it's not intentional.
-                (it's quite bad in any case, so players won't scum, probably.) */
+            // It's possible that you got trampled into the mutagenic cloud
+            // and it's not your fault... so we'll say it's not intentional.
+            // (it's quite bad in any case, so players won't scum, probably.)
             contaminate_player(1300 + random2(1250), false);
             // min 2 turns to yellow, max 4
             return true;
@@ -1202,8 +1217,8 @@ static int _actor_cloud_damage(const actor *act,
         const int rain_damage = _actor_cloud_damage(act, raincloud,
                                                     maximum_damage);
 
-        /*  if this isn't just a test run, and no time passed, don't trigger
-            lightning. (just rain.) */
+        // if this isn't just a test run, and no time passed, don't trigger
+        // lightning. (just rain.)
         if (!maximum_damage && !(you.turn_is_over && you.time_taken > 0))
             return rain_damage;
 
@@ -1263,8 +1278,8 @@ static int _actor_cloud_damage(const actor *act,
     return timescale_damage(act, final_damage);
 }
 
-/*  Applies damage and side effects for an actor in a cloud and returns
-    the damage dealt. */
+// Applies damage and side effects for an actor in a cloud and returns
+// the damage dealt.
 int actor_apply_cloud(actor *act)
 {
     const cloud_struct* cl = cloud_at(act->pos());
@@ -1393,8 +1408,8 @@ static bool _mons_avoids_cloud(const monster* mons, const cloud_struct& cloud,
     if (is_harmless_cloud(cloud.type))
         return false;
 
-    /*  Berserk monsters are less careful and will blindly plow through any
-        dangerous cloud, just to kill you. {due} */
+    // Berserk monsters are less careful and will blindly plow through any
+    // dangerous cloud, just to kill you. {due}
     if (!extra_careful && mons->berserk_or_insane())
         return false;
 
@@ -1431,9 +1446,9 @@ static bool _mons_avoids_cloud(const monster* mons, const cloud_struct& cloud,
         if (extra_careful)
             return true;
 
-        /*  calc damage here instead of using _cloud_base_damage() so we can
-            set our own # of trials, to try to make the AI more consistent
-            XXX: add a param instead? */
+        // calc damage here instead of using _cloud_base_damage() so we can
+        // set our own # of trials, to try to make the AI more consistent
+        // XXX: add a param instead?
         const cloud_damage &dam_info = clouds[cloud.type].damage;
         const int base_damage = _cloud_damage_calc(dam_info.random,
                                                    max(1, dam_info.random / 9),
@@ -1464,8 +1479,8 @@ static bool _mons_avoids_cloud(const monster* mons, const cloud_struct& cloud,
     return true;
 }
 
-/*  Like the above, but allow a monster to move from one damaging cloud
-    to another, even if they're of different types. */
+// Like the above, but allow a monster to move from one damaging cloud
+// to another, even if they're of different types.
 bool mons_avoids_cloud(const monster* mons, coord_def pos, bool placement)
 {
     if (!cloud_at(pos))
@@ -1475,8 +1490,8 @@ bool mons_avoids_cloud(const monster* mons, coord_def pos, bool placement)
     if (!_mons_avoids_cloud(mons, *cloud_at(pos), placement))
         return false;
 
-    /*  If we're already in a cloud that we'd want to avoid then moving
-        from one to the other is okay. */
+    // If we're already in a cloud that we'd want to avoid then moving
+    // from one to the other is okay.
     if (!in_bounds(mons->pos()) || mons->pos() == pos)
         return true;
 
@@ -1556,9 +1571,8 @@ coord_def random_walk(coord_def start, int dist)
     return pos;
 }
 
-/*****************************************************************************
- * cloud_struct
- ****************************************************************************/
+////////////////////////////////////////////////////////////////////////
+// cloud_struct
 
 kill_category cloud_struct::killer_to_whose(killer_type _killer)
 {
@@ -1646,8 +1660,8 @@ void cloud_struct::announce_actor_engulfed(const actor *act,
         return;
     }
 
-    /*  Don't produce monster-in-rain messages in the interests
-        of spam reduction. */
+    // Don't produce monster-in-rain messages in the interests
+    // of spam reduction.
     if (act->is_player())
     {
         mprf("%s %s standing in %s.",
@@ -1716,15 +1730,15 @@ coord_def get_cloud_originator(const coord_def& pos)
 
 void remove_tornado_clouds(mid_t whose)
 {
-    /*  Needed to clean up after the end of tornado cooldown, so we can again
-        assume all "raging winds" clouds are harmful. This is needed only
-        because map_knowledge doesn't preserve the knowledge about whom the
-        cloud belongs to. If this changes, please remove this function. For
-        example, this approach doesn't work if we ever make Tornado a monster
-        spell (excluding immobile and mindless casters).
+    // Needed to clean up after the end of tornado cooldown, so we can again
+    // assume all "raging winds" clouds are harmful. This is needed only
+    // because map_knowledge doesn't preserve the knowledge about whom the
+    // cloud belongs to. If this changes, please remove this function. For
+    // example, this approach doesn't work if we ever make Tornado a monster
+    // spell (excluding immobile and mindless casters).
 
-        We can't iterate over env.cloud directly because delete_cloud
-        will remove this cloud and invalidate our iterator. */
+    // We can't iterate over env.cloud directly because delete_cloud
+    // will remove this cloud and invalidate our iterator.
     vector<coord_def> tornados;
     for (auto& entry : env.cloud)
         if (entry.second.type == CLOUD_TORNADO && entry.second.source == whose)
@@ -1810,7 +1824,7 @@ const cloud_tile_info& cloud_type_tile_info(cloud_type type)
     return clouds[type].tile_info;
 }
 
-// Knock out clouds & set the still winds level flag; also message.
+/// Knock out clouds & set the still winds level flag; also message.
 void start_still_winds()
 {
     delete_all_clouds();

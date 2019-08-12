@@ -43,17 +43,17 @@ enum conduct_type
     DID_EXPLORATION,                      // Ashenzari, wrath timers
     DID_DESECRATE_HOLY_REMAINS,           // Zin/Ely/TSO/Yredelemnul
     DID_SEE_MONSTER,                      // TSO
-    DID_FIRE,                             // Dithmenos/Anadorath
-    DID_KILL_FIERY,                       // Dithmenos
     DID_SACRIFICE_LOVE,                   // Ru
     DID_CHANNEL,                          // Pakellas
     DID_HURT_FOE,                         // Uskayaw
-    DID_ICE,
-    DID_KILL_ICY,
-    DID_EARTH,
-    DID_KILL_EARTHY,
-    DID_AIR,
-    DID_KILL_AIRY,
-    DID_ANTIMAGIC,
+    DID_ANTIMAGIC,                        // Anadorath
+    DID_FIRE,                             // Anadorath
+    DID_KILL_FIERY,                       // Anadorath
+    DID_ICE,                              // Anadorath
+    DID_KILL_ICY,                         // Anadorath
+    DID_EARTH,                            // Anadorath
+    DID_KILL_EARTHY,                      // Anadorath
+    DID_AIR,                              // Anadorath
+    DID_KILL_AIRY,                        // Anadorath
     NUM_CONDUCTS
 };

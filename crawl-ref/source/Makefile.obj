@@ -45,7 +45,6 @@ dgl-message.o \
 dgn-delve.o \
 dgn-height.o \
 dgn-irregular-box.o \
-dgn-labyrinth.o \
 dgn-layouts.o \
 dgn-overview.o \
 dgn-proclayouts.o \
@@ -125,6 +124,7 @@ l-you.o \
 lang-fake.o \
 lev-pand.o \
 libutil.o \
+loading-screen.o \
 lookup-help.o \
 los.o \
 los-def.o \
@@ -163,6 +163,7 @@ mon-tentacle.o \
 mon-transit.o \
 mon-util.o \
 monster.o \
+movement.o \
 mutation.o \
 nearby-danger.o \
 newgame.o \
@@ -195,8 +196,9 @@ random.o \
 random-var.o \
 ranged-attack.o \
 ray.o \
-rot.o \
 religion.o \
+rot.o \
+scroller.o \
 shopping.o \
 shout.o \
 show.o \
@@ -242,6 +244,7 @@ transform.o \
 traps.o \
 travel.o \
 tutorial.o \
+ui.o \
 uncancel.o \
 unicode.o \
 view.o \
@@ -283,16 +286,13 @@ tilereg-grid.o \
 tilereg-inv.o \
 tilereg-map.o \
 tilereg-mem.o \
-tilereg-menu.o \
 tilereg-mon.o \
 tilereg-msg.o \
-tilereg-popup.o \
 tilereg-skl.o \
 tilereg-spl.o \
 tilereg-stat.o \
 tilereg-tab.o \
 tilereg-text.o \
-tilereg-title.o \
 tilesdl.o \
 tiletex.o \
 windowmanager-sdl.o \

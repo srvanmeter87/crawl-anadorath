@@ -10,6 +10,7 @@
 #include "cloud.h"
 #include "command.h"
 #include "coord.h"
+#include "describe.h"
 #include "directn.h"
 #include "dgn-height.h"
 #include "env.h"
@@ -24,13 +25,13 @@
 #include "nearby-danger.h"
 #include "options.h"
 #include "output.h"
-#include "process-desc.h"
 #include "prompt.h"
 #include "religion.h"
 #include "spl-book.h"
 #include "spl-cast.h"
 #include "spl-zap.h"
 #include "stash.h"
+#include "stringutil.h"
 #include "terrain.h"
 #include "tiledef-dngn.h"
 #include "tiledef-icons.h"
@@ -107,6 +108,10 @@ void DungeonRegion::pack_buffers()
 
     if (m_vbuf.empty())
         return;
+
+    coord_def m_vbuf_sz = m_vbuf.size();
+    ASSERT(m_vbuf_sz.x == crawl_view.viewsz.x);
+    ASSERT(m_vbuf_sz.y == crawl_view.viewsz.y);
 
     screen_cell_t *vbuf_cell = m_vbuf;
     for (int y = 0; y < crawl_view.viewsz.y; ++y)
@@ -188,9 +193,11 @@ void DungeonRegion::render()
     }
 
     set_transform();
+    glmanager->set_scissor(0, 0, tile_iw, tile_ih);
     m_buf_dngn.draw();
     draw_minibars();
     m_buf_flash.draw();
+    glmanager->reset_scissor();
 
     FixedArray<tag_def, ENV_SHOW_DIAMETER, ENV_SHOW_DIAMETER> tag_show;
 
@@ -355,6 +362,11 @@ void DungeonRegion::on_resize()
     // TODO enne
 }
 
+bool DungeonRegion::inside(int x, int y)
+{
+    return x >= 0 && y >= 0 && x <= tile_iw && y <= tile_ih;
+}
+
 // FIXME: If the player is targeted, the game asks the player to target
 // something with the mouse, then targets the player anyway and treats
 // mouse click as if it hadn't come during targeting (moves the player
@@ -363,7 +375,7 @@ static void _add_targeting_commands(const coord_def& pos)
 {
     // Force targeting cursor back onto center to start off on a clean
     // slate.
-    macro_buf_add_cmd(CMD_TARGET_FIND_YOU);
+    macro_sendkeys_end_add_cmd(CMD_TARGET_FIND_YOU);
 
     const coord_def delta = pos - you.pos();
 
@@ -375,7 +387,7 @@ static void _add_targeting_commands(const coord_def& pos)
         cmd = CMD_TARGET_RIGHT;
 
     for (int i = 0; i < abs(delta.x); i++)
-        macro_buf_add_cmd(cmd);
+        macro_sendkeys_end_add_cmd(cmd);
 
     if (delta.y < 0)
         cmd = CMD_TARGET_UP;
@@ -383,37 +395,37 @@ static void _add_targeting_commands(const coord_def& pos)
         cmd = CMD_TARGET_DOWN;
 
     for (int i = 0; i < abs(delta.y); i++)
-        macro_buf_add_cmd(cmd);
+        macro_sendkeys_end_add_cmd(cmd);
 
-    macro_buf_add_cmd(CMD_TARGET_MOUSE_SELECT);
+    macro_sendkeys_end_add_cmd(CMD_TARGET_MOUSE_SELECT);
 }
 
 static bool _is_appropriate_spell(spell_type spell, const actor* target)
 {
     ASSERT(is_valid_spell(spell));
 
-    const unsigned int flags    = get_spell_flags(spell);
-    const bool         targeted = flags & SPFLAG_TARGETING_MASK;
+    const spell_flags  flags    = get_spell_flags(spell);
+    const bool         targeted = testbits(flags, spflag::targeting_mask);
 
     // All spells are blocked by transparent walls.
     if (targeted && !you.see_cell_no_trans(target->pos()))
         return false;
 
-    const bool helpful = flags & SPFLAG_HELPFUL;
+    const bool helpful = testbits(flags, spflag::helpful);
 
     if (target->is_player())
     {
-        if (flags & SPFLAG_NOT_SELF)
+        if (flags & spflag::not_self)
             return false;
 
-        return (flags & (SPFLAG_HELPFUL | SPFLAG_ESCAPE | SPFLAG_RECOVERY))
+        return (flags & (spflag::helpful | spflag::escape | spflag::recovery))
                || !targeted;
     }
 
     if (!targeted)
         return false;
 
-    if (flags & SPFLAG_NEUTRAL)
+    if (flags & spflag::neutral)
         return false;
 
     bool friendly = target->as_monster()->wont_attack();
@@ -424,7 +436,7 @@ static bool _is_appropriate_spell(spell_type spell, const actor* target)
 static bool _is_appropriate_evokable(const item_def& item,
                                      const actor* target)
 {
-    if (!item_is_evokable(item, false, false, true))
+    if (!item_is_evokable(item, false))
         return false;
 
     // Only wands for now.
@@ -470,7 +482,7 @@ static item_def* _get_evokable_item(const actor* target)
 
     InvMenu menu(MF_SINGLESELECT | MF_ANYPRINTABLE
                  | MF_ALLOW_FORMATTING | MF_SELECT_BY_PAGE);
-    menu.set_type(MT_ANY);
+    menu.set_type(menu_type::any);
     menu.set_title("Wand to zap?");
     menu.load_items(list);
     menu.show();
@@ -497,14 +509,15 @@ static bool _evoke_item_on_target(actor* target)
 
     if (item == nullptr)
         return false;
-
+#if TAG_MAJOR_VERSION == 34
     if (is_known_empty_wand(*item))
     {
         mpr("That wand is empty.");
         return false;
     }
+#endif
 
-    macro_buf_add_cmd(CMD_EVOKE);
+    macro_sendkeys_end_add_cmd(CMD_EVOKE);
     macro_buf_add(index_to_letter(item->link)); // Inventory letter.
     _add_targeting_commands(target->pos());
     return true;
@@ -512,7 +525,7 @@ static bool _evoke_item_on_target(actor* target)
 
 static bool _spell_in_range(spell_type spell, actor* target)
 {
-    if (!(get_spell_flags(spell) & SPFLAG_TARGETING_MASK))
+    if (!(get_spell_flags(spell) & spflag::targeting_mask))
         return true;
 
     int range = calc_spell_range(spell);
@@ -588,10 +601,10 @@ static bool _cast_spell_on_target(actor* target)
         return true;
     }
 
-    macro_buf_add_cmd(CMD_FORCE_CAST_SPELL);
+    macro_sendkeys_end_add_cmd(CMD_FORCE_CAST_SPELL);
     macro_buf_add(letter);
 
-    if (get_spell_flags(spell) & SPFLAG_TARGETING_MASK)
+    if (get_spell_flags(spell) & spflag::targeting_mask)
         _add_targeting_commands(target->pos());
 
     return true;
@@ -632,7 +645,7 @@ static bool _handle_distant_monster(monster* mon, unsigned char mod)
         && (shift || weapon && is_range_weapon(*weapon)
                      && !mon->wont_attack()))
     {
-        macro_buf_add_cmd(CMD_FIRE);
+        macro_sendkeys_end_add_cmd(CMD_FIRE);
         _add_targeting_commands(mon->pos());
         return true;
     }
@@ -648,7 +661,7 @@ static bool _handle_distant_monster(monster* mon, unsigned char mod)
 
         if (dist > 1 && weapon && weapon_reach(*weapon) >= dist)
         {
-            macro_buf_add_cmd(CMD_EVOKE_WIELDED);
+            macro_sendkeys_end_add_cmd(CMD_EVOKE_WIELDED);
             _add_targeting_commands(mon->pos());
             return true;
         }
@@ -716,12 +729,8 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         return 0;
 
 #ifdef TOUCH_UI
-    if (event.event == MouseEvent::PRESS
-        && (event.mod & TILES_MOD_CTRL)
-        && (event.button == MouseEvent::SCROLL_UP || event.button == MouseEvent::SCROLL_DOWN))
-    {
+    if (event.event == MouseEvent::WHEEL && (event.mod & TILES_MOD_CTRL))
         zoom(event.button == MouseEvent::SCROLL_UP);
-    }
 #endif
 
     if (mouse_control::current_mode() == MOUSE_MODE_NORMAL
@@ -738,8 +747,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         return CK_MOUSE_CLICK;
     }
 
-    if (mouse_control::current_mode() == MOUSE_MODE_NORMAL
-        || mouse_control::current_mode() == MOUSE_MODE_MACRO
+    if (mouse_control::current_mode() == MOUSE_MODE_MACRO
         || mouse_control::current_mode() == MOUSE_MODE_MORE
         || mouse_control::current_mode() == MOUSE_MODE_PROMPT
         || mouse_control::current_mode() == MOUSE_MODE_YESNO)
@@ -777,6 +785,9 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         if (!desc.empty())
             tiles.add_text_tag(TAG_CELL_DESC, desc, gc);
     }
+
+    if (mouse_control::current_mode() == MOUSE_MODE_NORMAL)
+        return 0;
 
     if (!on_map)
         return 0;
@@ -1004,7 +1015,7 @@ bool DungeonRegion::update_tip_text(string &tip)
             tip += make_stringf("GC(%d, %d) EP(%d, %d)\n",
                                 gc.x, gc.y, ep.x, ep.y);
 
-            if (env.heightmap.get())
+            if (env.heightmap)
                 tip += make_stringf("HEIGHT(%d)\n", dgn_height_at(gc));
 
             tip += "\n";
@@ -1013,7 +1024,7 @@ bool DungeonRegion::update_tip_text(string &tip)
         else
         {
             tip += make_stringf("GC(%d, %d) [out of sight]\n", gc.x, gc.y);
-            if (env.heightmap.get())
+            if (env.heightmap)
                 tip += make_stringf("HEIGHT(%d)\n", dgn_height_at(gc));
             tip += "\n";
         }
@@ -1277,10 +1288,7 @@ bool DungeonRegion::update_alt_text(string &alt)
             inf.body << "\n" << stash;
     }
 
-    alt_desc_proc proc(crawl_view.msgsz.x, crawl_view.msgsz.y);
-    process_description<alt_desc_proc>(proc, inf);
-
-    proc.get_string(alt);
+    alt = process_description(inf);
 
     // Suppress floor description
     if (alt == "Floor.")

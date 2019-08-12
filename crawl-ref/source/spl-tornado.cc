@@ -115,7 +115,7 @@ static void _set_tornado_durations(int powc)
     }
 }
 
-spret_type cast_tornado(int powc, bool fail)
+spret cast_tornado(int powc, bool fail)
 {
     bool friendlies = false;
     for (radius_iterator ri(you.pos(), TORNADO_RADIUS, C_SQUARE); ri; ++ri)
@@ -124,7 +124,7 @@ spret_type cast_tornado(int powc, bool fail)
         if (!m)
             continue;
         if (mons_att_wont_attack(m->attitude)
-            && !mons_class_res_wind(m->type)
+            && !mons_class_res_tornado(m->type)
             && !mons_is_projectile(m->type))
         {
             friendlies = true;
@@ -136,7 +136,7 @@ spret_type cast_tornado(int powc, bool fail)
                   true, 'n'))
     {
         canned_msg(MSG_OK);
-        return SPRET_ABORT;
+        return spret::abort;
     }
 
     fail_check();
@@ -153,7 +153,7 @@ spret_type cast_tornado(int powc, bool fail)
     if (you.species == SP_TENGU)
         you.redraw_evasion = true;
 
-    return SPRET_SUCCESS;
+    return spret::success;
 }
 
 static bool _mons_is_unmovable(const monster *mons)
@@ -228,10 +228,15 @@ static int _rdam(int rage)
         return rage * 10 - 50;
 }
 
-static int _tornado_age(const actor *caster)
+static int _tornado_age(const actor *caster, bool is_vortex = false)
 {
-    if (caster->props.exists("tornado_since"))
-        return you.elapsed_time - caster->props["tornado_since"].get_int();
+    string name;
+    if (is_vortex)
+        name = "vortex_since";
+    else
+        name = "tornado_since";
+    if (caster->props.exists(name.c_str()))
+        return you.elapsed_time - caster->props[name.c_str()].get_int();
     return 100; // for permanent tornadoes
 }
 
@@ -245,17 +250,23 @@ static int _age_needed(int r)
     return sqr(r) * 7 / 5;
 }
 
-void tornado_damage(actor *caster, int dur)
+void tornado_damage(actor *caster, int dur, bool is_vortex)
 {
+    ASSERT(!(is_vortex && caster->is_player()));
+
     if (!dur)
         return;
 
     int pow;
+    const int max_radius = is_vortex ? VORTEX_RADIUS : TORNADO_RADIUS;
+
     // Not stored so unwielding that staff will reduce damage.
     if (caster->is_player())
         pow = calc_spell_power(SPELL_TORNADO, true);
     else
-        pow = caster->as_monster()->get_hit_dice() * 4;
+        // Note that this spellpower multiplier for Vortex is based on Air
+        // Elementals, which have low HD.
+        pow = caster->as_monster()->get_hit_dice() * (is_vortex ? 12 : 4);
     dprf("Doing tornado, dur %d, effective power %d", dur, pow);
     const coord_def org = caster->pos();
     int noise = 0;
@@ -264,18 +275,18 @@ void tornado_damage(actor *caster, int dur)
     const coord_def old_player_pos = you.pos();
     coord_def new_player_pos = old_player_pos;
 
-    int age = _tornado_age(caster);
+    int age = _tornado_age(caster, is_vortex);
     ASSERT(age >= 0);
 
     vector<coord_def>     move_avail; // legal destinations
     map<mid_t, coord_def> move_dest;  // chosen destination
-    int rdurs[TORNADO_RADIUS+1];           // durations at radii
+    int rdurs[TORNADO_RADIUS + 1];    // durations at radii
     int cnt_open = 0;
     int cnt_all  = 0;
 
     distance_iterator count_i(org, false);
     distance_iterator dam_i(org, true);
-    for (int r = 1; r <= TORNADO_RADIUS; r++)
+    for (int r = 1; r <= max_radius; r++)
     {
         while (count_i && count_i.radius() == r)
         {
@@ -342,7 +353,7 @@ void tornado_damage(actor *caster, int dur)
                 leda = victim->liquefied_ground()
                        || victim->is_monster()
                           && _mons_is_unmovable(victim->as_monster());
-                if (!victim->res_wind())
+                if (!victim->res_tornado())
                 {
                     if (victim->is_monster())
                     {
@@ -375,7 +386,7 @@ void tornado_damage(actor *caster, int dur)
                     {
                         int dmg = victim->apply_ac(
                                     div_rand_round(roll_dice(9, rpow), 15),
-                                    0, AC_PROPORTIONAL);
+                                    0, ac_type::proportional);
                         dprf("damage done: %d", dmg);
                         victim->hurt(caster, dmg, BEAM_AIR, KILLED_BY_BEAM,
                                      "", "tornado");

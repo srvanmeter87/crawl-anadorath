@@ -9,6 +9,8 @@
 
 #include "command-type.h"
 #include "disable-type.h"
+#include "end.h"
+#include "game-exit-type.h"
 #include "player.h"
 
 class monster;
@@ -35,6 +37,8 @@ struct game_state
 
     bool game_crashed;      // The game crashed and is now in the process of
                             // dumping crash info.
+    bool crash_debug_scans_safe; // should the crash handler run various debug
+                                 // scans?
 
     bool mouse_enabled;     // True if mouse input is currently relevant.
 
@@ -43,8 +47,11 @@ struct game_state
                              // take action to handle it.
     time_t last_winch;       // Time of last resize, for crash dumps.
 
+    uint64_t seed;
+
     bool io_inited;         // Is curses or the equivalent initialised?
-    bool need_save;         // Set to true when game has started.
+    bool need_save;         // Set to true when game can be saved, false when the game ends.
+    bool game_started;      // Set to true when a game has started.
     bool saving_game;       // Set to true while in save_game.
     bool updating_scores;   // Set to true while updating hiscores.
     const char* no_gdb;     // reason for not running gdb
@@ -56,9 +63,12 @@ struct game_state
                                    // under mapstat.
     bool obj_stat_gen;      // Set if we're generating object stats.
 
+    string force_map;       // Set if we're forcing a specific map to generate.
+
     game_type type;
     game_type last_type;
-    bool last_game_won;
+    game_ended_condition last_game_exit;
+    bool marked_as_won;
     bool arena_suspended;   // Set if the arena has been temporarily
                             // suspended.
     bool generating_level;
@@ -72,6 +82,7 @@ struct game_state
     vector<string> script_args;    // Arguments to scripts.
 
     bool throttle;
+    bool bypassed_startup_menu;
 
     bool show_more_prompt;  // Set to false to disable --more-- prompts.
 
@@ -94,7 +105,7 @@ struct game_state
     int             lua_calls_no_turn;
     bool            stat_gain_prompt;
 
-    vector<string> startup_errors;
+    bool            simulating_xp_gain; // is the skill menu in xp potion mode?
 
     bool level_annotation_shown;
     bool viewport_monster_hp;
@@ -123,6 +134,11 @@ struct game_state
     // character has been loaded from a previous save.
     std::string save_rcs_version;
 
+    string default_startup_name;
+
+    // Should flushing a nonempty key buffer error or crash? Used for tests.
+    bool nonempty_buffer_flush_errors;
+
 protected:
     void reset_cmd_repeat();
     void reset_cmd_again();
@@ -136,15 +152,16 @@ protected:
 public:
     game_state();
 
+    void reset_game();
+
     void add_startup_error(const string &error);
-    void show_startup_errors();
 
     bool is_replaying_keys() const;
 
     bool is_repeating_cmd() const;
 
-    void cancel_cmd_repeat(string reason = "");
-    void cancel_cmd_again(string reason = "");
+    void cancel_cmd_repeat(string reason = "", bool force=false);
+    void cancel_cmd_again(string reason = "", bool force=false);
     void cancel_cmd_all(string reason = "");
 
     void cant_cmd_repeat(string reason = "");
@@ -181,6 +198,7 @@ public:
     bool player_is_dead() const;
 
     bool game_standard_levelgen() const;
+    bool game_is_valid_type() const;
     bool game_is_normal() const;
     bool game_is_tutorial() const;
     bool game_is_arena() const;
@@ -197,7 +215,7 @@ public:
 
     inline void mark_last_game_won()
     {
-        last_game_won = true;
+        marked_as_won = true;
     }
 
     friend class mon_acting;
@@ -248,5 +266,5 @@ private:
     monster* mon;
 };
 
-bool interrupt_cmd_repeat(activity_interrupt_type ai,
+bool interrupt_cmd_repeat(activity_interrupt ai,
                           const activity_interrupt_data &at);

@@ -1,0 +1,150 @@
+enum: SP_PYROLITH
+monster: MONS_MOLTEN_GARGOYLE
+name: Pyrolith
+short_name: Py
+adjective: Pyrolithic
+difficulty: Advanced
+difficulty_priority: 30
+species_flags:
+  - hairless
+aptitudes:
+  xp: -2
+  hp: 5
+  mp_mod: 2
+  mr: 4
+  fighting: 3
+  short_blades: -3
+  long_blades: 2
+  maces_and_flails: -2
+  axes: 0
+  polearms: 2
+  staves: -2
+  unarmed_combat: 4
+  bows: -3
+  crossbows: 0
+  throwing: 4
+  slings: -3
+  armour: 4
+  dodging: -10
+  shields: 5
+  spellcasting: 2
+  conjurations: 1
+  hexes: -1
+  charms: -1
+  summoning: 0
+  necromancy: -6
+  translocations: -4
+  transmutations: -2
+  fire_magic: 4
+  ice_magic: false
+  air_magic: false
+  earth_magic: 3
+  poison_magic: -6
+  invocations: 3
+  evocations: 2
+  stealth: -10
+can_swim: false
+size: giant
+str: 12
+int: 11
+dex: 3
+levelup_stat_frequency: 3
+levelup_stats:
+  - str
+  - int
+mutations:
+  1:
+    MUT_COLD_VULNERABILITY: 1
+    MUT_FLAME_CLOUD_IMMUNITY: 1
+    MUT_HEAT_RESISTANCE: 2
+    MUT_MUTATION_RESISTANCE: 1
+    MUT_NO_AIR_MAGIC: 1
+    MUT_NO_ICE_MAGIC: 1
+    MUT_PASSIVE_MAPPING: 1
+    MUT_PETRIFICATION_RESISTANCE: 1
+    MUT_POISON_RESISTANCE: 1
+    MUT_ROBUST: 1
+    MUT_ROT_IMMUNITY: 1
+    MUT_SLOW: 1
+    MUT_SLOW_REFLEXES: 1
+    MUT_SPINY: 1
+    MUT_TRAMPLE_RESISTANCE: 1
+    MUT_UNBREATHING: 1
+  3:
+    MUT_AUGMENTATION: 1
+    MUT_FUMES: 1
+    MUT_WILD_MAGIC: 1
+  5:
+    MUT_BERSERK: 1
+    MUT_COLD_VULNERABILITY: 1
+    MUT_MAGIC_RESISTANCE: 1
+  7:
+    MUT_ROBUST: 1
+    MUT_THIN_METALLIC_SCALES: 1
+  9:
+    MUT_NEGATIVE_ENERGY_RESISTANCE: 1
+    MUT_PASSIVE_MAPPING: 1
+    MUT_WILD_MAGIC: 1
+  10:
+    MUT_BERSERK: 1
+    MUT_COLD_VULNERABILITY: 1
+    MUT_STRONG: 1
+  11:
+    MUT_HEAT_RESISTANCE: 1
+    MUT_SLOW: 1
+    MUT_SPINY: 1
+  13:
+    MUT_AUGMENTATION: 1
+    MUT_FUMES: 1
+    MUT_THIN_METALLIC_SCALES: 1
+  15:
+    MUT_IGNITE_BLOOD: 1
+    MUT_SLOW_REFLEXES: 1
+    MUT_STOCHASTIC_TORMENT_RESISTANCE: 1
+  17:
+    MUT_PASSIVE_MAPPING: 1
+    MUT_ROBUST: 1
+  19:
+    MUT_HURL_DAMNATION: 1
+    MUT_STRONG: 1
+    MUT_THIN_METALLIC_SCALES: 1
+  21:
+    MUT_MAGIC_RESISTANCE: 1
+    MUT_SLOW: 1
+    MUT_SPINY: 1
+  23:
+    MUT_AUGMENTATION: 1
+    MUT_FUMES: 1
+    MUT_WILD_MAGIC: 1
+  25:
+    MUT_MAGIC_RESISTANCE: 1
+    MUT_SLOW_REFLEXES: 1
+fake_mutations:
+  - long: You are composed entirely of tempered lava.
+    short: lava elemental
+  - long: Most other elemental magics elude you.
+    short: elemental befuddlement
+  - long: Your gigantic molten body glows in the dark, making stealth impossible.
+    short: molten glow
+recommended_jobs:
+  - JOB_ARCANE_MARKSMAN
+  - JOB_CONJURER
+  - JOB_EARTH_ELEMENTALIST
+  - JOB_FIGHTER
+  - JOB_FIRE_ELEMENTALIST
+  - JOB_GLADIATOR
+  - JOB_HUNTER
+  - JOB_PRIMALIST
+  - JOB_SKALD
+  - JOB_WANDERER
+  - JOB_WIZARD
+recommended_weapons:
+  - SK_LONG_BLADES
+  - SK_AXES
+  - SK_POLEARMS
+  - SK_STAVES
+  - SK_CROSSBOWS
+  - SK_THROWING
+walking_verb: thump
+altar_action: tower over
+create_enum: true

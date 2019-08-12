@@ -23,34 +23,45 @@
 #include "monster.h"
 #include "player.h"
 #include "religion.h"
+#include "scroller.h"
 #include "showsymb.h"
 #include "unwind.h"
 
 game_state::game_state()
-    : game_crashed(false), mouse_enabled(false), waiting_for_command(false),
-      terminal_resized(false), last_winch(0), io_inited(false),
-      need_save(false), saving_game(false), updating_scores(false),
+    : game_crashed(false), crash_debug_scans_safe(true),
+      mouse_enabled(false), waiting_for_command(false),
+      terminal_resized(false), last_winch(0),
+      seed(0),
+      io_inited(false),
+      need_save(false), game_started(false), saving_game(false),
+      updating_scores(false),
       seen_hups(0), map_stat_gen(false), map_stat_dump_disconnect(false),
       obj_stat_gen(false), type(GAME_TYPE_NORMAL),
-      last_type(GAME_TYPE_UNSPECIFIED), arena_suspended(false),
+      last_type(GAME_TYPE_UNSPECIFIED), last_game_exit(game_exit::unknown),
+      marked_as_won(false), arena_suspended(false),
       generating_level(false), dump_maps(false), test(false), script(false),
       build_db(false), tests_selected(),
 #ifdef DGAMELAUNCH
       throttle(true),
+      bypassed_startup_menu(true),
 #else
       throttle(false),
+      bypassed_startup_menu(false),
 #endif
       show_more_prompt(true), terminal_resize_handler(nullptr),
       terminal_resize_check(nullptr), doing_prev_cmd_again(false),
       prev_cmd(CMD_NO_CMD), repeat_cmd(CMD_NO_CMD),
       cmd_repeat_started_unsafe(false), lua_calls_no_turn(0),
-      stat_gain_prompt(false), level_annotation_shown(false),
+      stat_gain_prompt(false), simulating_xp_gain(false),
+      level_annotation_shown(false),
       viewport_monster_hp(false), viewport_weapons(false),
       tiles_disabled(false),
       title_screen(true),
       invisible_targeting(false),
       darken_range(nullptr), unsaved_macros(false), disables(),
-      minor_version(-1), save_rcs_version(), mon_act(nullptr)
+      minor_version(-1), save_rcs_version(),
+      nonempty_buffer_flush_errors(false),
+      mon_act(nullptr)
 {
     reset_cmd_repeat();
     reset_cmd_again();
@@ -61,26 +72,21 @@ game_state::game_state()
 #endif
 }
 
-void game_state::add_startup_error(const string &err)
+/**
+ * Cleanup for when the game is reset.
+ *
+ * @see main.cc:_reset_game()
+ */
+void game_state::reset_game()
 {
-    startup_errors.push_back(err);
-}
-
-void game_state::show_startup_errors()
-{
-    formatted_scroller error_menu;
-    error_menu.set_flags(MF_NOSELECT | MF_ALWAYS_SHOW_MORE | MF_NOWRAP
-                         | MF_EASY_EXIT);
-    error_menu.set_more(
-        formatted_string::parse_string(
-                           "<cyan>[ + : Page down.   - : Page up."
-                           "                    Esc or Enter to continue.]"));
-    error_menu.set_title(
-        new MenuEntry("Warning: Crawl encountered errors during startup:",
-                      MEL_TITLE));
-    for (const string &err : startup_errors)
-        error_menu.add_entry(new MenuEntry(err));
-    error_menu.show();
+    game_started = false;
+    // need_save is unset by death, but not by saving with restart_after_save.
+    need_save = false;
+    type = GAME_TYPE_UNSPECIFIED;
+    updating_scores = false;
+    clear_mon_acting();
+    reset_cmd_repeat();
+    reset_cmd_again();
 }
 
 ///////////////////////////////////////////////////////////////////////////
@@ -97,9 +103,9 @@ bool game_state::is_repeating_cmd() const
     return repeat_cmd != CMD_NO_CMD;
 }
 
-void game_state::cancel_cmd_repeat(string reason)
+void game_state::cancel_cmd_repeat(string reason, bool force)
 {
-    if (!is_repeating_cmd())
+    if (!force && !is_repeating_cmd())
         return;
 
     if (repeat_cmd == CMD_WIZARD)
@@ -131,12 +137,13 @@ void game_state::cancel_cmd_repeat(string reason)
         mpr(reason);
 }
 
-void game_state::cancel_cmd_again(string reason)
+void game_state::cancel_cmd_again(string reason, bool force)
 {
-    if (!doing_prev_cmd_again)
+    if (!force && !doing_prev_cmd_again)
         return;
 
-    flush_input_buffer(FLUSH_KEY_REPLAY_CANCEL);
+    if (is_replaying_keys() || cmd_repeat_start)
+        flush_input_buffer(FLUSH_KEY_REPLAY_CANCEL);
 
     if (is_processing_macro())
         flush_input_buffer(FLUSH_ABORT_MACRO);
@@ -186,7 +193,7 @@ void game_state::zero_turns_taken()
     cancel_cmd_repeat();
 }
 
-bool interrupt_cmd_repeat(activity_interrupt_type ai,
+bool interrupt_cmd_repeat(activity_interrupt ai,
                            const activity_interrupt_data &at)
 {
     if (crawl_state.cmd_repeat_start)
@@ -197,12 +204,12 @@ bool interrupt_cmd_repeat(activity_interrupt_type ai,
 
     switch (ai)
     {
-    case AI_HUNGRY:
-    case AI_TELEPORT:
-    case AI_FORCE_INTERRUPT:
-    case AI_HP_LOSS:
-    case AI_MONSTER_ATTACKS:
-    case AI_MIMIC:
+    case activity_interrupt::hungry:
+    case activity_interrupt::teleport:
+    case activity_interrupt::force:
+    case activity_interrupt::hp_loss:
+    case activity_interrupt::monster_attacks:
+    case activity_interrupt::mimic:
         crawl_state.cancel_cmd_repeat("Command repetition interrupted.");
         return true;
 
@@ -210,7 +217,7 @@ bool interrupt_cmd_repeat(activity_interrupt_type ai,
         break;
     }
 
-    if (ai == AI_SEE_MONSTER)
+    if (ai == activity_interrupt::see_monster)
     {
         const monster* mon = at.mons_data;
         ASSERT(mon);
@@ -255,9 +262,9 @@ bool interrupt_cmd_repeat(activity_interrupt_type ai,
     // then everything interrupts it.
     if (crawl_state.repeat_cmd == CMD_WAIT)
     {
-        if (ai == AI_FULL_MP)
+        if (ai == activity_interrupt::full_mp)
             crawl_state.cancel_cmd_repeat("Magic restored.");
-        else if (ai == AI_FULL_HP)
+        else if (ai == activity_interrupt::full_hp)
             crawl_state.cancel_cmd_repeat("HP restored");
         else
             crawl_state.cancel_cmd_repeat("Command repetition interrupted.");
@@ -268,7 +275,7 @@ bool interrupt_cmd_repeat(activity_interrupt_type ai,
     if (crawl_state.cmd_repeat_started_unsafe)
         return false;
 
-    if (ai == AI_HIT_MONSTER)
+    if (ai == activity_interrupt::hit_monster)
     {
         // This check is for when command repetition is used to
         // whack away at a 0xp monster, since the player feels safe
@@ -487,14 +494,6 @@ void game_state::dump()
     unwind_var<game_type> _type(type, GAME_TYPE_NORMAL);
     unwind_bool _arena_suspended(arena_suspended, false);
 
-    if (!startup_errors.empty())
-    {
-        fprintf(stderr, "Startup errors:\n");
-        for (const string &err : startup_errors)
-            fprintf(stderr, "%s\n", err.c_str());
-        fprintf(stderr, "\n");
-    }
-
     fprintf(stderr, "prev_cmd = %s\n", command_to_name(prev_cmd).c_str());
 
     if (doing_prev_cmd_again)
@@ -554,33 +553,39 @@ bool game_state::game_standard_levelgen() const
     return game_is_normal() || game_is_hints();
 }
 
+bool game_state::game_is_valid_type() const
+{
+    return type < NUM_GAME_TYPE;
+}
+
 bool game_state::game_is_normal() const
 {
-    ASSERT(type < NUM_GAME_TYPE);
-    return type == GAME_TYPE_NORMAL || type == GAME_TYPE_UNSPECIFIED;
+    ASSERT(game_is_valid_type());
+    return type == GAME_TYPE_NORMAL || type == GAME_TYPE_CUSTOM_SEED
+                                    || type == GAME_TYPE_UNSPECIFIED;
 }
 
 bool game_state::game_is_tutorial() const
 {
-    ASSERT(type < NUM_GAME_TYPE);
+    ASSERT(game_is_valid_type());
     return type == GAME_TYPE_TUTORIAL;
 }
 
 bool game_state::game_is_arena() const
 {
-    ASSERT(type < NUM_GAME_TYPE);
+    ASSERT(game_is_valid_type());
     return type == GAME_TYPE_ARENA;
 }
 
 bool game_state::game_is_sprint() const
 {
-    ASSERT(type < NUM_GAME_TYPE);
+    ASSERT(game_is_valid_type());
     return type == GAME_TYPE_SPRINT;
 }
 
 bool game_state::game_is_hints() const
 {
-    ASSERT(type < NUM_GAME_TYPE);
+    ASSERT(game_is_valid_type());
     return type == GAME_TYPE_HINTS;
 }
 
@@ -604,22 +609,30 @@ string game_state::game_type_name_for(game_type _type)
     default:
         // No explicit game type name for default game.
         return "";
+    case GAME_TYPE_CUSTOM_SEED:
+        return "Seeded";
     case GAME_TYPE_TUTORIAL:
         return "Tutorial";
     case GAME_TYPE_ARENA:
         return "Arena";
     case GAME_TYPE_SPRINT:
         return "Dungeon Sprint";
+    case NUM_GAME_TYPE:
+        return "Unknown";
     }
 }
 
 string game_state::game_savedir_path() const
 {
+    if (!game_is_valid_type())
+        return ""; // a game from the future -- avoid the ASSERT below
     return game_is_sprint()? "sprint/" : "";
 }
 
 string game_state::game_type_qualifier() const
 {
+    if (type == GAME_TYPE_CUSTOM_SEED)
+        return "-seeded";
     if (crawl_state.game_is_sprint())
         return "-sprint";
     if (crawl_state.game_is_tutorial())

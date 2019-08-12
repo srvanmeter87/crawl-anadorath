@@ -23,7 +23,6 @@ class Region;
 class CRTRegion;
 class CRTRegionSingleSelect;
 class MenuRegion;
-class PopupRegion;
 class TileRegion;
 class DungeonRegion;
 class GridRegion;
@@ -39,7 +38,6 @@ class ActorRegion;
 class TabbedRegion;
 class MapRegion;
 class ControlRegion;
-class TitleRegion;
 class DollEditRegion;
 class StatRegion;
 class MessageRegion;
@@ -63,39 +61,23 @@ enum tiles_key_mod
     TILES_MOD_ALT   = 0x4,
 };
 
-struct MouseEvent
+#include "windowmanager.h"
+
+struct HiDPIState
 {
-    enum mouse_event_type
-    {
-        PRESS,
-        RELEASE,
-        MOVE,
-    };
+    HiDPIState(int device_density, int logical_density);
+    int logical_to_device(int n) const;
+    int device_to_logical(int n, bool round=true) const;
+    float scale_to_logical() const;
+    float scale_to_device() const;
+    bool update(int ndevice, int nlogical);
 
-    enum mouse_event_button
-    {
-        NONE        = 0x00,
-        LEFT        = 0x01,
-        MIDDLE      = 0x02,
-        RIGHT       = 0x04,
-        SCROLL_UP   = 0x08,
-        SCROLL_DOWN = 0x10,
-    };
+    int get_device() const { return device; };
+    int get_logical() const { return logical; };
 
-    // Padding for ui_event
-    unsigned char type;
-
-    // kind of event
-    mouse_event_type event;
-    // if PRESS or RELEASE, the button pressed
-    mouse_event_button button;
-    // bitwise-or of buttons currently pressed
-    unsigned short held;
-    // bitwise-or of key mods currently pressed
-    unsigned char mod;
-    // location of events in pixels and in window coordinate space
-    unsigned int px;
-    unsigned int py;
+private:
+    int device;
+    int logical;
 };
 
 class FontWrapper;
@@ -113,12 +95,14 @@ public:
     void load_dungeon(const coord_def &gc);
     int getch_ck();
     void resize();
+    void resize_event(int w, int h);
     void layout_statcol();
     void calculate_default_options();
     void clrscr();
 
     void cgotoxy(int x, int y, GotoRegion region = GOTO_CRT);
     GotoRegion get_cursor_region() const;
+    void set_cursor_region(GotoRegion region);
     int get_number_of_lines();
     int get_number_of_cols();
     bool is_using_small_layout();
@@ -137,6 +121,9 @@ public:
     void set_need_redraw(unsigned int min_tick_delay = 0);
     bool need_redraw() const;
     void redraw();
+    bool update_dpi();
+
+    void render_current_regions();
 
     void place_cursor(cursor_type type, const coord_def &gc);
     void clear_text_tags(text_tag_type type);
@@ -151,36 +138,29 @@ public:
     void add_overlay(const coord_def &gc, tileidx_t idx);
     void clear_overlays();
 
-    void draw_title();
-    void update_title_msg(string load_msg);
-    void hide_title();
-
     void draw_doll_edit();
 
-    int draw_popup(Popup *popup);
     void set_map_display(const bool display);
     bool get_map_display();
     void do_map_display();
 
-    MenuRegion *get_menu() { return m_region_menu; }
     bool is_fullscreen() { return m_fullscreen; }
 
+    bool fonts_initialized();
     FontWrapper* get_crt_font() { return m_fonts.at(m_crt_font).font; }
     CRTRegion* get_crt() { return m_region_crt; }
     const ImageManager* get_image_manager() { return m_image; }
     int to_lines(int num_tiles, int tile_height = TILE_Y);
 protected:
+    void reconfigure_fonts();
     int load_font(const char *font_file, int font_size,
-                  bool default_on_fail, bool outline);
+                  bool default_on_fail);
     int handle_mouse(MouseEvent &event);
 
-    void use_control_region(ControlRegion *region, bool use_control_layer = true);
     bool m_map_mode_enabled;
 
     // screen pixel dimensions
     coord_def m_windowsz;
-    // screen pixel density ratio
-    int densityNum, densityDen;
     // screen pixels per view cell
     coord_def m_viewsc;
 
@@ -234,13 +214,11 @@ protected:
 
     // Full-screen CRT layer
     CRTRegion       *m_region_crt;
-    MenuRegion      *m_region_menu;
 
     struct font_info
     {
         string name;
         int size;
-        bool outline;
         FontWrapper *font;
     };
     vector<font_info> m_fonts;
@@ -262,13 +240,10 @@ protected:
     void autosize_minimap();
     void place_minimap();
     void resize_inventory();
-    void place_gold_turns();
 
     ImageManager *m_image;
 
     // Mouse state.
-    unsigned short m_buttons_held;
-    unsigned char m_key_mod;
     coord_def m_mouse;
     unsigned int m_last_tick_moved;
     unsigned int m_last_tick_redraw;
@@ -303,5 +278,6 @@ protected:
 
 // Main interface for tiles functions
 extern TilesFramework tiles;
+extern HiDPIState display_density;
 
 #endif

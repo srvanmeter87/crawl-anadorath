@@ -295,10 +295,13 @@ unsigned int item_value(item_def item, bool ident)
                 break;
 
             case SPMSL_CURARE:
+            case SPMSL_BLINDING:
+            case SPMSL_SILVER:
+#if TAG_MAJOR_VERSION == 34
             case SPMSL_PARALYSIS:
             case SPMSL_PENETRATION:
-            case SPMSL_SILVER:
             case SPMSL_STEEL:
+#endif
             case SPMSL_DISPERSAL:
                 valued *= 30;
                 break;
@@ -306,16 +309,16 @@ unsigned int item_value(item_def item, bool ident)
 #if TAG_MAJOR_VERSION == 34
             case SPMSL_FLAME:
             case SPMSL_FROST:
-#endif
             case SPMSL_SLEEP:
             case SPMSL_CONFUSION:
                 valued *= 25;
                 break;
+#endif
 
-            case SPMSL_EXPLODING:
             case SPMSL_POISONED:
-            case SPMSL_RETURNING:
 #if TAG_MAJOR_VERSION == 34
+            case SPMSL_RETURNING:
+            case SPMSL_EXPLODING:
             case SPMSL_SLOW:
             case SPMSL_SICKNESS:
 #endif
@@ -418,7 +421,6 @@ unsigned int item_value(item_def item, bool ident)
                 break;
 
             case WAND_ICEBLAST:
-            case WAND_LIGHTNING:
             case WAND_DISINTEGRATION:
                 valued += 40;
                 good = true;
@@ -428,10 +430,6 @@ unsigned int item_value(item_def item, bool ident)
             case WAND_POLYMORPH:
             case WAND_PARALYSIS:
                 valued += 20;
-                break;
-
-            case WAND_CONFUSION:
-                valued += 15;
                 break;
 
             case WAND_FLAME:
@@ -520,8 +518,8 @@ unsigned int item_value(item_def item, bool ident)
             case POT_PORRIDGE:
             case POT_SLOWING:
             case POT_DECAY:
-#endif
             case POT_BLOOD:
+#endif
             case POT_DEGENERATION:
                 valued += 10;
                 break;
@@ -538,17 +536,8 @@ unsigned int item_value(item_def item, bool ident)
     case OBJ_FOOD:
         switch (item.sub_type)
         {
-        case FOOD_MEAT_RATION:
-        case FOOD_BREAD_RATION:
+        case FOOD_RATION:
             valued = 50;
-            break;
-
-        case FOOD_ROYAL_JELLY:
-            valued = 20;
-            break;
-
-        case FOOD_FRUIT:
-            valued = 15;
             break;
 
         case FOOD_CHUNK:
@@ -570,10 +559,11 @@ unsigned int item_value(item_def item, bool ident)
             case SCR_ACQUIREMENT:
                 valued += 520;
                 break;
-            
+
             case SCR_BRAND_ARMOUR:
                 valued += 370;
                 break;
+
             case SCR_BRAND_WEAPON:
                 valued += 200;
                 break;
@@ -582,7 +572,6 @@ unsigned int item_value(item_def item, bool ident)
                 valued += 120;
                 break;
 
-            case SCR_RECHARGING:
             case SCR_SUMMONING:
                 valued += 95;
                 break;
@@ -614,7 +603,7 @@ unsigned int item_value(item_def item, bool ident)
 #if TAG_MAJOR_VERSION == 34
             case SCR_CURSE_ARMOUR:
             case SCR_CURSE_WEAPON:
-            /* case SCR_CURSE_JEWELLERY: */
+            case SCR_CURSE_JEWELLERY:
 #endif
                 valued += 20;
                 break;
@@ -691,6 +680,7 @@ unsigned int item_value(item_def item, bool ident)
                 case AMU_THE_GOURMAND:
                 case AMU_HARM:
                 case AMU_MANA_REGENERATION:
+                case AMU_ACROBAT:
                     valued += 300;
                     break;
 
@@ -718,7 +708,7 @@ unsigned int item_value(item_def item, bool ident)
                     valued += 150;
                     break;
 
-                case RING_LOUDNESS:
+                case RING_ATTENTION:
                 case RING_TELEPORTATION:
                 case AMU_NOTHING:
                     valued += 75;
@@ -771,10 +761,7 @@ unsigned int item_value(item_def item, bool ident)
             break;
 
         default:
-            if (is_deck(item))
-                valued += 80 + item.deck_rarity * 60;
-            else
-                valued += 200;
+            valued += 200;
         }
         break;
 
@@ -849,8 +836,8 @@ bool is_worthless_consumable(const item_def &item)
         switch (item.sub_type)
         {
         // Blood potions are worthless because they are easy to make.
-        case POT_BLOOD:
 #if TAG_MAJOR_VERSION == 34
+        case POT_BLOOD:
         case POT_BLOOD_COAGULATED:
         case POT_SLOWING:
         case POT_DECAY:
@@ -867,7 +854,7 @@ bool is_worthless_consumable(const item_def &item)
 #if TAG_MAJOR_VERSION == 34
         case SCR_CURSE_ARMOUR:
         case SCR_CURSE_WEAPON:
-        /* case SCR_CURSE_JEWELLERY: */
+        case SCR_CURSE_JEWELLERY:
 #endif
         case SCR_NOISE:
         case SCR_RANDOM_USELESSNESS:
@@ -991,7 +978,6 @@ class ShopMenu : public InvMenu
     friend class ShopEntry;
 
     shop_struct& shop;
-    bool looking = false;
     shopping_order order = ORDER_DEFAULT;
     level_pos pos;
     bool can_purchase;
@@ -1004,11 +990,6 @@ class ShopMenu : public InvMenu
     void purchase_selected();
 
     virtual bool process_key(int keyin) override;
-    virtual void draw_menu() override;
-    // Selecting one item may remove another from the shopping list, or change
-    // the colour others need to have, so we can't be lazy with redrawing
-    // elements.
-    virtual bool always_redraw() const override { return true; }
 
 public:
     bool bought_something = false;
@@ -1081,8 +1062,8 @@ ShopMenu::ShopMenu(shop_struct& _shop, const level_pos& _pos, bool _can_purchase
       pos(_pos),
       can_purchase(_can_purchase)
 {
-    if (!can_purchase)
-        looking = true;
+    menu_action = can_purchase ? ACT_EXECUTE : ACT_EXAMINE;
+    set_flags(get_flags() & ~MF_USE_TWO_COLUMNS);
 
     set_tag("shop");
 
@@ -1104,25 +1085,6 @@ void ShopMenu::init_entries()
         newentry->add_hotkey(ckey++);
         add_entry(move(newentry));
     }
-}
-
-void ShopMenu::draw_menu()
-{
-    // Unlike other menus, selecting one item in the shopping menu may change
-    // other ones (because of the colour scheme). Keypresses also need to
-    // update the more, which is hijacked for use as help text.
-#ifdef USE_TILE_WEB
-    tiles.json_open_object();
-    tiles.json_write_string("msg", "update_menu");
-    tiles.json_write_string("more", more.to_colour_string());
-    tiles.json_write_int("total_items", items.size());
-    tiles.json_close_object();
-    tiles.finish_message();
-    if (items.size() > 0)
-        webtiles_update_items(0, items.size() - 1);
-#endif
-
-    InvMenu::draw_menu();
 }
 
 int ShopMenu::selected_cost() const
@@ -1155,7 +1117,12 @@ void ShopMenu::update_help()
                          you.gold - total_cost,
                          (you.gold - total_cost != 1) ? "s" : "");
     }
-    top_line += "</yellow>\n";
+    top_line += "</yellow>";
+
+    // Ensure length >= 80ch, which prevents the local tiles menu from resizing
+    // as the player selects/deselects entries. Blegh..
+    int top_line_width = strwidth(formatted_string::parse_string(top_line).tostring());
+    top_line += string(max(0, 80 - top_line_width), ' ') + '\n';
 
     set_more(formatted_string::parse_string(top_line + make_stringf(
         //You have 0 gold pieces.
@@ -1170,10 +1137,10 @@ void ShopMenu::update_help()
         "%s  [%s] %s\n"
         "[<w>/</w>] sort (%s)%s  %s  [%s] put item on shopping list",
         !can_purchase ? " " " "  "  " "       "  "          " :
-        looking       ? "[<w>!</w>] buy|<w>examine</w> items" :
-                        "[<w>!</w>] <w>buy</w>|examine items",
+        menu_action == ACT_EXECUTE ? "[<w>!</w>] <w>buy</w>|examine items" :
+                                     "[<w>!</w>] buy|<w>examine</w> items",
         _hyphenated_letters(item_count(), 'a').c_str(),
-        looking ? "examine item" : "select item for purchase",
+        menu_action == ACT_EXECUTE ? "select item for purchase" : "examine item",
         shopping_order_names[order],
         // strwidth("default")
         string(7 - strwidth(shopping_order_names[order]), ' ').c_str(),
@@ -1213,7 +1180,7 @@ void ShopMenu::purchase_selected()
                    col.c_str(),
                    col.c_str()));
         more += old_more;
-        draw_menu();
+        update_more();
         return;
     }
     more = formatted_string::parse_string(make_stringf(
@@ -1223,11 +1190,11 @@ void ShopMenu::purchase_selected()
                cost,
                col.c_str()));
     more += old_more;
-    draw_menu();
+    update_more();
     if (!yesno(nullptr, true, 'n', false, false, true))
     {
         more = old_more;
-        draw_menu();
+        update_more();
         return;
     }
     sort(begin(selected), end(selected),
@@ -1277,6 +1244,8 @@ void ShopMenu::purchase_selected()
 
     if (outside_items)
     {
+        update_help();
+        const formatted_string next_more = more;
         more = formatted_string::parse_string(make_stringf(
             "<%s>I'll put %s outside for you.</%s>\n",
             col.c_str(),
@@ -1284,12 +1253,13 @@ void ShopMenu::purchase_selected()
       (int) bought_indices.size() == outside_items ? "them"
                                                    : "some of them",
             col.c_str()));
-        more += old_more;
+        more += next_more;
+        update_more();
     }
     else
         update_help();
 
-    draw_menu();
+    update_menu(true);
 }
 
 // Doesn't handle redrawing itself.
@@ -1323,7 +1293,7 @@ void ShopMenu::resort()
         break;
     case ORDER_TYPE:
         sort(begin(items), end(items),
-             [this](MenuEntry* a, MenuEntry* b) -> bool
+             [](MenuEntry* a, MenuEntry* b) -> bool
              {
                  const auto ai = dynamic_cast<ShopEntry*>(a)->item;
                  const auto bi = dynamic_cast<ShopEntry*>(b)->item;
@@ -1348,9 +1318,12 @@ bool ShopMenu::process_key(int keyin)
     case '?':
         if (can_purchase)
         {
-            looking = !looking;
+            if (menu_action == ACT_EXECUTE)
+                menu_action = ACT_EXAMINE;
+            else
+                menu_action = ACT_EXECUTE;
             update_help();
-            draw_menu();
+            update_more();
         }
         return true;
     case ' ':
@@ -1379,20 +1352,21 @@ bool ShopMenu::process_key(int keyin)
                 if (shopping_list.is_on_list(*dynamic_cast<ShopEntry*>(entry)->item, &pos))
                     entry->select(-2);
         // Move shoplist to selection.
-        draw_menu();
+        update_menu(true);
         return true;
     }
     case '/':
         ++order;
         resort();
         update_help();
-        draw_menu();
+        update_menu(true);
         return true;
     default:
         break;
     }
 
-    if (keyin - 'a' >= 0 && keyin - 'a' < (int)items.size() && looking)
+    if (keyin - 'a' >= 0 && keyin - 'a' < (int)items.size()
+        && menu_action == ACT_EXAMINE)
     {
         item_def& item(*const_cast<item_def*>(dynamic_cast<ShopEntry*>(
             items[letter_to_index(keyin)])->item));
@@ -1412,7 +1386,6 @@ bool ShopMenu::process_key(int keyin)
             }
             describe_item(item);
         }
-        draw_menu();
         return true;
     }
     else if (keyin - 'A' >= 0 && keyin - 'A' < (int)items.size())
@@ -1425,8 +1398,7 @@ bool ShopMenu::process_key(int keyin)
             shopping_list.del_thing(item, &pos);
         else
             shopping_list.add_thing(item, item_price(item, shop), &pos);
-        // not draw_item since other items may enter/leave shopping list
-        draw_menu();
+        update_menu(true);
         return true;
     }
 
@@ -1436,7 +1408,7 @@ bool ShopMenu::process_key(int keyin)
     {
         // Update the footer to display the new $$$ info.
         update_help();
-        draw_menu();
+        update_menu(true);
     }
     return ret;
 }
@@ -1686,6 +1658,8 @@ void list_shop_types()
 #define SHOPPING_THING_POS_KEY  "pos_key"
 
 ShoppingList::ShoppingList()
+    : list(nullptr), min_unbuyable_cost(0), min_unbuyable_idx(0),
+      max_buyable_cost(0), max_buyable_idx(0)
 {
 }
 
@@ -1698,11 +1672,6 @@ ShoppingList::ShoppingList()
         pos = level_pos::current(); \
     ASSERT(pos.is_valid());
 
-#define SETUP_THING()                             \
-    CrawlHashTable *thing = new CrawlHashTable();  \
-    (*thing)[SHOPPING_THING_COST_KEY] = cost; \
-    (*thing)[SHOPPING_THING_POS_KEY]  = pos;
-
 bool ShoppingList::add_thing(const item_def &item, int cost,
                              const level_pos* _pos)
 {
@@ -1711,14 +1680,16 @@ bool ShoppingList::add_thing(const item_def &item, int cost,
 
     SETUP_POS();
 
-    if (find_thing(item, pos) != -1)
+    if (!find_thing(item, pos).empty()) // TODO: this check isn't working?
     {
         mprf(MSGCH_ERROR, "%s is already on the shopping list.",
              item.name(DESC_THE).c_str());
         return false;
     }
 
-    SETUP_THING();
+    CrawlHashTable *thing = new CrawlHashTable();
+    (*thing)[SHOPPING_THING_COST_KEY] = cost;
+    (*thing)[SHOPPING_THING_POS_KEY]  = pos;
     (*thing)[SHOPPING_THING_ITEM_KEY] = item;
     list->push_back(*thing);
     refresh();
@@ -1726,51 +1697,37 @@ bool ShoppingList::add_thing(const item_def &item, int cost,
     return true;
 }
 
-bool ShoppingList::add_thing(string desc, string buy_verb, int cost,
-                             const level_pos* _pos)
-{
-    ASSERT(!desc.empty());
-    ASSERT(!buy_verb.empty());
-    ASSERT(cost > 0);
-
-    SETUP_POS();
-
-    if (find_thing(desc, pos) != -1)
-    {
-        mprf(MSGCH_ERROR, "%s is already on the shopping list.",
-             desc.c_str());
-        return false;
-    }
-
-    SETUP_THING();
-    (*thing)[SHOPPING_THING_DESC_KEY] = desc;
-    (*thing)[SHOPPING_THING_VERB_KEY] = buy_verb;
-    list->push_back(*thing);
-    refresh();
-
-    return true;
-}
-
-#undef SETUP_THING
-
 bool ShoppingList::is_on_list(const item_def &item, const level_pos* _pos) const
 {
     SETUP_POS();
 
-    return find_thing(item, pos) != -1;
+    return !find_thing(item, pos).empty();
 }
 
 bool ShoppingList::is_on_list(string desc, const level_pos* _pos) const
 {
     SETUP_POS();
 
-    return find_thing(desc, pos) != -1;
+    return !find_thing(desc, pos).empty();
 }
 
 void ShoppingList::del_thing_at_index(int idx)
 {
     ASSERT_RANGE(idx, 0, list->size());
     list->erase(idx);
+    refresh();
+}
+
+template <typename C>
+void ShoppingList::del_thing_at_indices(C const &idxs)
+{
+    set<int,greater<int>> indices(idxs.begin(), idxs.end());
+
+    for (auto idx : indices)
+    {
+        ASSERT_RANGE(idx, 0, list->size());
+        list->erase(idx);
+    }
     refresh();
 }
 
@@ -1791,16 +1748,16 @@ bool ShoppingList::del_thing(const item_def &item,
 {
     SETUP_POS();
 
-    int idx = find_thing(item, pos);
+    auto indices = find_thing(item, pos);
 
-    if (idx == -1)
+    if (indices.empty())
     {
         mprf(MSGCH_ERROR, "%s isn't on shopping list, can't delete it.",
              item.name(DESC_THE).c_str());
         return false;
     }
 
-    del_thing_at_index(idx);
+    del_thing_at_indices(indices);
     return true;
 }
 
@@ -1808,16 +1765,16 @@ bool ShoppingList::del_thing(string desc, const level_pos* _pos)
 {
     SETUP_POS();
 
-    int idx = find_thing(desc, pos);
+    auto indices = find_thing(desc, pos);
 
-    if (idx == -1)
+    if (indices.empty())
     {
         mprf(MSGCH_ERROR, "%s isn't on shopping list, can't delete it.",
              desc.c_str());
         return false;
     }
 
-    del_thing_at_index(idx);
+    del_thing_at_indices(indices);
     return true;
 }
 
@@ -1880,7 +1837,7 @@ bool ShoppingList::cull_identical_items(const item_def& item, int cost)
         return 0;
 
     // Item is already on shopping-list.
-    const bool on_list = find_thing(item, level_pos::current()) != -1;
+    const bool on_list = !find_thing(item, level_pos::current()).empty();
 
     const bool do_prompt = item.base_type == OBJ_JEWELLERY
                            && !jewellery_is_amulet(item)
@@ -2045,6 +2002,42 @@ void ShoppingList::item_type_identified(object_class_type base_type,
     refresh();
 }
 
+void ShoppingList::spells_added_to_library(const vector<spell_type>& spells, bool quiet)
+{
+    if (!list) /* let's not make book starts crash instantly... */
+        return;
+
+    unordered_set<int> indices_to_del;
+    for (CrawlHashTable &thing : *list)
+    {
+        if (!thing_is_item(thing)) // ???
+            continue;
+        const item_def& book = get_thing_item(thing);
+        if (book.base_type != OBJ_BOOKS || book.sub_type == BOOK_MANUAL)
+            continue;
+
+        const auto item_spells = spells_in_book(book);
+        if (any_of(item_spells.begin(), item_spells.end(), [&spells](const spell_type st) {
+                    return find(spells.begin(), spells.end(), st) != spells.end();
+                }) && is_useless_item(book, false))
+        {
+            level_pos pos = thing_pos(thing); // TODO: unreliable?
+            auto thing_indices = find_thing(get_thing_item(thing), pos);
+            indices_to_del.insert(thing_indices.begin(), thing_indices.end());
+        }
+    }
+    if (!quiet)
+    {
+        for (auto idx : indices_to_del)
+        {
+            ASSERT_RANGE(idx, 0, list->size());
+            mprf("Shopping list: removing %s",
+                describe_thing((*list)[idx], DESC_A).c_str());
+        }
+    }
+    del_thing_at_indices(indices_to_del);
+}
+
 void ShoppingList::remove_dead_shops()
 {
     // Only restore the excursion at the very end.
@@ -2185,54 +2178,48 @@ void ShoppingList::gold_changed(int old_amount, int new_amount)
 class ShoppingListMenu : public Menu
 {
 public:
-    ShoppingListMenu()
-#ifdef USE_TILE_LOCAL
-        : Menu(MF_MULTISELECT,"",false)
-#else
-        : Menu()
-#endif
-    { }
+    ShoppingListMenu() : Menu(MF_MULTISELECT | MF_ALLOW_FORMATTING) {}
+    bool view_only {false};
 
 protected:
-    void draw_title();
+    virtual formatted_string calc_title() override;
 };
 
-void ShoppingListMenu::draw_title()
+formatted_string ShoppingListMenu::calc_title()
 {
-    if (title)
+    formatted_string fs;
+    const int total_cost = you.props[SHOPPING_LIST_COST_KEY];
+
+    fs.textcolour(title->colour);
+    fs.cprintf("%d %s%s, total %d gold",
+                title->quantity, title->text.c_str(),
+                title->quantity > 1 ? "s" : "",
+                total_cost);
+
+    string s = "<lightgrey>  [<w>a-z</w>] ";
+
+    if (view_only)
     {
-        const int total_cost = you.props[SHOPPING_LIST_COST_KEY];
-
-        cgotoxy(1, 1);
-        formatted_string fs = formatted_string(title->colour);
-        fs.cprintf("%d %s%s, total %d gold",
-                   title->quantity, title->text.c_str(),
-                   title->quantity > 1? "s" : "",
-                   total_cost);
-        fs.display();
-
-#ifdef USE_TILE_WEB
-        webtiles_set_title(fs);
-#endif
-        string s = "<lightgrey>  [<w>a-z</w>] ";
-
-        switch (menu_action)
-        {
-        case ACT_EXECUTE:
-            s += "<w>travel</w>|examine|delete";
-            break;
-        case ACT_EXAMINE:
-            s += "travel|<w>examine</w>|delete";
-            break;
-        default:
-            s += "travel|examine|<w>delete</w>";
-            break;
-        }
-
-        s += "  [<w>?</w>/<w>!</w>] change action</lightgrey>";
-
-        draw_title_suffix(formatted_string::parse_string(s), false);
+        fs += formatted_string::parse_string(s + "<w>examine</w>");
+        return fs;
     }
+
+    switch (menu_action)
+    {
+    case ACT_EXECUTE:
+        s += "<w>travel</w>|examine|delete";
+        break;
+    case ACT_EXAMINE:
+        s += "travel|<w>examine</w>|delete";
+        break;
+    default:
+        s += "travel|examine|<w>delete</w>";
+        break;
+    }
+
+    s += "  [<w>?</w>/<w>!</w>] change action</lightgrey>";
+    fs += formatted_string::parse_string(s);
+    return fs;
 }
 
 /**
@@ -2272,9 +2259,7 @@ void ShoppingList::fill_out_menu(Menu& shopmenu)
         MenuEntry *me = new MenuEntry(etitle, MEL_ITEM, 1, hotkey);
         me->data = &thing;
 
-        if (cost > you.gold)
-            me->colour = DARKGREY;
-        else if (thing_is_item(thing))
+        if (thing_is_item(thing))
         {
             // Colour shopping list item according to menu colours.
             const item_def &item = get_thing_item(thing);
@@ -2283,35 +2268,39 @@ void ShoppingList::fill_out_menu(Menu& shopmenu)
             const int col = menu_colour(item.name(DESC_A),
                                         colprf, "shop");
 
+#ifdef USE_TILE
+            vector<tile_def> item_tiles;
+            get_tiles_for_item(item, item_tiles, true);
+            for (const auto &tile : item_tiles)
+                me->add_tile(tile);
+#endif
+
             if (col != -1)
                 me->colour = col;
         }
+        if (cost > you.gold)
+            me->colour = DARKGREY;
 
         shopmenu.add_entry(me);
         ++hotkey;
     }
 }
 
-void ShoppingList::display()
+void ShoppingList::display(bool view_only)
 {
     if (list->empty())
         return;
 
     ShoppingListMenu shopmenu;
+    shopmenu.view_only = view_only;
     shopmenu.set_tag("shop");
-    shopmenu.menu_action  = Menu::ACT_EXECUTE;
-    shopmenu.action_cycle = Menu::CYCLE_CYCLE;
-    string title          = "thing";
+    shopmenu.menu_action  = view_only ? Menu::ACT_EXAMINE : Menu::ACT_EXECUTE;
+    shopmenu.action_cycle = view_only ? Menu::CYCLE_NONE : Menu::CYCLE_CYCLE;
+    string title          = "item";
 
     MenuEntry *mtitle = new MenuEntry(title, MEL_TITLE);
+    mtitle->quantity = list->size();
     shopmenu.set_title(mtitle);
-
-    // Don't make a menu so tall that we recycle hotkeys on the same page.
-    if (list->size() > 52
-        && (shopmenu.maxpagesize() > 52 || shopmenu.maxpagesize() == 0))
-    {
-        shopmenu.set_maxpagesize(52);
-    }
 
     string more_str = make_stringf("<yellow>You have %d gp</yellow>", you.gold);
     shopmenu.set_more(formatted_string::parse_string(more_str));
@@ -2321,20 +2310,11 @@ void ShoppingList::display()
 
     fill_out_menu(shopmenu);
 
-    vector<MenuEntry*> sel;
-    while (true)
+    shopmenu.on_single_selection =
+        [this, &shopmenu, &mtitle](const MenuEntry& sel)
     {
-        // Abuse of the quantity field.
-        mtitle->quantity = list->size();
-
-        redraw_screen();
-        sel = shopmenu.show();
-
-        if (sel.empty())
-            break;
-
         const CrawlHashTable* thing =
-            static_cast<const CrawlHashTable *>(sel[0]->data);
+            static_cast<const CrawlHashTable *>(sel.data);
 
         const bool is_item = thing_is_item(*thing);
 
@@ -2350,16 +2330,15 @@ void ShoppingList::display()
                                 describe_thing(*thing, DESC_A).c_str());
                 clrscr();
                 if (!yesno(prompt.c_str(), true, 'n'))
-                    continue;
+                    return true;
             }
 
             const level_pos lp(thing_pos(*thing));
             start_translevel_travel(lp);
-            break;
+            return false;
         }
         else if (shopmenu.menu_action == Menu::ACT_EXAMINE)
         {
-            clrscr();
             if (is_item)
             {
                 const item_def &item = get_thing_item(*thing);
@@ -2372,34 +2351,39 @@ void ShoppingList::display()
                              "%s with an entry fee of %d gold pieces.",
                              describe_thing(*thing, DESC_A).c_str(),
                              (int) thing_cost(*thing));
-
-                print_description(info.c_str());
-                getchm();
+                show_description(info.c_str());
             }
         }
         else if (shopmenu.menu_action == Menu::ACT_MISC)
         {
-            const int index = shopmenu.get_entry_index(sel[0]);
+            const int index = shopmenu.get_entry_index(&sel);
             if (index == -1)
             {
                 mprf(MSGCH_ERROR, "ERROR: Unable to delete thing from shopping list!");
                 more();
-                continue;
+                return true;
             }
 
             del_thing_at_index(index);
-            if (list->empty())
+            mtitle->quantity = this->list->size();
+            shopmenu.set_title(mtitle);
+
+            if (this->list->empty())
             {
                 mpr("Your shopping list is now empty.");
-                break;
+                return false;
             }
 
             shopmenu.clear();
             fill_out_menu(shopmenu);
+            shopmenu.update_menu(true);
         }
         else
             die("Invalid menu action type");
-    }
+        return true;
+    };
+
+    shopmenu.show();
     redraw_screen();
 }
 
@@ -2412,7 +2396,14 @@ static bool _compare_shopping_things(const CrawlStoreValue& a,
     const int a_cost = hash_a[SHOPPING_THING_COST_KEY];
     const int b_cost = hash_b[SHOPPING_THING_COST_KEY];
 
-    return a_cost < b_cost;
+    const level_id id_a = hash_a[SHOPPING_THING_POS_KEY].get_level_pos().id;
+    const level_id id_b = hash_b[SHOPPING_THING_POS_KEY].get_level_pos().id;
+
+    // Put Bazaar items at the top of the shopping list.
+    if (!player_in_branch(BRANCH_BAZAAR) || id_a.branch == id_b.branch)
+        return a_cost < b_cost;
+    else
+        return id_a.branch == BRANCH_BAZAAR;
 }
 
 // Reset max_buyable and min_unbuyable info. Call this anytime any of the
@@ -2454,15 +2445,16 @@ void ShoppingList::refresh()
     you.props[SHOPPING_LIST_COST_KEY].get_int() = total_cost;
 }
 
-int ShoppingList::find_thing(const item_def &item,
+unordered_set<int> ShoppingList::find_thing(const item_def &item,
                              const level_pos &pos) const
 {
+    unordered_set<int> result;
     for (unsigned int i = 0; i < list->size(); i++)
     {
         const CrawlHashTable &thing = (*list)[i];
         const level_pos       _pos  = thing_pos(thing);
 
-        if (pos != _pos)
+        if (pos != _pos) // TODO: using thing_pos above seems to make this unreliable?
             continue;
 
         if (!thing_is_item(thing))
@@ -2471,14 +2463,15 @@ int ShoppingList::find_thing(const item_def &item,
         const item_def &_item = get_thing_item(thing);
 
         if (item_name_simple(item) == item_name_simple(_item))
-            return i;
+            result.insert(i);
     }
 
-    return -1;
+    return result;
 }
 
-int ShoppingList::find_thing(const string &desc, const level_pos &pos) const
+unordered_set<int> ShoppingList::find_thing(const string &desc, const level_pos &pos) const
 {
+    unordered_set<int> result;
     for (unsigned int i = 0; i < list->size(); i++)
     {
         const CrawlHashTable &thing = (*list)[i];
@@ -2491,10 +2484,10 @@ int ShoppingList::find_thing(const string &desc, const level_pos &pos) const
             continue;
 
         if (desc == name_thing(thing))
-            return i;
+            result.insert(i);
     }
 
-    return -1;
+    return result;
 }
 
 bool ShoppingList::thing_is_item(const CrawlHashTable& thing)
@@ -2550,10 +2543,9 @@ string ShoppingList::name_thing(const CrawlHashTable& thing,
 string ShoppingList::describe_thing(const CrawlHashTable& thing,
                                     description_level_type descrip)
 {
-    const level_pos pos = thing_pos(thing);
-
     string desc = name_thing(thing, descrip) + " on ";
 
+    const level_pos pos = thing_pos(thing);
     if (pos.id == level_id::current())
         desc += "this level";
     else

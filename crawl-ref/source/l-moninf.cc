@@ -1,8 +1,6 @@
-/**
- * @file
- * @brief User-accessible monster info.
-**/
-
+/*** Monster information.
+ * @module monster
+ */
 #include "AppHdr.h"
 
 #include "l-libs.h"
@@ -15,9 +13,15 @@
 #include "l-defs.h"
 #include "libutil.h" // map_find
 #include "mon-book.h"
+#include "mon-pick.h"
 #include "spl-util.h"
 #include "stringutil.h"
 #include "transform.h"
+#include "math.h" // ceil
+#include "spl-zap.h" // calc_spell_power
+#include "evoke.h" // wand_mp_cost
+#include "god-abil.h" // pakellas_effective_hex_power
+#include "describe.h" // describe_info, get_monster_db_desc
 
 #define MONINF_METATABLE "monster.info"
 
@@ -42,20 +46,108 @@ void lua_push_moninf(lua_State *ls, monster_info *mi)
 
 #define MIREG(field) { #field, moninf_get_##field }
 
+/*** Monster information class.
+ * @type monster.info
+ */
+/*** How hurt is this monster?
+ * Numeric representation of the level of damage sustained by the monster.
+ * Return value ranges from 0 (full HP) to 6 (dead).
+ * @treturn boolean
+ * @function damage_level
+ */
 MIRET1(number, damage_level, dam)
+/*** Is this monster safe by default?
+ * Check if this monster is thought of as safe by crawl internally. Does not
+ * check @{Hooks.ch_mon_is_safe}, so this can be used there without causing an
+ * infinite loop.
+ * @treturn boolean
+ * @function is_safe
+ */
 MIRET1(boolean, is_safe, is(MB_SAFE))
+/*** Is this monster firewood.
+ * Plants and fungi. Immobile things that give no exp.
+ * @treturn boolean
+ * @function is_firewood
+ */
 MIRET1(boolean, is_firewood, is(MB_FIREWOOD))
+/*** The monster's current attitude.
+ * A numerical value representing the monster's attitude. Possible values:
+ *
+ * - 0 hostile
+ * - 1 neutral
+ * - 2 strict neutral (neutral but won't attack the player)
+ * - 3 good neutral (neutral but won't attack friendlies)
+ * - 4 friendly (created friendly, not enslavement)
+ *
+ * @treturn int
+ * @function attitude
+ */
 MIRET1(number, attitude, attitude)
+/*** The monster's threat level.
+ * A numeric representation of the the threat level in the monster list.
+ *
+ * - 0 dark grey threat (trivial)
+ * - 1 light grey threat (easy)
+ * - 2 yellow threat (dangerous)
+ * - 3 red threat (extremely dangerous)
+ *
+ * @treturn int
+ * @function threat
+ */
 MIRET1(number, threat, threat)
+/*** Simple monster name.
+ * Returns the name of the monster.
+ * @treturn string
+ * @see name
+ * @function mname
+ */
 MIRET1(string, mname, mname.c_str())
+/*** Monster type enum value as in monster_type.h.
+ * @treturn int
+ * @function type
+ */
 MIRET1(number, type, type)
+/*** Monster base type as in monster_type.h.
+ * @treturn int
+ * @function base_type
+ */
 MIRET1(number, base_type, base_type)
+/*** Monster number field.
+ * Contains hydra heads or slime size. Meaningless for all others.
+ * @treturn int
+ * @function number
+ */
 MIRET1(number, number, number)
+/*** Does this monster have a ranged attack we know about?
+ * This refers to ranged weapons. Ranged spells and abilities are not included
+ * in this check.
+ * @treturn boolean
+ * @function has_ranged_attack
+ */
 MIRET1(boolean, has_known_ranged_attack, is(MB_RANGED_ATTACK))
+/*** A string describing monster speed.
+ * Possible values are: "very slow", "slow", "normal", "fast", "very fast", and
+ * "extremely fast".
+ * @treturn string
+ * @function speed_description
+ */
 MIRET1(string, speed_description, speed_description().c_str())
+/*** The monster's x coordinate in player centered coordinates.
+ * @treturn int
+ * @function x_pos
+ */
 MIRET1(number, x_pos, pos.x - you.pos().x)
+/*** The monster's y coordinate in player centered coordinates.
+ * @treturn int
+ * @function y_pos
+ */
 MIRET1(number, y_pos, pos.y - you.pos().y)
 
+/*** Monster glyph colour.
+ * Return is a crawl colour number.
+ * @treturn int
+ * @function colour
+ */
 static int moninf_get_colour(lua_State *ls)
 {
     MONINF(ls, 1, mi);
@@ -63,6 +155,11 @@ static int moninf_get_colour(lua_State *ls)
     return 1;
 }
 
+/*** The x,y coordinates of the monster in player centered coordinates.
+ * @treturn int
+ * @treturn int
+ * @function pos
+ */
 static int moninf_get_pos(lua_State *ls)
 {
     MONINF(ls, 1, mi);
@@ -80,13 +177,147 @@ static int moninf_get_pos(lua_State *ls)
     }
 
 // Named for consistency with the player resists.
+/*** Does the monster resist poison?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_poison
+ */
 MIRES1(res_poison, MR_RES_POISON)
+/*** Does the monster resist fire?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_fire
+ */
 MIRES1(res_fire, MR_RES_FIRE)
+/*** Does the monster resist cold?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_cold
+ */
 MIRES1(res_cold, MR_RES_COLD)
+/*** Does the monster resist negative energy?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_draining
+ */
 MIRES1(res_draining, MR_RES_NEG)
+/*** Does the monster resist electricity?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_shock
+ */
 MIRES1(res_shock, MR_RES_ELEC)
+/*** Does the monster resist corrosion?
+ * Returns a value ranging from -1 (vulnerable) to 3 (immune).
+ * @treturn int resistance level
+ * @function res_corr
+ */
 MIRES1(res_corr, MR_RES_ACID)
 
+/*** The monster's max HP given in its description.
+ * @treturn string describing the max HP (usually "about X").
+ * @function max_hp
+ */
+static int moninf_get_max_hp(lua_State *ls)
+{
+    MONINF(ls, 1, mi);
+    lua_pushstring(ls, mi->get_max_hp_desc().c_str());
+    return 1;
+}
+
+/*** The monster's MR level, in "pips" (number of +'s shown on its description).
+ * Returns a value ranging from 0 to 125 (immune).
+ * @treturn int MR level
+ * @function mr
+ */
+static int moninf_get_mr(lua_State *ls)
+{
+    MONINF(ls, 1, mi);
+    lua_pushnumber(ls, ceil(1.0*mi->res_magic()/MR_PIP));
+    return 1;
+}
+
+/*** Your probability of defeating the monster's MR with a given spell or zap.
+ * Returns a value ranging from 0 (no chance) to 100 (guaranteed success).
+ *    Returns nil if MR does not apply or the spell can't be cast.
+ * @tparam string spell name
+ * @tparam[opt] boolean true if this spell is evoked rather than cast;
+ *    defaults to false
+ * @treturn int|string|nil percent chance of success (0-100);
+ *     returns "magic immune" if monster is immune;
+ *     returns nil if MR does not apply.
+ * @function defeat_mr
+ */
+static int moninf_get_defeat_mr(lua_State *ls)
+{
+    MONINF(ls, 1, mi);
+    spell_type spell = spell_by_name(luaL_checkstring(ls, 2), false);
+    bool is_evoked = lua_isboolean(ls, 3) ? lua_toboolean(ls, 3) : false;
+    int power = is_evoked ?
+        (15 + you.skill(SK_EVOCATIONS, 7) / 2) * (wand_mp_cost() + 9) / 9 :
+        calc_spell_power(spell, true);
+    spell_flags flags = get_spell_flags(spell);
+    bool mr_check = testbits(flags, spflag::MR_check)
+        && testbits(flags, spflag::dir_or_target)
+        && !testbits(flags, spflag::helpful);
+    if (power <= 0 || !mr_check)
+    {
+        lua_pushnil(ls);
+        return 1;
+    }
+    int mr = mi->res_magic();
+    if (mr == MAG_IMMUNE)
+    {
+        lua_pushstring(ls, "magic immune");
+        return 1;
+    }
+    zap_type zap = spell_to_zap(spell);
+    int eff_power = zap == NUM_ZAPS ? power : zap_ench_power(zap, power, false);
+    int adj_power = is_evoked ? pakellas_effective_hex_power(eff_power) : eff_power;
+    int success = hex_success_chance(mr, adj_power, 100);
+    lua_pushnumber(ls, success);
+    return 1;
+}
+
+/*** The monster's AC value, in "pips" (number of +'s shown on its description).
+ * Returns a value ranging from 0 to 5 (highest).
+ * @treturn int AC level
+ * @function ac
+ */
+static int moninf_get_ac(lua_State *ls)
+{
+    MONINF(ls, 1, mi);
+    lua_pushnumber(ls, ceil(mi->ac/5.0));
+    return 1;
+}
+/*** The monster's EV value, in "pips" (number of +'s shown on its description).
+ * Returns a value ranging from 0 to 5 (highest).
+ * @treturn int evasion level
+ * @function ev
+ */
+static int moninf_get_ev(lua_State *ls)
+{
+    MONINF(ls, 1, mi);
+    int value = mi->ev;
+    if (!value && mi->base_ev != INT_MAX)
+        value = mi->base_ev;
+    lua_pushnumber(ls, ceil(value/5.0));
+    return 1;
+}
+
+/*** Get the monster's holiness.
+ * If passed a holiness, returns a boolean test of whether the monster has the
+ * given holiness. Otherwise returns a string describing the monster's
+ * holiness.
+ *
+ * Possible holinesses: "holy", "natural", "undead", "demonic",
+ * "nonliving", "plant", "evil". Evil is a pseudo-holiness given to natural,
+ * nonliving, or plant monsters that are hated by the good gods for the spells
+ * they cast or gods they worship.
+ * @tparam[opt] string holiness
+ * @treturn string|boolean
+ * @function holiness
+ */
 LUAFN(moninf_get_holiness)
 {
     MONINF(ls, 1, mi);
@@ -107,6 +338,33 @@ LUAFN(moninf_get_holiness)
         PLUARET(string, holiness_description(mi->holi).c_str());
 }
 
+/*** Get the monster's average depth of (random) generation in the current branch
+ * Returns -1 if the monster is not generated in this branch. Does not handle
+ * fish or zombies.
+ * @treturn number
+ * @function avg_local_depth
+ */
+LUAFN(moninf_get_avg_local_depth)
+{
+    MONINF(ls, 1, mi);
+    PLUARET(number, monster_pop_depth_avg(you.where_are_you, mi->type));
+}
+
+/*** Get the monster's probability of randomly generating on the current floor
+ * This can be used to estimate difficulty, but keep in mind that it is highly
+ * dependent on the branch's generation table.
+ * Returns -1 if the monster is not generated in this branch. Does not handle
+ * fish or zombies.
+ * @treturn number
+ * @function avg_local_prob
+ */
+LUAFN(moninf_get_avg_local_prob)
+{
+    MONINF(ls, 1, mi);
+    PLUARET(number, monster_probability(level_id::current(), mi->type));
+}
+
+
 // const char* here would save a tiny bit of memory, but every map
 // for an unique pair of types costs 35KB of code. We have
 // map<string, int> elsewhere.
@@ -119,6 +377,12 @@ static void _init_mi_flags()
 #undef MI_FLAG
 }
 
+/*** Test a monster flag.
+ * Check if a monster has a flag set. See `mi-flag.h` for a list of flags.
+ * @tparam string flagname
+ * @treturn boolean
+ * @function is
+ */
 LUAFN(moninf_get_is)
 {
     MONINF(ls, 1, mi);
@@ -148,7 +412,12 @@ LUAFN(moninf_get_is)
     return 1;
 }
 
-// returns multiple arrays based on number of spellbooks.
+/*** Get the monster's possible spells.
+ * Returns a list of the monster's possible spellbooks. Each spellbook is given
+ * as a list of spell names.
+ * @treturn array
+ * @function spells
+ */
 LUAFN(moninf_get_spells)
 {
     MONINF(ls, 1, mi);
@@ -185,6 +454,19 @@ static bool cant_see_you(const monster_info *mi)
     return you.invisible() || mi->is(MB_BLIND);
 }
 
+/*** What quality of stab can you get on this monster?
+ * The return value is a number representing the percentage of a top-tier stab
+ * you can currently get by attacking the monster. Possible values are:
+ *
+ * - 1.0 Sleep and paralysis stabs.
+ * - 0.5 Net, web, and petrification stabs.
+ * - 0.25 Confusion, fear, and invisibility stabs.
+ * - 0.166666666 Distraction stabs.
+ * - 0.0 No stab bonus.
+ *
+ * @treturn number
+ * @function stabbability
+ */
 LUAFN(moninf_get_stabbability)
 {
     MONINF(ls, 1, mi);
@@ -205,6 +487,11 @@ LUAFN(moninf_get_stabbability)
     return 1;
 }
 
+/*** Is the monster caught in something?
+ * Tests for nets or webs.
+ * @treturn boolean
+ * @function is_caught
+ */
 LUAFN(moninf_get_is_caught)
 {
     MONINF(ls, 1, mi);
@@ -212,6 +499,10 @@ LUAFN(moninf_get_is_caught)
     return 1;
 }
 
+/*** Is the monster constricted?
+ * @treturn boolean
+ * @function is_constricted
+ */
 LUAFN(moninf_get_is_constricted)
 {
     MONINF(ls, 1, mi);
@@ -220,6 +511,10 @@ LUAFN(moninf_get_is_constricted)
     return 1;
 }
 
+/*** Is the monster constricting something?
+ * @treturn boolean
+ * @function is_constricting
+ */
 LUAFN(moninf_get_is_constricting)
 {
     MONINF(ls, 1, mi);
@@ -227,6 +522,10 @@ LUAFN(moninf_get_is_constricting)
     return 1;
 }
 
+/*** Is the monster constricting you in particular?
+ * @treturn boolean
+ * @function is_constricting_you
+ */
 LUAFN(moninf_get_is_constricting_you)
 {
     MONINF(ls, 1, mi);
@@ -246,6 +545,10 @@ LUAFN(moninf_get_is_constricting_you)
     return 1;
 }
 
+/*** Can this monster be constricted?
+ * @treturn boolean
+ * @function can_be_constricted
+ */
 LUAFN(moninf_get_can_be_constricted)
 {
     MONINF(ls, 1, mi);
@@ -268,6 +571,10 @@ LUAFN(moninf_get_can_be_constricted)
     return 1;
 }
 
+/*** How far can the monster reach with their melee weapon?
+ * @treturn int
+ * @function reach_range
+ */
 LUAFN(moninf_get_reach_range)
 {
     MONINF(ls, 1, mi);
@@ -276,6 +583,10 @@ LUAFN(moninf_get_reach_range)
     return 1;
 }
 
+/*** Is this monster a unique?
+ * @treturn boolean
+ * @function is_unique
+ */
 LUAFN(moninf_get_is_unique)
 {
     MONINF(ls, 1, mi);
@@ -283,6 +594,10 @@ LUAFN(moninf_get_is_unique)
     return 1;
 }
 
+/*** Can this monster move?
+ * @treturn boolean
+ * @function is_stationary
+ */
 LUAFN(moninf_get_is_stationary)
 {
     MONINF(ls, 1, mi);
@@ -290,6 +605,10 @@ LUAFN(moninf_get_is_stationary)
     return 1;
 }
 
+/*** Get a string describing how injured this monster is.
+ * @treturn string
+ * @function damage_desc
+ */
 LUAFN(moninf_get_damage_desc)
 {
     MONINF(ls, 1, mi);
@@ -298,16 +617,43 @@ LUAFN(moninf_get_damage_desc)
     return 1;
 }
 
+/*** A description of this monster.
+ * @tparam[opt] boolean set true to get the description information body
+ *     displayed when examining the monster; if false (default) returns
+ *     a short description.
+ * @treturn string
+ * @function desc
+ */
 LUAFN(moninf_get_desc)
 {
     MONINF(ls, 1, mi);
-    string desc;
-    int col;
-    mi->to_string(1, desc, col);
-    lua_pushstring(ls, desc.c_str());
+    if (lua_isboolean(ls, 2) && lua_toboolean(ls, 2))
+    {
+        // full description
+        describe_info inf;
+        bool has_stat_desc;
+        get_monster_db_desc(*mi, inf, has_stat_desc, false);
+        lua_pushstring(ls, inf.body.str().c_str());
+    }
+    else
+    {
+        // short description
+        string desc;
+        int col;
+        mi->to_string(1, desc, col);
+        lua_pushstring(ls, desc.c_str());
+    }
     return 1;
 }
 
+/*** What statuses is this monster under?
+ * If passed a string parameter, returns a boolean indicating if the monster
+ * has that status. Otherwise returns a comma separated string with all the
+ * statuses the monster has.
+ * @tparam[opt] string statusname
+ * @treturn string|boolean
+ * @function status
+ */
 LUAFN(moninf_get_status)
 {
     MONINF(ls, 1, mi);
@@ -328,6 +674,13 @@ LUAFN(moninf_get_status)
     PLUARET(boolean, false);
 }
 
+/*** The monster's full name.
+ * Includes any vault defined names, the uniques name, name changes induced by
+ * polymorph, &c.
+ * @treturn string
+ * @see mname
+ * @function name
+ */
 LUAFN(moninf_get_name)
 {
     MONINF(ls, 1, mi);
@@ -372,12 +725,21 @@ static const struct luaL_reg moninf_lib[] =
     MIREG(res_draining),
     MIREG(res_shock),
     MIREG(res_corr),
+    MIREG(max_hp),
+    MIREG(mr),
+    MIREG(defeat_mr),
+    MIREG(ac),
+    MIREG(ev),
     MIREG(x_pos),
     MIREG(y_pos),
     MIREG(pos),
+    MIREG(avg_local_depth),
+    MIREG(avg_local_prob),
 
     { nullptr, nullptr }
 };
+/*** @section end
+ */
 
 // XXX: unify with directn.cc/h
 // This uses relative coordinates with origin the player.
@@ -386,6 +748,14 @@ bool in_show_bounds(const coord_def &s)
     return s.rdist() <= ENV_SHOW_OFFSET;
 }
 
+/*** Get information about a monster at a cell.
+ * Returns a monster.info object of a monster at the specified coordinates.
+ * Uses player coordinates
+ * @tparam int x
+ * @tparam int y
+ * @treturn monster.info|nil
+ * @function get_monster_at
+ */
 LUAFN(mi_get_monster_at)
 {
     COORDSHOW(s, 1, 2)

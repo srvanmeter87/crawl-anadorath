@@ -270,9 +270,7 @@ int check_your_resists(int hurted, beam_type flavour, string source,
     case BEAM_AIR:
     {
         // Airstrike.
-        if (you.res_wind())
-            hurted = 0;
-        else if (you.airborne())
+        if (you.airborne())
             hurted += hurted / 2;
         break;
     }
@@ -535,18 +533,13 @@ static void _maybe_ru_retribution(int dam, mid_t death_source)
     }
 }
 
-static void _maybe_spawn_monsters(int dam, const bool is_torment,
-                                  kill_method_type death_type,
+static void _maybe_spawn_monsters(int dam, kill_method_type death_type,
                                   mid_t death_source)
 {
     monster* damager = monster_by_mid(death_source);
     // We need to exclude acid damage and similar things or this function
     // will crash later.
     if (!damager)
-        return;
-
-    // Exclude torment damage. Ugh.
-    if (is_torment)
         return;
 
     monster_type mon;
@@ -799,10 +792,6 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
 
     int drain_amount = 0;
 
-    const bool is_torment = (aux && (strstr(aux, "torment")
-                || strstr(aux, "Torment")
-                || strstr(aux, "exploding lurking horror")));
-
     // Multiply damage if amulet of harm is in play
     if (dam != INSTANT_DEATH)
         dam = _apply_extra_harm(dam, source);
@@ -826,7 +815,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             dam = dam * 10 / 15;
     }
     ait_hp_loss hpl(dam, death_type);
-    interrupt_activity(AI_HP_LOSS, &hpl);
+    interrupt_activity(activity_interrupt::hp_loss, &hpl);
 
     // Don't wake the player with fatal or poison damage.
     if (dam > 0 && dam < you.hp && death_type != KILLED_BY_POISON)
@@ -960,7 +949,7 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
             _deteriorate(dam);
             _yred_mirrors_injury(dam, source);
             _maybe_ru_retribution(dam, source);
-            _maybe_spawn_monsters(dam, is_torment, death_type, source);
+            _maybe_spawn_monsters(dam, death_type, source);
             _maybe_fog(dam);
             _powered_by_pain(dam);
             if (sanguine_armour_valid())
@@ -1089,28 +1078,10 @@ void ouch(int dam, kill_method_type death_type, mid_t source, const char *aux,
         return;
     }
 
-    // The game's over.
-    crawl_state.need_save       = false;
-    crawl_state.updating_scores = true;
-
     // Prevent bogus notes.
     activate_notes(false);
 
-    int hiscore_index = -1;
-#ifndef SCORE_WIZARD_CHARACTERS
-    if (!you.wizard && !you.explore)
-#endif
-    {
-        // Add this highscore to the score file.
-        hiscore_index = hiscores_new_entry(se);
-        logfile_new_entry(se);
-    }
-
-    // Never generate bones files of wizard or tutorial characters -- bwr
-    if (!non_death && !crawl_state.game_is_tutorial() && !you.wizard)
-        save_ghost();
-
-    end_game(se, hiscore_index);
+    end_game(se);
 }
 
 string morgue_name(string char_name, time_t when_crawl_got_even)

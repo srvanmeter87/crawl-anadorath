@@ -2,7 +2,9 @@
 Singing Sword
 
 An enchanted blade which loves nothing more than to sing to its owner, whether
-they want it to or not.
+they want it to or not. The sword may sing so intensely that it radiates
+damaging sonic waves as you strike, especially in combat involving dangerous or
+numerous foes.
 %%%%
 Sulking Sword
 
@@ -20,9 +22,10 @@ battle.
 %%%%
 mace of Variability
 
-A weapon with a peculiar reputation — said to be at times peerless in quality,
-and other times virtually useless. No one knows exactly who would have made
-such a weapon, or why, but Xom is probably to blame somehow.
+A large mace said to have appeared when Xom grew bored with the predictability
+of more ordinary instruments of chaos. Striking an enemy with this weapon will
+occasionally unleash arcs of chaos upon any creatures nearby, leaving the
+wielder unharmed.
 %%%%
 glaive of Prune
 
@@ -51,9 +54,9 @@ Its power depends on the wielder's Evocations skill.
 %%%%
 Vampire's Tooth
 
-An ivory-like dagger that looks like it could have been crafted from the tooth
-of some enormous predatory creature. It is lethally vampiric, and restores a
-greater portion of life to its user than other vampiric weapons.
+An ivory-like quick blade that looks like it could have been crafted from the
+tooth of some enormous predatory creature. It is lethally vampiric, and
+restores a greater portion of life to its user than other vampiric weapons.
 %%%%
 scythe of Curses
 
@@ -65,7 +68,7 @@ sceptre of Torment
 
 An accursed golden sceptre, created by some unknown hellish power. When used in
 combat, it causes agonising pain in all those unfortunate enough to gaze upon
-it.
+it, save for the wielder.
 %%%%
 sword of Zonguldrok
 
@@ -128,8 +131,9 @@ called Boris. He got lost in the Dungeon while seeking the Orb.
 %%%%
 scythe "Finisher"
 
-A long and exceedingly sharp scythe. Its extraordinary speed is the work of a
-mad wizard, who spent years refining it before discarding it in a fit of rage.
+A long and exceedingly sharp scythe, capable of eviscerating in a single blow.
+Its extraordinary speed is the work of a mad wizard, who spent years refining
+it before discarding it in a fit of rage.
 
 The blade looses a low keen as it cuts through the air.
 %%%%
@@ -143,7 +147,7 @@ longbow "Zephyr"
 
 This bow was woven from the air itself by Eiolaiphi the air mage as a gift for
 one of the children of Uskayaw. The bow can be pulled with incredible speed,
-and it launches swift and true. It is also nearly indestructable, which is
+and it launches swift and true. It is also nearly indestructible, which is
 fortunate given that the original owner was ripped to pieces by jealous
 celebrants.
 %%%%
@@ -236,7 +240,8 @@ Spriggan's Knife
 
 A dainty little knife which was made by Spriggans, or for Spriggans, or
 possibly from Spriggans. Anyway, it's in some way associated with those fey
-folk.
+folk. It carves into the world of dreams, and stabs any unaware enemy as if it
+were asleep.
 %%%%
 plutonium sword
 
@@ -276,12 +281,8 @@ relieve opponents of their weapons, dealing extra damage in the process.
 %%%%
 storm bow
 
-A longbow with the colour of dark rain clouds.
-{{
-    if you.can_smell() then
-        return "It smells like a storm just past, or one about to begin."
-    end
-}}
+A longbow with the colour of dark rain clouds that fires arrows like
+lightning.
 %%%%
 large shield of Ignorance
 
@@ -321,7 +322,7 @@ an especially mighty bear.
 %%%%
 robe of Misfortune
 
-A splendid flowing robe of fur and silk.
+A splendid flowing robe of fur and silk whose lucky colour has faded.
 %%%%
 # TAG_MAJOR_VERSION == 34
 cloak of Flash
@@ -346,7 +347,8 @@ The {{
     if you.can_smell() then
         return "smelly "
     end
-}}skin of some strange animal, native to cold and distant lands.
+}}skin of some strange animal, native to cold and distant lands. It radiates
+the chill of its native habitat, slowing creatures from warmer climes.
 %%%%
 salamander hide armour
 
@@ -480,7 +482,8 @@ devices. That, and a pony.
 %%%%
 robe of Clouds
 
-A robe of a material as flimsy and insubstantial as the clouds.
+A robe of a material as nebulous and insubstantial as the clouds. The pleats
+and folds can be swirled into a furious storm.
 %%%%
 hat of Pondering
 
@@ -573,7 +576,11 @@ find it enhances the power of their spells.
 arc blade
 
 A blade somehow crafted from pure electricity. Striking an enemy with it
-occasionally unleashes a static discharge.
+occasionally unleashes powerful arcs of lightning.
+
+These may arc to other adjacent creatures, or back to the wielder, before
+eventually grounding out. It deals reduced damage when arcing to the wielder,
+and bypasses any armour the target may have.
 %%%%
 demon whip "Spellbinder"
 
@@ -586,6 +593,10 @@ lajatang of Order
 A silver-bladed lajatang, once bestowed upon a favoured worshipper of Zin. It
 became the most prized weapon of the many priests of Zin. After their order was
 destroyed, it fell into disuse and vanished from history.
+
+It deals increased damage compared to a normal lajatang and substantially
+increased damage to chaotic and magically transformed beings. It also inflicts
+extra damage against mutated beings, according to how mutated they are.
 %%%%
 great mace "Firestarter"
 
@@ -631,7 +642,7 @@ robe of Vines
 
 A robe woven of living vines. The vines form a symbiotic relationship with
 their wearer, greatly increasing their regeneration, but preventing them from
-being healed by potions and wands.
+being healed by potions.
 %%%%
 Kryia's mail coat
 
@@ -669,4 +680,10 @@ Maxwell's thermic engine
 A strange sword, one blade blistering hot and the other icy cold. When it hits
 its target the thermal gradient increases. What causes this effect is unknown
 but it is rumored that otherworldly forces are involved.
+%%%%
+demon trident "Rift"
+
+A small wrinkle in the very fabric of reality, magically bound to a shaft by
+some mad acolyte of Lugonu. It possesses an unusually large reach that
+teleports its attack directly to its victim.
 %%%%

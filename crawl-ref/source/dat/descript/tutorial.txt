@@ -22,7 +22,7 @@ You're doing great! Now, explore a bit until you reach the next blue square.
 tutorial1 diagonal
 
 :nowrap
-You can move diagonally with the <input>number pad</input> (try Numlock on/off)<localtiles>,</localtiles> <console>or the </console><input>vi keys</input><console>.</console><localtiles>, or <input>mouse</input>.</localtiles>
+Move diagonally with the <input>number pad</input> (try Numlock on/off)<localtiles>,</localtiles> <console>or the </console><input>vi keys</input><console>.</console><localtiles>, or <input>mouse</input>.</localtiles>
 
   Numpad:     <w>7 8 9</w>       vi-keys: <w>   $cmd[CMD_MOVE_UP_LEFT] $cmd[CMD_MOVE_UP] $cmd[CMD_MOVE_UP_RIGHT]</w><localtiles>    Mouse:     <w>click</w> on the floor</localtiles>
                \|/                     \|/
@@ -226,15 +226,15 @@ tutorial2 newlevel
 Remember: You can reread old messages with
 <input>$cmd[CMD_REPLAY_MESSAGES]</input>.
 %%%%
-tutorial2 tomahawks
+tutorial2 boomerangs
 
-Now, for ranged combat! Pick up these tomahawks with
+Now, for ranged combat! Pick up these boomerangs with
 <input>$cmd[CMD_PICKUP]</input> or <input>g</input><localtiles>, or by
 <input>mouseclick</input>,</localtiles> and continue.
 %%%%
 tutorial2 throwing
 
-You can fire your tomahawks at a monster with <input>$cmd[CMD_FIRE]</input>
+You can fire your boomerangs at a monster with <input>$cmd[CMD_FIRE]</input>
 <localtiles> or by <input>clicking</input> on them in the inventory
 panel</localtiles>. To confirm the auto-targeted monster, press
 <input>$cmd[CMD_TARGET_SELECT]</input> or <input>Enter</input>.
@@ -247,7 +247,7 @@ Pick up this shortbow and wield it with <input>$cmd[CMD_WIELD_WEAPON]</input>
 tutorial2 firing
 
 # FIXME: Lengthy because of the hint for choosing target.
-Firing arrows from your wielded shortbow works exactly the same as throwing tomahawks:
+Firing arrows from your wielded shortbow works exactly the same as throwing boomerangs:
 via <input>$cmd[CMD_FIRE]</input><localtiles> or <input>mouseclick</input>
 </localtiles>. You can change the targeted monster by pressing
 <input>$cmd[CMD_TARGET_CYCLE_FORWARD]</input> while in target mode. The worm is
@@ -371,9 +371,10 @@ of the screen. </localtiles>Rereading old messages with
 tutorial3 trap
 
 Traps can have a variety of unpleasant effects, such as alerting monsters or
-teleporting you into danger. They will often be hidden until you discover them
-by stepping on them. If there's no way around, you'll have to trigger the trap
-and deal with the consequences.
+teleporting you into danger. Some traps are permanent and will always be
+revealed as part of the map, but other traps can be triggered by exploring new
+tiles, and won't exist after being triggered. If there's no way around, you'll
+have to trigger the trap and deal with the consequences.
 %%%%
 tutorial3 potion
 
@@ -506,11 +507,12 @@ In this lesson you're going to learn how to memorize and cast spells.
 %%%%
 tutorial4 spellbook
 
-You can memorise a spell from a carried spellbook with
+You can memorise a spell from your spell library with
 <input>$cmd[CMD_MEMORISE_SPELL]</input><localtiles> or by
 <input>clicking</input> on the memorisation tab and selecting the spell
 tile</localtiles>. At experience level 1, only level 1 spells are available to
-you. This will change as you gain experience.
+you. This will change as you gain experience. To find new spells, find and pick
+up spellbooks, and the spells will be added to your library.
 %%%%
 tutorial4 spellcasting
 
@@ -639,7 +641,6 @@ tutorial4 exit
   You can also learn new spells via the <w>memorisation tab</w>.
   You can cast memorised spells via <input>leftclick</input>, and read their descriptions and check your spell proficiency by <input>mouseover</input> or <input>rightclick</input></localtiles>
 
-  <input>$cmd[CMD_READ]</input>  read a book to see spell descriptions
   <input>$cmd[CMD_REST]</input>  rest up to 100 turns to regain magic points and health
   <input>$cmd[CMD_SHOUT]</input>  order allies
   <input>$cmd[CMD_REMOVE_ARMOUR]</input>  take off armour
@@ -686,14 +687,6 @@ tutorial5 piety_on_kill
 Some gods really like it if you kill monsters in their name. Let the slaughter
 begin!
 %%%%
-tutorial5 burn_book
-
-Trog will like it if you burn that book (with
-<input>$cmd[CMD_USE_ABILITY]</input><localtiles> or via the <w>command
-panel</w></localtiles>). Sometimes, you might want to wait (with
-<input>$cmd[CMD_WAIT]</input>) for a monster to step on it before doing
-so.
-%%%%
 tutorial5 berserk
 
 Against particularly tough foes, you may want to use Trog's Berserk power with
@@ -709,8 +702,8 @@ again.
 %%%%
 tutorial5 hunger
 
-Berserking also causes a large amount of hunger. You cannot berserk while very
-hungry, so you should always carry some food with you.
+Berserking also causes a large amount of hunger. You cannot berserk while near
+starving, so you should always carry some food with you.
 %%%%
 tutorial5 berserk2
 

@@ -167,12 +167,13 @@ COLOUR: BLACK
 
 NAME:    Singing Sword
 OBJ:     OBJ_WEAPONS/WPN_DOUBLE_SWORD
+INSCRIP: sonic wave
 PLUS:    +7
 COLOUR:  ETC_GOLD
 TILE:    spwpn_singing_sword
 TILE_EQ: singing_sword
 VALUE:   1000
-BOOL:    special
+BRAND:   SPWPN_VORPAL
 
 NAME:    Wrath of Trog
 OBJ:     OBJ_WEAPONS/WPN_BATTLEAXE
@@ -186,12 +187,13 @@ BRAND:   SPWPN_ANTIMAGIC
 
 NAME:    mace of Variability
 OBJ:     OBJ_WEAPONS/WPN_GREAT_MACE
-PLUS:    +0   # Set on generation
+INSCRIP: chain chaos
+PLUS:    +7
 COLOUR:  ETC_RANDOM
 TILE:    spwpn_mace_of_variability
 TILE_EQ: mace_of_variability
 VALUE:   600
-BOOL:    special, no_upgrade
+BOOL:    skip_ego
 BRAND:   SPWPN_CHAOS
 
 NAME:    glaive of Prune
@@ -231,9 +233,9 @@ TILE_EQ: wucad_mu
 VALUE:   1000
 
 NAME:    Vampire's Tooth
-OBJ:     OBJ_WEAPONS/WPN_DAGGER
-# it's a dagger made from a tooth -> no TYPE
-PLUS:    +4
+OBJ:     OBJ_WEAPONS/WPN_QUICK_BLADE
+# it's a quick blade made from a tooth -> no TYPE
+PLUS:    +12
 COLOUR:  ETC_BONE
 TILE:    spwpn_vampires_tooth
 TILE_EQ: vampires_tooth
@@ -251,11 +253,13 @@ VALUE:   800
 BOOL:    curse
 
 NAME:    sceptre of Torment
-OBJ:     OBJ_WEAPONS/WPN_STAFF
+INSCRIP: torment
+OBJ:     OBJ_WEAPONS/WPN_EVENINGSTAR
 PLUS:    +7
 COLOUR:  ETC_GOLD
 TILE:    spwpn_sceptre_of_torment
-TILE_EQ: mace_ruby
+TILE_EQ: sceptre_of_torment
+BRAND:   SPWPN_PAIN
 VALUE:   1200
 BOOL:    special, evil
 
@@ -309,7 +313,7 @@ PLUS:    +3
 COLOUR:  ETC_JEWEL
 TILE:    urand_faerie
 TILE_EQ: faerie_dragon_armour
-BOOL:    nogen, unided, no_upgrade
+BOOL:    nogen, no_upgrade
 
 NAME:    demon blade "Bloodbane"
 OBJ:     OBJ_WEAPONS/WPN_DEMON_BLADE
@@ -386,12 +390,13 @@ MAGIC:    1
 
 NAME:    scythe "Finisher"
 OBJ:     OBJ_WEAPONS/WPN_SCYTHE
+INSCRIP: speed, eviscerate
 PLUS:    +5
 COLOUR:  ETC_DARK
 TILE:    urand_finisher
 TILE_EQ: finisher
 BRAND:   SPWPN_SPEED
-STR:     3
+BOOL:    skip_ego
 
 NAME:    sling "Punk"
 OBJ:     OBJ_WEAPONS/WPN_FUSTIBALUS
@@ -534,6 +539,7 @@ BRAND:    SPWPN_VORPAL
 BOOL:     seeinv
 INSCRIP:  Acc+∞
 
+# TAG_MAJOR_VERSION == 34
 NAME:    longbow "Piercer"
 OBJ:     OBJ_WEAPONS/WPN_LONGBOW
 PLUS:    +7
@@ -542,6 +548,7 @@ TILE:    urand_piercer
 TILE_EQ: great_bow
 BRAND:   SPWPN_PENETRATION
 EV:      -2
+BOOL:    nogen
 
 # TAG_MAJOR_VERSION == 34
 ENUM:    BLOWGUN_ASSASSIN
@@ -571,14 +578,13 @@ BOOL:    poison, no_upgrade
 
 NAME:     Spriggan's Knife
 OBJ:      OBJ_WEAPONS/WPN_DAGGER
+INSCRIP:  stab,
 TYPE:     knife
 PLUS:     +7
 COLOUR:   LIGHTCYAN
 TILE:     urand_spriggans_knife
 TILE_EQ:  spriggans_knife
 EV:       4
-DEX:      4
-MAGIC:    1
 STEALTH:  1
 
 NAME:    plutonium sword
@@ -650,6 +656,7 @@ COLOUR:   BLUE
 TILE:     urand_storm_bow
 TILE_EQ:  storm_bow
 BRAND:    SPWPN_ELECTROCUTION
+INSCRIP:  penet
 
 NAME:    large shield of Ignorance
 OBJ:     OBJ_ARMOUR/ARM_LARGE_SHIELD
@@ -713,13 +720,12 @@ LIFE:     1
 
 NAME:     robe of Misfortune
 OBJ:      OBJ_ARMOUR/ARM_ROBE
-PLUS:     -5
+PLUS:     5
 COLOUR:   LIGHTMAGENTA
 TILE:     urand_misfortune
 TILE_EQ:  robe_misfortune
-EV:       -5
-STEALTH:  -2
-BOOL:     nospell, rnd_tele, randapp, unided, mutate, drain, curse
+EV:       5
+BOOL:     harm, mutate, drain, slow, corrode
 
 # TAG_MAJOR_VERSION == 34
 NAME:     cloak of Flash
@@ -758,6 +764,8 @@ COLOUR:  BROWN
 TILE:    urand_zhor
 TILE_EQ: zhor
 COLD:    3
+BOOL:    seeinv
+INSCRIP: Hibernate
 
 ENUM:    SALAMANDER
 NAME:    salamander hide armour
@@ -850,7 +858,7 @@ BOOL:    elec, poison, rMut, rCorr
 
 ENUM:    FENCERS
 NAME:    fencer's gloves
-INSCRIP: +Riposte
+INSCRIP: Riposte
 OBJ:     OBJ_ARMOUR/ARM_GLOVES
 PLUS:    +0
 COLOUR:  WHITE
@@ -911,7 +919,7 @@ VALUE:   400
 
 # TAG_MAJOR_VERSION == 34
 NAME:    amulet of Cekugob
-OBJ:     OBJ_JEWELLERY/AMU_DISMISSAL
+OBJ:     OBJ_JEWELLERY/AMU_ACROBAT
 COLOUR:  ETC_SILVER
 TILE:    urand_cekugob
 AC:      1
@@ -964,12 +972,13 @@ PLUS:     +8
 
 ENUM:     RCLOUDS
 NAME:     robe of Clouds
+INSCRIP:  +Thunder rCloud
 OBJ:      OBJ_ARMOUR/ARM_ROBE
 PLUS:     +3
 COLOUR:   ETC_MIST
 TILE:     urand_clouds
 TILE_EQ:  robe_clouds
-BOOL:     elec, fly
+BOOL:     elec
 
 NAME:     hat of Pondering
 OBJ:      OBJ_ARMOUR/ARM_HAT
@@ -1057,7 +1066,7 @@ BOOL:     nogen
 
 ENUM:     OCTOPUS_KING_RING
 NAME:     ring of the Octopus King
-OBJ:      OBJ_JEWELLERY/RING_LOUDNESS
+OBJ:      OBJ_JEWELLERY/RING_ATTENTION
 COLOUR:   ETC_WATER
 TILE:     urand_octoring
 AC:       1
@@ -1136,7 +1145,7 @@ BOOL:    nogen
 NAME:     arc blade
 INSCRIP:  discharge,
 OBJ:      OBJ_WEAPONS/WPN_RAPIER
-PLUS:     +4
+PLUS:     +8
 COLOUR:   ETC_ELECTRICITY
 TILE:     urand_arc_blade
 TILE_EQ:  arc_blade
@@ -1203,9 +1212,8 @@ TYPE:    pair of quick blades
 COLOUR:  ETC_ENCHANT
 TILE:    urand_gyre
 TILE_EQ: gyre
-PLUS:    5
-BRAND:   SPWPN_VORPAL
-DEX:     -3
+PLUS:    7
+BRAND:   SPWPN_PROTECTION
 
 ENUM:    ETHERIC_CAGE
 NAME:    Maxwell's etheric cage
@@ -1303,8 +1311,16 @@ COLOUR:   ETC_VEHUMET
 TILE:     urand_thermic_engine
 TILE_EQ:  thermic_engine
 BRAND:    SPWPN_FLAMING
-FIRE:     -1
-COLD:     -1
+
+ENUM:     RIFT
+NAME:     demon trident "Rift"
+OBJ:      OBJ_WEAPONS/WPN_DEMON_TRIDENT
+INSCRIP:  reach+
+PLUS:     +8
+COLOUR:   ETC_WARP
+TILE:     urand_rift
+TILE_EQ:  rift
+BRAND:    SPWPN_DISTORTION
 
 # This entry must always be last.
 ENUM:   DUMMY2

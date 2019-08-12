@@ -7,7 +7,7 @@
 
 #define RANDBOOK_SIZE 8
 #include "item-prop-enum.h"
-#include "spl-util.h" // spschool_flag_type
+#include "spl-util.h" // spschool
 
 #define SPELL_LIST_KEY "spell_list"
 
@@ -22,16 +22,14 @@ bool is_rare_book(book_type type);
 void init_spell_rarities();
 bool is_player_spell(spell_type which_spell);
 
-void mark_had_book(const item_def &book);
-void mark_had_book(book_type booktype);
 bool book_has_title(const item_def &book);
 
 void read_book(item_def &item);
 
 bool player_can_memorise(const item_def &book);
 bool can_learn_spell(bool silent = false);
+bool player_has_available_spells();
 bool learn_spell();
-void learn_spell_from(const item_def &book);
 bool learn_spell(spell_type spell, bool wizard = false);
 
 string desc_cannot_memorise_reason(spell_type spell);
@@ -42,4 +40,6 @@ vector<spell_type> spells_in_book(const item_def &book);
 
 bool you_can_memorise(spell_type spell) PURE;
 bool has_spells_to_memorise(bool silent = true);
-vector<spell_type> get_mem_spell_list();
+vector<spell_type> get_sorted_spell_list(bool silent = false,
+                                         bool memorise_only = true);
+spret divine_exegesis(bool fail);

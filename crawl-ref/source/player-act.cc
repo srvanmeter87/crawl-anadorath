@@ -76,7 +76,7 @@ void player::moveto(const coord_def &c, bool clear_net)
     crawl_view.set_player_at(c);
     set_position(c);
 
-    clear_far_constrictions();
+    clear_invalid_constrictions();
     end_searing_ray();
 }
 
@@ -206,6 +206,10 @@ int player::damage_type(int)
  */
 brand_type player::damage_brand(int)
 {
+    // confusing touch always overrides
+    if (duration[DUR_CONFUSING_TOUCH])
+        return SPWPN_CONFUSE;
+
     const int wpn = equip[EQ_WEAPON];
     if (wpn != -1 && !melded[EQ_WEAPON])
     {
@@ -215,9 +219,6 @@ brand_type player::damage_brand(int)
     }
 
     // unarmed
-
-    if (duration[DUR_CONFUSING_TOUCH])
-        return SPWPN_CONFUSE;
 
     return get_form()->get_uc_brand();
 }
@@ -255,7 +256,7 @@ random_var player::attack_delay(const item_def *projectile, bool rescale) const
         attk_delay = rv::max(attk_delay,
                 random_var(FASTEST_PLAYER_THROWING_SPEED));
     }
-    else if (!weap)
+    else if (!projectile && !weap)
     {
         int sk = form_uses_xl() ? experience_level * 10 :
                                   skill(SK_UNARMED_COMBAT, 10);
@@ -739,10 +740,8 @@ bool player::go_berserk(bool intentional, bool potion)
 
     you.increase_duration(DUR_BERSERK, berserk_duration);
 
-    calc_hp();
-    set_hp(you.hp * 3 / 2);
-
-    deflate_hp(you.hp_max, false);
+    //Apply Berserk's +50% Current/Max HP
+    calc_hp(true, false);
 
     if (!you.duration[DUR_MIGHT])
         notify_stat_change(STAT_STR, 5, true);
@@ -837,9 +836,20 @@ bool player::shove(const char* feat_name)
     return false;
 }
 
-int player::constriction_damage() const
+/*
+ * Calculate base constriction damage.
+ *
+ * @param direct True if this is for direct constriction, false otherwise (e.g.
+ *               Borg's Vile Clutch), false otherwise.
+ * @returns The base damage.
+ */
+int player::constriction_damage(bool direct) const
 {
-    return roll_dice(2, div_rand_round(strength(), 5));
+    if (direct)
+        return roll_dice(2, div_rand_round(strength(), 5));
+
+    return roll_dice(2, div_rand_round(70 +
+                calc_spell_power(SPELL_BORGNJORS_VILE_CLUTCH, true), 20));
 }
 
 /**

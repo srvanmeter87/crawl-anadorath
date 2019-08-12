@@ -37,8 +37,10 @@
 #include "mon-behv.h"
 #include "mon-poly.h"
 #include "mon-tentacle.h"
+#include "prompt.h"
 #include "religion.h"
 #include "shout.h"
+#include "spl-damage.h"
 #include "spl-summoning.h"
 #include "state.h"
 #include "stepdown.h"
@@ -97,7 +99,7 @@ bool melee_attack::handle_phase_attempted()
     if (defender && (!adjacent(attack_position, defender->pos())
                      && !can_reach())
         || attk_type == AT_CONSTRICT
-           && (!attacker->can_constrict(defender)
+           && (!attacker->can_constrict(defender, true)
                || attacker->is_monster() && attacker->mid == MID_PLAYER))
     {
         --effective_attack_number;
@@ -107,22 +109,63 @@ bool melee_attack::handle_phase_attempted()
 
     if (attacker->is_player() && defender && defender->is_monster())
     {
-        if (weapon && is_unrandom_artefact(*weapon, UNRAND_DEVASTATOR))
+        // Unrands with secondary effects that can harm nearby friendlies.
+        // Don't prompt for confirmation (and leak information about the
+        // monster's position) if the player can't see the monster.
+        if (weapon && is_unrandom_artefact(*weapon, UNRAND_DEVASTATOR)
+            && you.can_see(*defender))
         {
-            const char* verb = "attack";
-            string junk1, junk2;
-            bool junk3 = false;
-            if (defender)
-            {
-                verb = (bad_attack(defender->as_monster(),
-                                   junk1, junk2, junk3)
-                        ? "attack" : "attack near");
-            }
 
             targeter_smite hitfunc(attacker, 1, 1, 1, false);
             hitfunc.set_aim(defender->pos());
 
-            if (stop_attack_prompt(hitfunc, verb))
+            if (stop_attack_prompt(hitfunc, "attack", nullptr, nullptr,
+                                   defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon &&
+                (is_unrandom_artefact(*weapon, UNRAND_SINGING_SWORD)
+                 || is_unrandom_artefact(*weapon, UNRAND_VARIABILITY)
+                 || is_unrandom_artefact(*weapon, UNRAND_SPELLBINDER))
+                 && you.can_see(*defender))
+        {
+            targeter_los hitfunc(&you, LOS_NO_TRANS);
+
+            if (stop_attack_prompt(hitfunc, "attack",
+                                   [](const actor *act)
+                                   {
+                                       return !(you.deity() == GOD_FEDHAS
+                                       && fedhas_protects(*act->as_monster()));
+                                   }, nullptr, defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_TORMENT)
+                 && you.can_see(*defender))
+        {
+            targeter_los hitfunc(&you, LOS_NO_TRANS);
+
+            if (stop_attack_prompt(hitfunc, "attack",
+                                   [] (const actor *m)
+                                   {
+                                       return !m->res_torment();
+                                   },
+                                   nullptr, defender->as_monster()))
+            {
+                cancel_attack = true;
+                return false;
+            }
+        }
+        else if (weapon && is_unrandom_artefact(*weapon, UNRAND_ARC_BLADE)
+                 && you.can_see(*defender))
+        {
+            vector<const actor *> exclude;
+            if (!safe_discharge(defender->pos(), exclude))
             {
                 cancel_attack = true;
                 return false;
@@ -216,8 +259,8 @@ bool melee_attack::handle_phase_attempted()
         xom_is_stimulated(100);
 
     // Any attack against a monster we're afraid of has a chance to fail
-    if (attacker->is_player() && you.afraid_of(defender->as_monster())
-        && one_chance_in(3))
+    if (attacker->is_player() && defender &&
+        you.afraid_of(defender->as_monster()) && one_chance_in(3))
     {
         mprf("You attempt to attack %s, but flinch away in fear!",
              defender->name(DESC_THE).c_str());
@@ -245,7 +288,7 @@ bool melee_attack::handle_phase_attempted()
     attack_occurred = true;
 
     // Check for player practicing dodging
-    if (defender->is_player())
+    if (defender && defender->is_player())
         practise_being_attacked();
 
     return true;
@@ -340,15 +383,6 @@ void melee_attack::apply_black_mark_effects()
                 break;
         }
     }
-}
-
-// For WJC, does the defender count as being distracted?
-bool melee_attack::defender_wjc_distracted() const
-{
-    ASSERT(defender->is_monster());
-    return defender->as_monster()->has_ench(ENCH_DISTRACTED_ACROBATICS)
-            || defender->as_monster()->foe != MHITYOU
-               && !mons_is_batty(*defender->as_monster());
 }
 
 /* An attack has been determined to have hit something
@@ -463,12 +497,10 @@ bool melee_attack::handle_phase_hit()
     // Check for weapon brand & inflict that damage too
     apply_damage_brand();
 
-    // Fireworks when hitting distracted enemies.
-    // XXX: this seems massively overcomplicated.
+    // Fireworks when using Serpent's Lash to kill.
     if (!defender->alive()
         && defender->as_monster()->can_bleed()
-        && wu_jian_attack == WU_JIAN_ATTACK_LUNGE
-        && defender_wjc_distracted())
+        && wu_jian_has_momentum(wu_jian_attack))
     {
         blood_spray(defender->pos(), defender->as_monster()->type,
                     damage_done / 5);
@@ -592,12 +624,12 @@ bool melee_attack::handle_phase_aux()
 static void _hydra_devour(monster &victim)
 {
     // what's the highest hunger level this lets the player get to?
-    const hunger_state_t max_hunger =
-        static_cast<hunger_state_t>(HS_SATIATED + player_likes_chunks());
+    const hunger_state_t max_hunger = player_likes_chunks() ? HS_ENGORGED
+                                                            : HS_SATIATED;
 
     // will eating this actually fill the player up?
     const bool filling = !have_passive(passive_t::goldify_corpses)
-                          && you.get_mutation_level(MUT_HERBIVOROUS, false) < 3
+                          && you.get_mutation_level(MUT_HERBIVOROUS, false) == 0
                           && you.hunger_state <= max_hunger
                           && you.hunger_state < HS_ENGORGED;
 
@@ -662,9 +694,11 @@ static void _hydra_consider_devouring(monster &defender)
     if (defender.is_shapeshifter())
     {
         // handle this carefully, so the player knows what's going on
-        mprf("You spit out %s as %s twists & changes in your mouth!",
+        mprf("You spit out %s as %s %s & %s in your mouth!",
              defender.name(DESC_THE).c_str(),
-             defender.pronoun(PRONOUN_SUBJECTIVE).c_str());
+             defender.pronoun(PRONOUN_SUBJECTIVE).c_str(),
+             conjugate_verb("twist", defender.pronoun_plurality()).c_str(),
+             conjugate_verb("change", defender.pronoun_plurality()).c_str());
         return;
     }
 
@@ -802,17 +836,28 @@ bool melee_attack::attack()
 
     // Calculate various ev values and begin to check them to determine the
     // correct handle_phase_ handler.
-    const int ev = defender->evasion(EV_IGNORE_NONE, attacker);
+    const int ev = defender->evasion(ev_ignore::none, attacker);
     ev_margin = test_hit(to_hit, ev, !attacker->is_player());
     bool shield_blocked = attack_shield_blocked(true);
 
     // Stuff for god conduct, this has to remain here for scope reasons.
     god_conduct_trigger conducts[3];
-    disable_attack_conducts(conducts);
+
+    // Remove sanctuary if - through some attack - it was violated.
+    if (env.sanctuary_time > 0 && attack_occurred && !cancel_attack
+        && attacker != defender
+        && (is_sanctuary(attack_position) || is_sanctuary(defender->pos()))
+        && (attacker->is_player()
+            // XXX: Can friendly monsters actually violate sanctuary?
+            || attacker->as_monster()->friendly() && !attacker->confused()))
+    {
+        remove_sanctuary(true);
+    }
 
     if (attacker->is_player() && attacker != defender)
     {
-        set_attack_conducts(conducts, defender->as_monster());
+        set_attack_conducts(conducts, *defender->as_monster(),
+                            you.can_see(*defender));
 
         if (player_under_penance(GOD_ELYVILON)
             && god_hates_your_god(GOD_ELYVILON)
@@ -831,6 +876,10 @@ bool melee_attack::attack()
             ev_margin = AUTOMATIC_HIT;
             shield_blocked = false;
         }
+
+        // Serpent's Lash does not miss
+        if (wu_jian_has_momentum(wu_jian_attack))
+           ev_margin = AUTOMATIC_HIT;
     }
 
     if (shield_blocked)
@@ -867,16 +916,6 @@ bool melee_attack::attack()
             handle_phase_dodged();
     }
 
-    // Remove sanctuary if - through some attack - it was violated.
-    if (env.sanctuary_time > 0 && attack_occurred && !cancel_attack
-        && attacker != defender
-        && (is_sanctuary(attack_position) || is_sanctuary(defender->pos()))
-        && (attacker->is_player() || attacker->as_monster()->friendly()
-                                     && !attacker->confused()))
-    {
-        remove_sanctuary(true);
-    }
-
     if (attacker->is_player())
         do_miscast();
 
@@ -901,8 +940,6 @@ bool melee_attack::attack()
     handle_phase_aux();
 
     handle_phase_end();
-
-    enable_attack_conducts(conducts);
 
     return attack_occurred;
 }
@@ -1245,7 +1282,7 @@ bool melee_attack::player_aux_test_hit()
     // XXX We're clobbering did_hit
     did_hit = false;
 
-    const int evasion = defender->evasion(EV_IGNORE_NONE, attacker);
+    const int evasion = defender->evasion(ev_ignore::none, attacker);
 
     if (player_under_penance(GOD_ELYVILON)
         && god_hates_your_god(GOD_ELYVILON)
@@ -1292,7 +1329,7 @@ bool melee_attack::player_aux_unarmed()
         // Determine and set damage and attack words.
         player_aux_setup(atk);
 
-        if (atk == UNAT_CONSTRICT && !attacker->can_constrict(defender))
+        if (atk == UNAT_CONSTRICT && !attacker->can_constrict(defender, true))
             continue;
 
         to_hit = random2(calc_your_to_hit_unarmed(atk));
@@ -1353,67 +1390,72 @@ bool melee_attack::player_aux_apply(unarmed_attack_type atk)
     aux_damage = inflict_damage(aux_damage, BEAM_MISSILE);
     damage_done = aux_damage;
 
-    if (atk == UNAT_CONSTRICT)
-        attacker->start_constricting(*defender);
-
-    if (damage_done > 0 || atk == UNAT_CONSTRICT)
+    if (defender->alive())
     {
-        player_announce_aux_hit();
+        if (atk == UNAT_CONSTRICT)
+            attacker->start_constricting(*defender);
 
-        if (damage_brand == SPWPN_ACID)
-            defender->splash_with_acid(&you, 3);
-
-        if (damage_brand == SPWPN_VENOM && coinflip())
-            poison_monster(defender->as_monster(), &you);
-
-        // Normal vampiric biting attack, not if already got stabbing special.
-        if (damage_brand == SPWPN_VAMPIRISM && you.species == SP_VAMPIRE
-            && (!stab_attempt || stab_bonus <= 0))
+        if (damage_done > 0 || atk == UNAT_CONSTRICT)
         {
-            _player_vampire_draws_blood(defender->as_monster(), damage_done);
-        }
+            player_announce_aux_hit();
 
-        if (damage_brand == SPWPN_ANTIMAGIC && you.has_mutation(MUT_ANTIMAGIC_BITE)
-            && damage_done > 0)
-        {
-            const bool spell_user = defender->antimagic_susceptible();
+            if (damage_brand == SPWPN_ACID)
+                defender->splash_with_acid(&you, 3);
 
-            antimagic_affects_defender(damage_done * 32);
+            if (damage_brand == SPWPN_VENOM && coinflip())
+                poison_monster(defender->as_monster(), &you);
 
-            // MP drain suppressed under Pakellas, but antimagic still applies.
-            if (!have_passive(passive_t::no_mp_regen) || spell_user)
+            // Normal vampiric biting attack, not if already got stabbing special.
+            if (damage_brand == SPWPN_VAMPIRISM && you.species == SP_VAMPIRE
+                && (!stab_attempt || stab_bonus <= 0))
             {
-                mprf("You %s %s %s.",
-                     have_passive(passive_t::no_mp_regen) ? "disrupt" : "drain",
-                     defender->as_monster()->pronoun(PRONOUN_POSSESSIVE).c_str(),
-                     spell_user ? "magic" : "power");
+                _player_vampire_draws_blood(defender->as_monster(), damage_done);
             }
 
-            if (!have_passive(passive_t::no_mp_regen)
-                && you.magic_points != you.max_magic_points
-                && !defender->as_monster()->is_summoned()
-                && !mons_is_firewood(*defender->as_monster()))
+            if (damage_brand == SPWPN_ANTIMAGIC && you.has_mutation(MUT_ANTIMAGIC_BITE)
+                && damage_done > 0)
             {
-                int drain = random2(damage_done * 2) + 1;
-                // Augment mana drain--1.25 "standard" effectiveness at 0 mp,
-                // 0.25 at mana == max_mana
-                drain = (int)((1.25 - you.magic_points / you.max_magic_points)
-                              * drain);
-                if (drain)
+                const bool spell_user = defender->antimagic_susceptible();
+
+                antimagic_affects_defender(damage_done * 32);
+
+                // MP drain suppressed under Pakellas, but antimagic still applies.
+                if (!have_passive(passive_t::no_mp_regen) || spell_user)
                 {
-                    mpr("You feel invigorated.");
-                    inc_mp(drain);
+                    mprf("You %s %s %s.",
+                         have_passive(passive_t::no_mp_regen) ? "disrupt" : "drain",
+                         defender->as_monster()->pronoun(PRONOUN_POSSESSIVE).c_str(),
+                         spell_user ? "magic" : "power");
+                }
+
+                if (!have_passive(passive_t::no_mp_regen)
+                    && you.magic_points != you.max_magic_points
+                    && !defender->as_monster()->is_summoned()
+                    && !mons_is_firewood(*defender->as_monster()))
+                {
+                    int drain = random2(damage_done * 2) + 1;
+                    // Augment mana drain--1.25 "standard" effectiveness at 0 mp,
+                    // 0.25 at mana == max_mana
+                    drain = (int)((1.25 - you.magic_points / you.max_magic_points)
+                                  * drain);
+                    if (drain)
+                    {
+                        mpr("You feel invigorated.");
+                        inc_mp(drain);
+                    }
                 }
             }
         }
+        else // no damage was done
+        {
+            mprf("You %s %s%s.",
+                 aux_verb.c_str(),
+                 defender->name(DESC_THE).c_str(),
+                 you.can_see(*defender) ? ", but do no damage" : "");
+        }
     }
-    else // no damage was done
-    {
-        mprf("You %s %s%s.",
-             aux_verb.c_str(),
-             defender->name(DESC_THE).c_str(),
-             you.can_see(*defender) ? ", but do no damage" : "");
-    }
+    else // defender was just alive, so this call should be ok?
+        player_announce_aux_hit();
 
     if (defender->as_monster()->hit_points < 1)
     {
@@ -1435,7 +1477,7 @@ void melee_attack::player_announce_aux_hit()
 
 string melee_attack::player_why_missed()
 {
-    const int ev = defender->evasion(EV_IGNORE_NONE, attacker);
+    const int ev = defender->evasion(ev_ignore::none, attacker);
     const int combined_penalty =
         attacker_armour_tohit_penalty + attacker_shield_tohit_penalty;
     if (to_hit < ev && to_hit + combined_penalty >= ev)
@@ -1483,7 +1525,7 @@ int melee_attack::player_apply_misc_modifiers(int damage)
     if (you.duration[DUR_MIGHT] || you.duration[DUR_BERSERK])
         damage += 1 + random2(10);
 
-    if (you.species != SP_VAMPIRE && you.hunger_state <= HS_STARVING)
+    if (apply_starvation_penalties())
         damage -= random2(5);
 
     return damage;
@@ -1515,7 +1557,7 @@ int melee_attack::player_apply_final_multipliers(int damage)
     if (you.duration[DUR_WEAK])
         damage = div_rand_round(damage * 3, 4);
 
-    if (you.duration[DUR_CONFUSING_TOUCH] && wpn_skill == SK_UNARMED_COMBAT)
+    if (you.duration[DUR_CONFUSING_TOUCH])
         return 0;
 
     return damage;
@@ -1800,8 +1842,6 @@ void melee_attack::player_weapon_upsets_god()
     {
         did_god_conduct(god_hates_item_handling(*weapon), 2);
     }
-    else if (weapon && weapon->is_type(OBJ_STAVES, STAFF_FIRE))
-        did_god_conduct(DID_FIRE, 1);
 }
 
 /* Apply player-specific effects as well as brand damage.
@@ -2259,11 +2299,12 @@ int melee_attack::calc_to_hit(bool random)
 {
     int mhit = attack::calc_to_hit(random);
 
+    // Just trying to touch is easier than trying to damage.
+    if (you.duration[DUR_CONFUSING_TOUCH])
+        mhit += maybe_random2(you.dex(), random);
+
     if (attacker->is_player() && !weapon)
     {
-        // Just trying to touch is easier than trying to damage.
-        if (you.duration[DUR_CONFUSING_TOUCH])
-            mhit += maybe_random2(you.dex(), random);
 
         // TODO: Review this later (transformations getting extra hit
         // almost across the board seems bad) - Cryp71c
@@ -2685,11 +2726,7 @@ void melee_attack::mons_apply_attack_flavour()
 
         // deliberate fall-through
     case AF_VAMPIRIC:
-        if (!(defender->holiness() & MH_NATURAL))
-            break;
-
-        // Disallow draining of summoned monsters.
-        if (defender->is_summoned())
+        if (!actor_is_susceptible_to_vampirism(*defender))
             break;
 
         if (defender->stat_hp() < defender->stat_maxhp())
@@ -2912,10 +2949,9 @@ void melee_attack::mons_apply_attack_flavour()
         break;
 
     case AF_ENGULF:
-        if (x_chance_in_y(2, 3) && attacker->can_constrict(defender))
+        if (x_chance_in_y(2, 3) && attacker->can_constrict(defender, true))
         {
-            if (defender->is_player() && !you.duration[DUR_WATER_HOLD]
-                && !you.duration[DUR_WATER_HOLD_IMMUNITY])
+            if (defender->is_player() && !you.duration[DUR_WATER_HOLD])
             {
                 you.duration[DUR_WATER_HOLD] = 10;
                 you.props["water_holder"].get_int() = attacker->as_monster()->mid;
@@ -2945,7 +2981,7 @@ void melee_attack::mons_apply_attack_flavour()
         if (attacker->type == MONS_FIRE_VORTEX)
             attacker->as_monster()->suicide(-10);
 
-        special_damage = defender->apply_ac(base_damage, 0, AC_HALF);
+        special_damage = defender->apply_ac(base_damage, 0, ac_type::half);
         special_damage = resist_adjust_damage(defender,
                                               BEAM_FIRE,
                                               special_damage);
@@ -2980,6 +3016,9 @@ void melee_attack::mons_apply_attack_flavour()
             }
             else
             {
+                // Halving the MR of magic immune targets has no effect
+                if (defender->as_monster()->res_magic() == MAG_IMMUNE)
+                    break;
                 if (!defender->as_monster()->has_ench(ENCH_LOWERED_MR))
                     visible_effect = true;
                 mon_enchant lowered_mr(ENCH_LOWERED_MR, 1, attacker,
@@ -3368,19 +3407,13 @@ int melee_attack::cleave_damage_mod(int dam)
 int melee_attack::martial_damage_mod(int dam)
 {
     if (wu_jian_has_momentum(wu_jian_attack))
-        dam = div_rand_round(dam * 15, 10);
+        dam = div_rand_round(dam * 14, 10);
 
     if (wu_jian_attack == WU_JIAN_ATTACK_LUNGE)
-    {
-        if (defender_wjc_distracted())
-        {
-            mprf("%s is caught off-guard!",
-                 defender->as_monster()->name(DESC_THE).c_str());
-            dam = div_rand_round(dam * 16, 10);
-        }
-        else
-            dam = div_rand_round(dam * 13, 10);
-    }
+        dam = div_rand_round(dam * 12, 10);
+
+    if (wu_jian_attack == WU_JIAN_ATTACK_WHIRLWIND)
+        dam = div_rand_round(dam * 8, 10);
 
     return dam;
 }
@@ -3483,15 +3516,21 @@ int melee_attack::calc_your_to_hit_unarmed(int uattack)
     if (you.get_mutation_level(MUT_EYEBALLS))
         your_to_hit += 2 * you.get_mutation_level(MUT_EYEBALLS) + 1;
 
-    if (you.species != SP_VAMPIRE && you.hunger_state <= HS_STARVING)
+    if (apply_starvation_penalties())
         your_to_hit -= 3;
+
+    if (you.duration[DUR_VERTIGO])
+        your_to_hit -= 5;
+
+    if (you.confused())
+        your_to_hit -= 5;
 
     your_to_hit += slaying_bonus();
 
     return your_to_hit;
 }
 
-bool melee_attack::using_weapon()
+bool melee_attack::using_weapon() const
 {
     return weapon && is_melee_weapon(*weapon);
 }
@@ -3594,7 +3633,8 @@ bool melee_attack::_player_vampire_draws_blood(const monster* mon, const int dam
     // Regain hp.
     if (you.hp < you.hp_max)
     {
-        int heal = 2 + random2(damage) + random2(damage);
+        int heal = 2 + random2(damage);
+        heal += random2(damage);
         if (heal > you.experience_level)
             heal = you.experience_level;
 
@@ -3605,18 +3645,13 @@ bool melee_attack::_player_vampire_draws_blood(const monster* mon, const int dam
         }
     }
 
-    // Gain nutrition.
-    if (you.hunger_state != HS_ENGORGED)
-        lessen_hunger(30 + random2avg(59, 2), false);
-
     return true;
 }
 
 bool melee_attack::_vamp_wants_blood_from_monster(const monster* mon)
 {
     return you.species == SP_VAMPIRE
-           && you.hunger_state < HS_SATIATED
-           && !mon->is_summoned()
-           && mons_has_blood(mon->type)
-           && !testbits(mon->flags, MF_SPECTRALISED);
+           && !you.vampire_alive
+           && actor_is_susceptible_to_vampirism(*mon)
+           && mons_has_blood(mon->type);
 }

@@ -18,52 +18,78 @@
 
 static bool _banned_combination(job_type job, species_type species)
 {
-    return species == SP_FELID
-            && (job == JOB_GLADIATOR
-                || job == JOB_ASSASSIN
-                || job == JOB_HUNTER
-                || job == JOB_ARCANE_MARKSMAN)
-        || species == SP_DEMIGOD
-            && (job == JOB_BERSERKER
-                || job == JOB_CHAOS_KNIGHT
-                || job == JOB_ABYSSAL_KNIGHT
-                || job == JOB_MONK
-                || job == JOB_PRIMALIST)
-        || species == SP_PYROLITH
-            && (job == JOB_ABYSSAL_KNIGHT
-                || job == JOB_AIR_ELEMENTALIST
-                || job == JOB_ARTIFICER
-                || job == JOB_ASSASSIN
-                || job == JOB_BERSERKER
-                || job == JOB_CHAOS_KNIGHT
-                || job == JOB_GLADIATOR
-                || job == JOB_HUNTER
-                || job == JOB_ICE_ELEMENTALIST
-                || job == JOB_MONK
-                || job == JOB_SKALD
-                || job == JOB_TRANSMUTER
-                || job == JOB_VENOM_MAGE
-                || job == JOB_WANDERER
-                || job == JOB_WARPER)
-        || job == JOB_TRANSMUTER
-            && (species_undead_type(species) == US_UNDEAD
-                || species_undead_type(species) == US_HUNGRY_DEAD)
-        || job == JOB_PRIMALIST
-            && (species == SP_BARACHI
-                || species == SP_CENTAUR
-                || species == SP_DEEP_DWARF
-                || species == SP_FORMICID
-                || species == SP_GHOUL
-                || species == SP_GNOLL
-                || species == SP_HALFLING
-                || species == SP_HILL_ORC
-                || species == SP_KOBOLD
-                || species == SP_MERFOLK
-                || species == SP_MINOTAUR
-                || species == SP_OGRE
-                || species == SP_RANDOM
-                || species == SP_SPRIGGAN
-                || species == SP_TROLL);
+    switch (species)
+    {
+    case SP_FELID:
+        if (job == JOB_GLADIATOR
+            || job == JOB_ASSASSIN
+            || job == JOB_HUNTER
+            || job == JOB_ARCANE_MARKSMAN)
+        {
+            return true;
+        }
+        break;
+    case SP_DEMIGOD:
+        if (job == JOB_BERSERKER
+            || job == JOB_CHAOS_KNIGHT
+            || job == JOB_ABYSSAL_KNIGHT
+            || job == JOB_MONK
+            || job == JOB_PRIMALIST)
+        {
+            return true;
+        }
+        break;
+    case SP_PYROLITH:
+        if (job == JOB_ABYSSAL_KNIGHT
+            || job == JOB_AIR_ELEMENTALIST
+            || job == JOB_ARTIFICER
+            || job == JOB_ASSASSIN
+            || job == JOB_BERSERKER
+            || job == JOB_CHAOS_KNIGHT
+            || job == JOB_GLADIATOR
+            || job == JOB_HUNTER
+            || job == JOB_ICE_ELEMENTALIST
+            || job == JOB_MONK
+            || job == JOB_SKALD
+            || job == JOB_TRANSMUTER
+            || job == JOB_VENOM_MAGE
+            || job == JOB_WANDERER
+            || job == JOB_WARPER)
+        {
+            return true;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if (job == JOB_TRANSMUTER
+        && (species_undead_type(species) == US_UNDEAD
+           || species_undead_type(species) == US_HUNGRY_DEAD))
+    {
+        return true;
+    }
+    if (job == JOB_PRIMALIST
+        && ((species == SP_BARACHI)
+            || (species == SP_CENTAUR)
+            || (species == SP_DEEP_DWARF)
+            || (species == SP_FORMICID)
+            || (species == SP_GHOUL)
+            || (species == SP_GNOLL)
+            || (species == SP_HALFLING)
+            || (species == SP_HILL_ORC)
+            || (species == SP_KOBOLD)
+            || (species == SP_MERFOLK)
+            || (species == SP_MINOTAUR)
+            || (species == SP_OGRE)
+            || (species == SP_RANDOM)
+            || (species == SP_SPRIGGAN)
+            || (species == SP_TROLL)))
+    {
+        return true;
+    }
+
+    return false;
 }
 
 char_choice_restriction species_allowed(job_type job, species_type speci)
@@ -78,6 +104,11 @@ char_choice_restriction species_allowed(job_type job, species_type speci)
         return CC_UNRESTRICTED;
 
     return CC_RESTRICTED;
+}
+
+bool character_is_allowed(species_type species, job_type job)
+{
+    return !_banned_combination(job, species);
 }
 
 char_choice_restriction job_allowed(species_type speci, job_type job)
@@ -135,7 +166,7 @@ char_choice_restriction weapon_restriction(weapon_type wpn,
         return CC_BANNED;
     }
 
-    // Javelins are always good, tomahawks not so much.
+    // Javelins are always good, boomerangs not so much.
     if (wpn == WPN_THROWN)
     {
         return species_size(ng.species) >= SIZE_MEDIUM ? CC_UNRESTRICTED

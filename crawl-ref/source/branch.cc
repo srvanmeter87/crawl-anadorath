@@ -45,7 +45,9 @@ static const branch_type logical_branch_order[] = {
     BRANCH_ABYSS,
     BRANCH_PANDEMONIUM,
     BRANCH_ZIGGURAT,
+#if TAG_MAJOR_VERSION == 34
     BRANCH_LABYRINTH,
+#endif
     BRANCH_BAZAAR,
     BRANCH_TROVE,
     BRANCH_SEWER,
@@ -55,6 +57,7 @@ static const branch_type logical_branch_order[] = {
     BRANCH_VOLCANO,
     BRANCH_WIZLAB,
     BRANCH_DESOLATION,
+    BRANCH_GAUNTLET,
 };
 COMPILE_CHECK(ARRAYSZ(logical_branch_order) == NUM_BRANCHES);
 
@@ -68,9 +71,9 @@ static const branch_type danger_branch_order[] = {
     BRANCH_OSSUARY,
     BRANCH_BAILEY,
     BRANCH_LAIR,
+    BRANCH_GAUNTLET,
     BRANCH_ICE_CAVE,
     BRANCH_VOLCANO,
-    BRANCH_LABYRINTH,
     BRANCH_ORC,
     BRANCH_SWAMP,
     BRANCH_SHOALS,
@@ -97,6 +100,7 @@ static const branch_type danger_branch_order[] = {
     BRANCH_DWARF,
     BRANCH_BLADE,
     BRANCH_FOREST,
+    BRANCH_LABYRINTH,
 #endif
 };
 COMPILE_CHECK(ARRAYSZ(danger_branch_order) == NUM_BRANCHES);
@@ -108,7 +112,7 @@ branch_iterator::branch_iterator(branch_iterator_type type) :
 
 const branch_type* branch_iterator::branch_order() const
 {
-    if (iter_type == BRANCH_ITER_DANGER)
+    if (iter_type == branch_iterator_type::danger)
         return danger_branch_order;
     return logical_branch_order;
 }
@@ -168,7 +172,12 @@ bool is_hell_subbranch(branch_type branch)
 {
     return branch >= BRANCH_FIRST_HELL
            && branch <= BRANCH_LAST_HELL
-           && branch != BRANCH_VESTIBULE;
+           && branch != BRANCH_VESTIBULE; // XX not needed?
+}
+
+bool is_hell_branch(branch_type branch)
+{
+    return is_hell_subbranch(branch) || branch == BRANCH_VESTIBULE;
 }
 
 bool is_random_subbranch(branch_type branch)
@@ -179,7 +188,7 @@ bool is_random_subbranch(branch_type branch)
 
 bool is_connected_branch(const Branch *branch)
 {
-    return !(branch->branch_flags & BFLAG_NO_XLEV_TRAVEL);
+    return !testbits(branch->branch_flags, brflag::no_x_level_travel);
 }
 
 bool is_connected_branch(branch_type branch)
@@ -215,11 +224,11 @@ int ambient_noise(branch_type branch)
 {
     switch (branches[branch].ambient_noise)
     {
-    case BRANCH_NOISE_NORMAL:
+    case branch_noise::normal:
         return 0;
-    case BRANCH_NOISE_QUIET:
+    case branch_noise::quiet:
         return -BRANCH_NOISE_AMOUNT;
-    case BRANCH_NOISE_LOUD:
+    case branch_noise::loud:
         return BRANCH_NOISE_AMOUNT;
     default:
         die("Invalid noise level!");
@@ -236,7 +245,8 @@ bool branch_is_unfinished(branch_type branch)
 #if TAG_MAJOR_VERSION == 34
     if (branch == BRANCH_DWARF
         || branch == BRANCH_FOREST
-        || branch == BRANCH_BLADE)
+        || branch == BRANCH_BLADE
+        || branch == BRANCH_LABYRINTH)
     {
         return true;
     }

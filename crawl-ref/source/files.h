@@ -42,12 +42,14 @@ void assert_read_safe_path(const string &path);
 off_t file_size(FILE *handle);
 
 vector<string> get_dir_files(const string &dir);
+vector<string> get_dir_files_sorted(const string &dir);
 vector<string> get_dir_files_ext(const string &dir, const string &ext);
 vector<string> get_dir_files_recursive(const string &dirname,
                                        const string &ext = "",
                                        int recursion_depth = -1,
                                        bool include_directories = false);
 
+void validate_basedirs();
 string datafile_path(string basename, bool croak_on_fail = true,
                      bool test_base_path = false,
                      bool (*thing_exists)(const string&) = file_exists);
@@ -79,6 +81,7 @@ class level_id;
 
 void trackers_init_new_level(bool transit);
 
+bool generate_level(const level_id &l);
 bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
                 const level_id& old_level);
 void delete_level(const level_id &level);
@@ -88,7 +91,7 @@ void save_game(bool leave_game, const char *bye = nullptr);
 // Save game without exiting (used when changing levels).
 void save_game_state();
 
-bool get_save_version(reader &file, int &major, int &minor);
+save_version get_save_version(reader &file);
 
 bool save_exists(const string& filename);
 bool restore_game(const string& filename);
@@ -100,6 +103,7 @@ class level_excursion
 protected:
     level_id original;
     bool ever_changed_levels;
+    bool allow_unvisited;
 
 public:
     level_excursion();
@@ -108,8 +112,13 @@ public:
     void go_to(const level_id &level);
 };
 
-void save_ghost(bool force = false);
-bool load_ghost(bool creating_level);
+void save_ghosts(const vector<ghost_demon> &ghosts, bool force = false,
+                                                    bool use_store = true);
+bool load_ghosts(int max_ghosts, bool creating_level);
+bool define_ghost_from_bones(monster& mons);
+vector<ghost_demon> load_bones_file(string ghost_filename, bool backup=false);
+void write_ghost_version(writer &outf);
+save_version read_ghost_header(reader &inf);
 
 FILE *lk_open(const char *mode, const string &file);
 FILE *lk_open_exclusive(const string &file);

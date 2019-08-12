@@ -256,6 +256,12 @@ static const mon_spellbook mspell_list[] =
       }
     },
 
+    {  MST_SHAMBLING_MANGROVE,
+      {
+       { SPELL_GRASPING_ROOTS, 40, MON_SPELL_NATURAL },
+      }
+    },
+
     // ('g') Small humanoids.
     {  MST_GNOLL_SHAMAN,
       {
@@ -284,7 +290,7 @@ static const mon_spellbook mspell_list[] =
 
     {  MST_BEAR,
       {
-       { SPELL_BERSERKER_RAGE, 57, MON_SPELL_NATURAL | MON_SPELL_EMERGENCY },
+       { SPELL_BERSERKER_RAGE, 100, MON_SPELL_NATURAL | MON_SPELL_EMERGENCY },
       }
     },
 
@@ -610,6 +616,13 @@ static const mon_spellbook mspell_list[] =
       }
     },
 
+    { MST_KILLER_KLOWN,
+      {
+       { SPELL_BLINK, 29, MON_SPELL_MAGICAL },
+       { SPELL_THROW_PIE, 24, MON_SPELL_NATURAL },
+      }
+    },
+
     // ('q') Classed draconians.
 
     {  MST_DRACONIAN_SCORCHER,
@@ -618,7 +631,7 @@ static const mon_spellbook mspell_list[] =
        { SPELL_BOLT_OF_MAGMA, 13, MON_SPELL_WIZARD },
        { SPELL_FIREBALL, 13, MON_SPELL_WIZARD },
        { SPELL_HURL_DAMNATION, 13, MON_SPELL_WIZARD },
-       { SPELL_CALL_DOWN_DAMNATION, 13, MON_SPELL_WIZARD | MON_SPELL_EMERGENCY },
+       { SPELL_CALL_DOWN_DAMNATION, 13, MON_SPELL_WIZARD },
       }
     },
 
@@ -701,6 +714,12 @@ static const mon_spellbook mspell_list[] =
     { MST_DART_SLUG,
       {
         { SPELL_SLUG_DART, 40, MON_SPELL_NATURAL },
+      }
+    },
+
+    { MST_SWAMP_WORM,
+      {
+        { SPELL_HARPOON_SHOT, 80, MON_SPELL_NATURAL },
       }
     },
 
@@ -823,8 +842,9 @@ static const mon_spellbook mspell_list[] =
 
     {  MST_IRON_GIANT,
       {
-       { SPELL_IRON_SHOT, 40, MON_SPELL_WIZARD },
-       { SPELL_THROW_ALLY, 80, MON_SPELL_NATURAL },
+       { SPELL_IRON_SHOT, 24, MON_SPELL_WIZARD },
+       { SPELL_HARPOON_SHOT, 36, MON_SPELL_WIZARD },
+       { SPELL_THROW_ALLY, 36, MON_SPELL_NATURAL },
       }
     },
 
@@ -903,6 +923,12 @@ static const mon_spellbook mspell_list[] =
     },
 
     // ('E') Elementals.
+    {  MST_AIR_ELEMENTAL,
+      {
+       { SPELL_VORTEX, 80, MON_SPELL_NATURAL},
+      }
+    },
+
     {  MST_ELEMENTAL_WELLSPRING,
       {
        { SPELL_PRIMAL_WAVE, 65, MON_SPELL_MAGICAL },
@@ -1702,7 +1728,8 @@ static const mon_spellbook mspell_list[] =
     {  MST_JORGRUN,
       {
        { SPELL_LRD, 16, MON_SPELL_WIZARD },
-       { SPELL_SHATTER, 16, MON_SPELL_WIZARD },
+       { SPELL_GRASPING_ROOTS, 16, MON_SPELL_WIZARD },
+       { SPELL_IRON_SHOT, 16, MON_SPELL_WIZARD },
        { SPELL_PETRIFY, 16, MON_SPELL_WIZARD },
        { SPELL_DIG, 16, MON_SPELL_WIZARD },
       }
@@ -1941,7 +1968,7 @@ static const mon_spellbook mspell_list[] =
        { SPELL_STICKY_FLAME_RANGE, 13, MON_SPELL_MAGICAL },
        { SPELL_FIREBALL, 13, MON_SPELL_MAGICAL },
        { SPELL_HURL_DAMNATION, 13, MON_SPELL_MAGICAL },
-       { SPELL_CALL_DOWN_DAMNATION, 13, MON_SPELL_MAGICAL | MON_SPELL_EMERGENCY },
+       { SPELL_CALL_DOWN_DAMNATION, 13, MON_SPELL_MAGICAL },
       }
     },
 
@@ -2054,8 +2081,8 @@ static const mon_spellbook mspell_list[] =
 
     {  MST_HAROLD,
       {
-       { SPELL_BOLT_OF_FIRE, 30, MON_SPELL_WIZARD },
-       { SPELL_BLINK, 29, MON_SPELL_WIZARD | MON_SPELL_EMERGENCY },
+       { SPELL_HARPOON_SHOT, 20, MON_SPELL_WIZARD },
+       { SPELL_SENTINEL_MARK, 20, MON_SPELL_WIZARD },
       }
     },
 
@@ -2113,7 +2140,7 @@ static const mon_spellbook mspell_list[] =
     {  MST_HELLBINDER,
       {
        { SPELL_HURL_DAMNATION, 14, MON_SPELL_WIZARD },
-       { SPELL_SUMMON_MINOR_DEMON, 14, MON_SPELL_WIZARD },
+       { SPELL_SUMMON_GREATER_DEMON, 24, MON_SPELL_WIZARD },
        { SPELL_SUMMON_DEMON, 14, MON_SPELL_WIZARD },
        { SPELL_HASTE, 14, MON_SPELL_WIZARD },
        { SPELL_BLINK_AWAY, 14, MON_SPELL_WIZARD },
@@ -2241,5 +2268,4 @@ static const mon_spellbook mspell_list[] =
        { SPELL_PHANTOM_MIRROR, 33, MON_SPELL_MAGICAL },
       }
     },
-
 };

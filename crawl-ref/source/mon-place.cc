@@ -32,6 +32,7 @@
 #include "libutil.h"
 #include "losglobal.h"
 #include "message.h"
+#include "mon-act.h"
 #include "mon-behv.h"
 #include "mon-death.h"
 #include "mon-gear.h"
@@ -85,6 +86,10 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
                                    level_id place,
                                    bool force_pos = false,
                                    bool dont_place = false);
+static monster* _place_pghost_aux(const mgen_data &mg, const monster *leader,
+                                   level_id place,
+                                   bool force_pos, bool dont_place);
+
 
 /**
  * Is this feature "close enough" to the one we want for monster generation?
@@ -259,7 +264,7 @@ static void _apply_ood(level_id &place)
         if (fuzz)
         {
             place.depth += fuzz;
-            dprf(DIAG_MONPLACE, "Monster level fuzz: %d (old: %s, new: %s)",
+            dprf("Monster level fuzz: %d (old: %s, new: %s)",
                  fuzz, old_place.describe().c_str(), place.describe().c_str());
         }
     }
@@ -302,7 +307,7 @@ void spawn_random_monsters()
     }
 
     if (player_on_orb_run())
-        rate = have_passive(passive_t::slow_orb_run) ? 16 : 8;
+        rate = have_passive(passive_t::slow_orb_run) ? 36 : 18;
 
     if (player_in_branch(BRANCH_ABYSS))
     {
@@ -323,7 +328,7 @@ void spawn_random_monsters()
              rate, env.turns_on_level);
 
         mgen_data mg(WANDERING_MONSTER);
-        mg.proximity = one_chance_in(3) ? PROX_CLOSE_TO_PLAYER : PROX_ANYWHERE;
+        mg.proximity = PROX_CLOSE_TO_PLAYER;
         mg.foe = MHITYOU;
         // Don't count orb run spawns in the xp_by_level dump
         mg.xp_tracking = XP_UNTRACKED;
@@ -333,7 +338,6 @@ void spawn_random_monsters()
     }
 
     mgen_data mg(WANDERING_MONSTER);
-    mg.xp_tracking = XP_SPAWNED;
     if (player_in_branch(BRANCH_PANDEMONIUM)
         && !env.properties.exists("vault_mon_weights")
         && !one_chance_in(40))
@@ -414,13 +418,11 @@ bool can_place_on_trap(monster_type mon_type, trap_type trap)
     if (mons_is_tentacle_segment(mon_type))
         return true;
 
-    if (trap == TRAP_TELEPORT || trap == TRAP_TELEPORT_PERMANENT
-        || trap == TRAP_SHAFT)
-    {
-        return false;
-    }
+    // Things summoned by the player to a specific spot shouldn't protest.
+    if (mon_type == MONS_FULMINANT_PRISM || mon_type == MONS_LIGHTNING_SPIRE)
+        return true;
 
-    return true;
+    return false;
 }
 
 bool drac_colour_incompatible(int drac, int colour)
@@ -444,7 +446,6 @@ monster_type resolve_monster_type(monster_type mon_type,
                                   proximity_type proximity,
                                   coord_def *pos,
                                   unsigned mmask,
-                                  dungeon_char_type *stair_type,
                                   level_id *place,
                                   bool *want_band,
                                   bool allow_ood)
@@ -543,8 +544,7 @@ monster_type resolve_monster_type(monster_type mon_type,
                     mon_type =
                         resolve_monster_type(mon_type, base_type,
                                              proximity, pos, mmask,
-                                             stair_type, place,
-                                             want_band, allow_ood);
+                                             place, want_band, allow_ood);
                 }
                 return mon_type;
             }
@@ -632,7 +632,6 @@ monster* place_monster(mgen_data mg, bool force_pos, bool dont_place)
         return nullptr;
 
     int tries = 0;
-    dungeon_char_type stair_type = NUM_DCHAR_TYPES;
 
     // (1) Early out (summoned to occupied grid).
     if (mg.use_position() && monster_at(mg.pos))
@@ -646,10 +645,8 @@ monster* place_monster(mgen_data mg, bool force_pos, bool dont_place)
     level_id place = mg.place;
     mg.cls = resolve_monster_type(mg.cls, mg.base_type, mg.proximity,
                                   &mg.pos, mg.map_mask,
-                                  &stair_type,
-                                  &place,
-                                  &want_band,
-                                  allow_ood);
+                                  &place, &want_band, allow_ood);
+    // TODO: it doesn't seem that this check can ever come out to be true??
     bool chose_ood_monster = place.absdepth() > mg.place.absdepth() + 5;
     if (want_band)
         mg.flags |= MG_PERMIT_BANDS;
@@ -729,13 +726,20 @@ monster* place_monster(mgen_data mg, bool force_pos, bool dont_place)
     else if (!_valid_monster_generation_location(mg) && !dont_place)
         return nullptr;
 
-    monster* mon = _place_monster_aux(mg, nullptr, place, force_pos,
-                                      dont_place);
+    monster* mon;
+    if (mg.cls == MONS_PLAYER_GHOST)
+        mon = _place_pghost_aux(mg, nullptr, place, force_pos, dont_place);
+    else
+        mon = _place_monster_aux(mg, nullptr, place, force_pos, dont_place);
+
     if (!mon)
         return nullptr;
 
-    if (mg.props.exists("map"))
-        mon->set_originating_map(mg.props["map"].get_string());
+    if (mg.props.exists(MAP_KEY))
+        mon->set_originating_map(mg.props[MAP_KEY].get_string());
+
+    if (chose_ood_monster)
+        mon->props[MON_OOD_KEY].get_bool() = true;
 
     if (mg.needs_patrol_point()
         || (mon->type == MONS_ALLIGATOR
@@ -904,8 +908,9 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
         // We'll try 1000 times for a good spot.
         for (i = 0; i < 1000; ++i)
         {
-            fpos = mg.pos + coord_def(random_range(-3, 3),
-                                      random_range(-3, 3));
+            fpos = mg.pos;
+            fpos.x += random_range(-3, 3);
+            fpos.y += random_range(-3, 3);
 
             // Place members within LOS_SOLID of their leader.
             // TODO nfm - allow placing around corners but not across walls.
@@ -1000,12 +1005,7 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
             for (auto facet : mg.props[MUTANT_BEAST_FACETS].get_vector())
                 gen_facets.push_back(facet.get_int());
 
-        set<int> avoid_facets;
-        if (mg.props.exists(MUTANT_BEAST_AVOID_FACETS))
-            for (auto facet : mg.props[MUTANT_BEAST_AVOID_FACETS].get_vector())
-                avoid_facets.insert(facet.get_int());
-
-        init_mutant_beast(*mon, mg.hd, gen_facets, avoid_facets);
+        init_mutant_beast(*mon, mg.hd, gen_facets);
     }
 
     // Is it a god gift?
@@ -1218,15 +1218,15 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     if (mon->type == MONS_HELLBINDER || mon->type == MONS_CLOUD_MAGE)
     {
         mon->props[MON_GENDER_KEY] = random_choose(GENDER_FEMALE, GENDER_MALE,
-                                                   GENDER_NEUTER);
+                                                   GENDER_NEUTRAL);
     }
 
     if (mon->has_spell(SPELL_OZOCUBUS_ARMOUR))
     {
         const int power = (mon->spell_hd(SPELL_OZOCUBUS_ARMOUR) * 15) / 10;
-        mon->add_ench(mon_enchant(ENCH_OZOCUBUS_ARMOUR,
-                                  20 + random2(power) + random2(power),
-                                  mon));
+        int rnd_power = random2(power);
+        rnd_power += random2(power);
+        mon->add_ench(mon_enchant(ENCH_OZOCUBUS_ARMOUR, 20 + rnd_power, mon));
     }
 
     if (mon->has_spell(SPELL_SHROUD_OF_GOLUBRIA))
@@ -1237,9 +1237,6 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
 
     if (mon->has_spell(SPELL_DEFLECT_MISSILES))
         mon->add_ench(ENCH_DEFLECT_MISSILES);
-
-    if (mon->has_spell(SPELL_CIGOTUVIS_EMBRACE))
-        mon->add_ench(ENCH_BONE_ARMOUR);
 
     mon->flags |= MF_JUST_SUMMONED;
 
@@ -1487,7 +1484,7 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     else if (!crawl_state.generating_level && !dont_place && you.can_see(*mon))
     {
         if (mg.flags & MG_DONT_COME)
-            mon->seen_context = SC_JUST_SEEN;
+            mons_set_just_seen(mon);
     }
 
     // Area effects can produce additional messages, and thus need to be
@@ -1503,6 +1500,18 @@ static monster* _place_monster_aux(const mgen_data &mg, const monster *leader,
     }
 
     return mon;
+}
+
+static monster* _place_pghost_aux(const mgen_data &mg, const monster *leader,
+                                   level_id place,
+                                   bool force_pos, bool dont_place)
+{
+    // we need to isolate the generation of a pghost from the caller's RNG,
+    // since depending on the ghost, the aux call can trigger variation in
+    // things like whether an enchantment (with a random duration) is
+    // triggered.
+    rng_generator rng(RNG_SYSTEM_SPECIFIC);
+    return _place_monster_aux(mg, leader, place, force_pos, dont_place);
 }
 
 // Check base monster class against zombie type and position if set.
@@ -1891,7 +1900,6 @@ static const map<monster_type, band_set> bands_by_leader = {
     { MONS_TENGU_CONJURER,  { {2}, {{ BAND_TENGU, {1, 2}, true }}}},
     { MONS_TENGU_WARRIOR,   { {2}, {{ BAND_TENGU, {1, 2}, true }}}},
     { MONS_SOJOBO,          { {}, {{ BAND_SOJOBO, {2, 3}, true }}}},
-    { MONS_SPRIGGAN_AIR_MAGE, { {}, {{ BAND_AIR_ELEMENTALS, {2, 4}, true }}}},
     { MONS_SPRIGGAN_RIDER,  { {3}, {{ BAND_SPRIGGAN_RIDERS, {1, 3} }}}},
     { MONS_SPRIGGAN_BERSERKER, { {2}, {{ BAND_SPRIGGANS, {2, 4} }}}},
     { MONS_SPRIGGAN_DEFENDER, { {}, {{ BAND_SPRIGGAN_ELITES, {2, 5}, true }}}},
@@ -2107,7 +2115,6 @@ static const map<band_type, vector<member_possibilites>> band_membership = {
     { BAND_FLYING_SKULLS,       {{{MONS_FLYING_SKULL, 1}}}},
     { BAND_SHARD_SHRIKE,        {{{MONS_SHARD_SHRIKE, 1}}}},
     { BAND_SOJOBO,              {{{MONS_TENGU_REAVER, 1}}}},
-    { BAND_AIR_ELEMENTALS,      {{{MONS_AIR_ELEMENTAL, 1}}}},
     { BAND_HOWLER_MONKEY,       {{{MONS_HOWLER_MONKEY, 1}}}},
     { BAND_CAUSTIC_SHRIKE,      {{{MONS_CAUSTIC_SHRIKE, 1}}}},
     { BAND_DANCING_WEAPONS,     {{{MONS_DANCING_WEAPON, 1}}}},
@@ -2498,9 +2505,8 @@ static monster_type _band_member(band_type band, int which,
     {
         monster_type tmptype = MONS_PROGRAM_BUG;
         coord_def tmppos;
-        dungeon_char_type tmpfeat;
         return resolve_monster_type(RANDOM_BANDLESS_MONSTER, tmptype,
-                                    PROX_ANYWHERE, &tmppos, 0, &tmpfeat,
+                                    PROX_ANYWHERE, &tmppos, 0,
                                     &parent_place, nullptr, allow_ood);
     }
 
@@ -2531,11 +2537,16 @@ void debug_bands()
 
 static monster_type _pick_zot_exit_defender()
 {
-    if (one_chance_in(11))
+    // 10% Pan lord
+    //  - ~1% named pan lord / seraph
+    //  - ~9% random pan lord
+    // 15% Orb Guardian
+    // 40% Demon
+    //  - 25% greater demon
+    //  - 10% common demon
+    // 40% Pan spawn (can also include pan lords and demons)
+    if (one_chance_in(10))
     {
-#ifdef DEBUG_MON_CREATION
-        mprf(MSGCH_DIAGNOSTICS, "Create a pandemonium lord!");
-#endif
         for (int i = 0; i < 4; i++)
         {
             // Sometimes pick an unique lord whose rune you've stolen.
@@ -2548,18 +2559,17 @@ static monster_type _pick_zot_exit_defender()
             }
         }
 
-        if (one_chance_in(11))
+        if (one_chance_in(10))
             return MONS_SERAPH;
 
         return MONS_PANDEMONIUM_LORD;
     }
 
     return random_choose_weighted(
-        30, RANDOM_DEMON_COMMON,
-        30, RANDOM_DEMON,
-        20, pick_monster_no_rarity(BRANCH_PANDEMONIUM),
         15, MONS_ORB_GUARDIAN,
-        5, RANDOM_DEMON_GREATER);
+        25, RANDOM_DEMON_GREATER,
+        10, RANDOM_DEMON_COMMON,
+        40, pick_monster_no_rarity(BRANCH_PANDEMONIUM));
 }
 
 monster* mons_place(mgen_data mg)
@@ -2836,23 +2846,30 @@ conduct_type player_will_anger_monster(const monster &mon)
     if (god_hates_spellcasting(you.religion) && mon.is_actual_spellcaster())
         return DID_SPELL_CASTING;
 
-    if (you_worship(GOD_DITHMENOS) && mons_is_fiery(mon))
-        return DID_FIRE;
-
     return DID_NOTHING;
 }
 
-bool player_angers_monster(monster* mon)
+bool player_angers_monster(monster* mon, bool real)
 {
     ASSERT(mon); // XXX: change to monster &mon
 
     // Get the drawbacks, not the benefits... (to prevent e.g. demon-scumming).
     conduct_type why = player_will_anger_monster(*mon);
-    if (why && mon->wont_attack())
+    if (why && (!real || mon->wont_attack()))
     {
-        mon->attitude = ATT_HOSTILE;
-        mon->del_ench(ENCH_CHARM);
-        behaviour_event(mon, ME_ALERT, &you);
+        if (real)
+        {
+            mon->attitude = ATT_HOSTILE;
+            mon->del_ench(ENCH_CHARM);
+            behaviour_event(mon, ME_ALERT, &you);
+        }
+        const string modal = real
+                             ? ((why == DID_SACRIFICE_LOVE) ? "can " : "")
+                             : "would ";
+        const string verb = (why == DID_SACRIFICE_LOVE)
+                             ? "feel"
+                             : real ? "is" : "be";
+        const string vcomplex = modal + verb;
 
         if (you.can_see(*mon))
         {
@@ -2861,29 +2878,33 @@ bool player_angers_monster(monster* mon)
             switch (why)
             {
             case DID_EVIL:
-                mprf("%s is enraged by your holy aura!", mname.c_str());
+                mprf("%s %s enraged by your holy aura!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             case DID_CORPSE_VIOLATION:
-                mprf("%s is revulsed by your support of nature!", mname.c_str());
+                mprf("%s %s revulsed by your support of nature!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             case DID_HOLY:
-                mprf("%s is enraged by your evilness!", mname.c_str());
+                mprf("%s %s enraged by your evilness!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             case DID_UNCLEAN:
             case DID_CHAOS:
-                mprf("%s is enraged by your lawfulness!", mname.c_str());
+                mprf("%s %s enraged by your lawfulness!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             case DID_SPELL_CASTING:
-                mprf("%s is enraged by your magic-hating god!", mname.c_str());
-                break;
-            case DID_FIRE:
-                mprf("%s is enraged by your darkness!", mname.c_str());
+                mprf("%s %s enraged by your magic-hating god!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             case DID_SACRIFICE_LOVE:
-                mprf("%s can only feel hate for you!", mname.c_str());
+                mprf("%s %s only hate for you!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             default:
-                mprf("%s is enraged by a buggy thing about you!", mname.c_str());
+                mprf("%s %s enraged by a buggy thing about you!",
+                    mname.c_str(), vcomplex.c_str());
                 break;
             }
         }
@@ -3094,9 +3115,37 @@ monster_type summon_any_demon(monster_type dct, bool use_local_demons)
     }
 }
 
+void replace_boris()
+{
+    // Initial generation is governed by the vault uniq_boris. Once he is killed
+    // a first time, as long as he isn't alive somewhere, he can regenerate when
+    // a new level is entered.
+    if (!you.props["killed_boris_once"]
+        || you.unique_creatures[MONS_BORIS]
+        || !one_chance_in(6))
+    {
+        return;
+    }
+
+    // TODO: kind of ad hoc, maybe read from uniq_boris vault?
+    switch (you.where_are_you)
+    {
+    case BRANCH_DEPTHS:
+    case BRANCH_VAULTS:
+    case BRANCH_TOMB:
+    case BRANCH_CRYPT:
+        break;
+    default:
+        return;
+    }
+
+    mgen_data boris = mgen_data(MONS_BORIS);
+    mons_place(boris);
+}
+
 /////////////////////////////////////////////////////////////////////////////
 //
-// Random monsters for portal vaults.
+// Random monsters for portal vaults. Used for e.g. shadow creatures.
 //
 /////////////////////////////////////////////////////////////////////////////
 

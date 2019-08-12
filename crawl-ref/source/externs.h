@@ -20,7 +20,6 @@
 #include <vector>
 
 #include "bitary.h"
-#include "deck-rarity-type.h"
 #include "description-level-type.h"
 #include "dungeon-feature-type.h"
 #include "enum.h"
@@ -540,7 +539,6 @@ struct item_def
         monster_type mon_type:16;   ///< corpse/chunk monster type
         skill_type skill:16;        ///< the skill provided by a manual
         short charges;              ///< # of charges held by a wand, etc
-        short initial_cards;        ///< the # of cards a deck *started* with
         short net_durability;       ///< damage dealt to a net
         short tithe_state;          ///< tithe state of a stack of gold
     };
@@ -548,9 +546,6 @@ struct item_def
     {
         // These must all be the same size!
         short plus2;        ///< legacy/generic name for this union
-        short used_count;   ///< the # of known times it was used (decks, wands)
-                            // for wands, may hold negative ZAPCOUNT knowledge
-                            // info (e.g. "recharged", "empty", "unknown")
         short net_placed;   ///< is this throwing net trapping something?
         short skill_points; ///< # of skill points a manual gives
         short stash_freshness; ///< where stash.cc stores corpse freshness
@@ -561,7 +556,6 @@ struct item_def
         // These must all be the same size!
         int special;            ///< legacy/generic name
         int unrand_idx;         ///< unrandart index (for get_unrand_entry)
-        deck_rarity_type deck_rarity;    ///< plain, ornate, legendary
         uint32_t subtype_rnd;   ///< appearance of un-ID'd items, by subtype.
                                 /// jewellery, scroll, staff, wand, potions
                                 // see comment in item_colour()
@@ -697,6 +691,7 @@ public:
     int hp;
     bool notified_mp_full;
     bool notified_hp_full;
+    bool notified_ancestor_hp_full;
     coord_def pos;
     int travel_speed;
     int direction;
@@ -763,10 +758,11 @@ enum mon_spell_slot_flag
 
     MON_SPELL_SHORT_RANGE = 1 << 10, // only use at short distances
     MON_SPELL_LONG_RANGE  = 1 << 11, // only use at long distances
+    MON_SPELL_EVOKE       = 1 << 12, // a spell from an evoked item
 
-    MON_SPELL_LAST_FLAG = MON_SPELL_LONG_RANGE,
+    MON_SPELL_LAST_FLAG = MON_SPELL_EVOKE,
 };
-DEF_BITFIELD(mon_spell_slot_flags, mon_spell_slot_flag, 11);
+DEF_BITFIELD(mon_spell_slot_flags, mon_spell_slot_flag, 12);
 const int MON_SPELL_LAST_EXPONENT = mon_spell_slot_flags::last_exponent;
 COMPILE_CHECK(mon_spell_slot_flags::exponent(MON_SPELL_LAST_EXPONENT)
               == MON_SPELL_LAST_FLAG);
@@ -817,6 +813,7 @@ public:
 
     bool need_activate() const { return have_inactive_markers; }
     void clear_need_activate();
+    void init_all();
     void activate_all(bool verbose = true);
     void activate_markers_at(coord_def p);
     void add(map_marker *marker);
@@ -878,7 +875,7 @@ public:
     item_sort_comparators cmp;
 
 public:
-    menu_sort_condition(menu_type mt = MT_INVLIST, int sort = 0);
+    menu_sort_condition(menu_type mt = menu_type::invlist, int sort = 0);
     menu_sort_condition(const string &s);
 
     bool matches(menu_type mt) const;

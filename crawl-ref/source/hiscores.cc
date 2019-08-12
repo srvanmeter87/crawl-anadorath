@@ -44,6 +44,7 @@
 #include "ouch.h"
 #include "place.h"
 #include "religion.h"
+#include "scroller.h"
 #include "skills.h"
 #include "state.h"
 #include "status.h"
@@ -57,10 +58,14 @@
 #include "unwind.h"
 #include "version.h"
 
+using namespace ui;
+
 #define SCORE_VERSION "0.1"
 
 // enough memory allocated to snarf in the scorefile entries
 static unique_ptr<scorefile_entry> hs_list[SCORE_FILE_ENTRIES];
+static int hs_list_size = 0;
+static bool hs_list_initalized = false;
 
 static FILE *_hs_open(const char *mode, const string &filename);
 static void  _hs_close(FILE *handle, const string &filename);
@@ -96,7 +101,7 @@ int hiscores_new_entry(const scorefile_entry &ne)
     unwind_bool score_update(crawl_state.updating_scores, true);
 
     FILE *scores;
-    int i, total_entries;
+    int i;
     bool inserted = false;
     int newest_entry = -1;
 
@@ -146,14 +151,15 @@ int hiscores_new_entry(const scorefile_entry &ne)
         i++;
     }
 
+    hs_list_size = i;
+    hs_list_initalized = true;
+
     // If we've still not inserted it, it's not a highscore.
     if (!inserted)
     {
         _hs_close(scores, _score_file_name());
         return -1;
     }
-
-    total_entries = i;
 
     // The old code closed and reopened the score file, leading to a
     // race condition where one Crawl process could overwrite the
@@ -165,10 +171,13 @@ int hiscores_new_entry(const scorefile_entry &ne)
     rewind(scores);
 
     // write scorefile entries.
-    for (i = 0; i < total_entries; i++)
+    for (i = 0; i < hs_list_size; i++)
     {
         _hs_write(scores, *hs_list[i]);
-        hs_list[i].reset(nullptr);
+
+        // Leave in memory. Does this anyway if !inserted.
+        // Can write cleanup function if nessicary??
+        // hs_list[i].reset(nullptr);
     }
 
     // close scorefile.
@@ -218,6 +227,32 @@ static void _hiscores_print_entry(const scorefile_entry &se,
     pf("%s", entry.c_str());
 }
 
+// Reads hiscores file to memory
+void hiscores_read_to_memory()
+{
+    FILE *scores;
+    int i;
+
+    // open highscore file (reading)
+    scores = _hs_open("r", _score_file_name());
+    if (scores == nullptr)
+        return;
+
+    // read highscore file
+    for (i = 0; i < SCORE_FILE_ENTRIES; i++)
+    {
+        hs_list[i].reset(new scorefile_entry);
+        if (_hs_read(scores, *hs_list[i]) == false)
+            break;
+    }
+
+    hs_list_size = i;
+    hs_list_initalized = true;
+
+    //close off
+    _hs_close(scores, _score_file_name());
+}
+
 // Writes all entries in the scorefile to stdout in human-readable form.
 void hiscores_print_all(int display_count, int format)
 {
@@ -248,34 +283,22 @@ void hiscores_print_all(int display_count, int format)
 
 // Displays high scores using curses. For output to the console, use
 // hiscores_print_all.
-void hiscores_print_list(int display_count, int format, int newest_entry)
+string hiscores_print_list(int display_count, int format, int newest_entry)
 {
     unwind_bool scorefile_display(crawl_state.updating_scores, true);
+    string ret;
 
-    FILE *scores;
+    // Additional check to preserve previous functionality
+    if (!hs_list_initalized) {
+        hiscores_read_to_memory();
+    }
+
     int i, total_entries;
 
     if (display_count <= 0)
-        return;
+        return "";
 
-    // open highscore file (reading)
-    scores = _hs_open("r", _score_file_name());
-    if (scores == nullptr)
-        return;
-
-    // read highscore file
-    for (i = 0; i < SCORE_FILE_ENTRIES; i++)
-    {
-        hs_list[i].reset(new scorefile_entry);
-        if (_hs_read(scores, *hs_list[i]) == false)
-            break;
-    }
-    total_entries = i;
-
-    // close off
-    _hs_close(scores, _score_file_name());
-
-    textcolour(LIGHTGREY);
+    total_entries = hs_list_size;
 
     int start = newest_entry - display_count / 2;
 
@@ -291,22 +314,24 @@ void hiscores_print_list(int display_count, int format, int newest_entry)
     {
         // check for recently added entry
         if (i == newest_entry)
-            textcolour(YELLOW);
+            ret += "<yellow>";
 
-        _hiscores_print_entry(*hs_list[i], i, format, cprintf);
+        _hiscores_print_entry(*hs_list[i], i, format, [&ret](const char *fmt, const char *s){
+            ret += string(s);
+        });
 
+        // return to normal color for next entry
         if (i == newest_entry)
-            textcolour(LIGHTGREY);
+            ret += "<lightgrey>";
     }
+
+    return ret;
 }
 
 static void _add_hiscore_row(MenuScroller* scroller, scorefile_entry& se, int id)
 {
     TextItem* tmp = nullptr;
     tmp = new TextItem();
-
-    coord_def min_coord(1,1);
-    coord_def max_coord(1,2);
 
     tmp->set_fg_colour(WHITE);
     tmp->set_highlight_colour(WHITE);
@@ -344,12 +369,9 @@ static void _construct_hiscore_table(MenuScroller* scroller)
 
 static void _show_morgue(scorefile_entry& se)
 {
-    formatted_scroller morgue_file;
-    int flags = MF_NOSELECT | MF_ALWAYS_SHOW_MORE | MF_NOWRAP;
-    if (Options.easy_exit_menu)
-        flags |= MF_EASY_EXIT;
+    int flags = FS_PREWRAPPED_TEXT;
+    formatted_scroller morgue_file(flags);
 
-    morgue_file.set_flags(flags, false);
     morgue_file.set_tag("morgue");
     morgue_file.set_more();
 
@@ -358,7 +380,7 @@ static void _show_morgue(scorefile_entry& se)
                          + strip_filename_unsafe_chars(morgue_base) + ".txt";
     FILE* morgue = lk_open("r", morgue_path);
 
-    if (!morgue)
+    if (!morgue) // TODO: add an error message
         return;
 
     char buf[200];
@@ -370,12 +392,10 @@ static void _show_morgue(scorefile_entry& se)
         size_t newline_pos = line.find_last_of('\n');
         if (newline_pos != string::npos)
             line.erase(newline_pos);
-        morgue_text += "<w>" + line + "</w>" + '\n';
+        morgue_text += "<w>" + replace_all(line, "<", "<<") + "</w>" + '\n';
     }
 
     lk_close(morgue, morgue_path);
-
-    clrscr();
 
     column_composer cols(2, 40);
     cols.add_formatted(
@@ -387,29 +407,74 @@ static void _show_morgue(scorefile_entry& se)
 
     unsigned i;
     for (i = 0; i < blines.size(); ++i)
-        morgue_file.add_item_formatted_string(blines[i]);
+        morgue_file.add_formatted_string(blines[i], true);
 
-    textcolour(WHITE);
     morgue_file.show();
 }
 
-void show_hiscore_table()
+class UIHiscoresMenu : public Widget
 {
-    unwind_var<string> sprintmap(crawl_state.map, crawl_state.sprint_map);
-    const int max_line   = get_number_of_lines() - 1;
-    const int max_col    = get_number_of_cols() - 1;
+public:
+    UIHiscoresMenu() : done(false) {
+        expand_v = true;
+    };
 
-    const int scores_col_start = 4;
-    const int descriptor_col_start = 4;
+    virtual void _render() override;
+    virtual SizeReq _get_preferred_size(Direction dim, int prosp_width) override;
+    virtual void _allocate_region() override;
+    virtual bool on_event(const wm_event& event) override;
+
+    bool done;
+private:
+    PrecisionMenu menu;
+};
+
+void UIHiscoresMenu::_render()
+{
+#ifdef USE_TILE_LOCAL
+    GLW_3VF t = {(float)m_region[0], (float)m_region[1], 0}, s = {1, 1, 1};
+    glmanager->set_transform(t, s);
+#endif
+    menu.draw_menu();
+#ifdef USE_TILE_LOCAL
+    glmanager->reset_transform();
+#endif
+}
+
+SizeReq UIHiscoresMenu::_get_preferred_size(Direction dim, int prosp_width)
+{
+    SizeReq ret;
+    if (!dim)
+        ret = { 80, 100 };
+    else
+        ret = { 10, 10 };
+#ifdef USE_TILE_LOCAL
+    const FontWrapper* font = tiles.get_crt_font();
+    const int f = !dim ? font->char_width() : font->char_height();
+    ret.min *= f;
+    ret.nat *= f;
+#endif
+    return ret;
+}
+
+void UIHiscoresMenu::_allocate_region()
+{
+    menu.clear();
+
+#ifdef USE_TILE_LOCAL
+    const FontWrapper* font = tiles.get_crt_font();
+    const int max_col = m_region[2]/font->char_width();
+    const int max_line = m_region[3]/font->char_height();
+#else
+    const int max_col = m_region[2] - 1, max_line = m_region[3] - 1;
+#endif
+
+    const int scores_col_start = 1;
+    const int descriptor_col_start = 1;
     const int scores_row_start = 10;
     const int scores_col_end = max_col;
-    const int scores_row_end = max_line - 1;
+    const int scores_row_end = max_line+1;
 
-    bool smart_cursor_enabled = is_smart_cursor_enabled();
-
-    clrscr();
-
-    PrecisionMenu menu;
     menu.set_select_type(PrecisionMenu::PRECISION_SINGLESELECT);
 
     MenuScroller* score_entries = new MenuScroller();
@@ -421,7 +486,7 @@ void show_hiscore_table()
 
     MenuDescriptor* descriptor = new MenuDescriptor(&menu);
     descriptor->init(coord_def(descriptor_col_start, 1),
-            coord_def(get_number_of_cols(), scores_row_start - 1),
+            coord_def(max_col+1, scores_row_start - 1),
             "descriptor");
 
 #ifdef USE_TILE_LOCAL
@@ -437,19 +502,6 @@ void show_hiscore_table()
     freeform->allow_focus(false);
     freeform->set_visible(true);
 
-    NoSelectTextItem* tmp = new NoSelectTextItem();
-    string text = "[  Up/Down or PgUp/PgDn to scroll.         Esc or R-click "
-        "exits.  ]";
-    tmp->set_text(text);
-    tmp->set_bounds(coord_def(1, max_line - 1), coord_def(max_col - 1, max_line));
-    tmp->set_fg_colour(CYAN);
-    freeform->attach_item(tmp);
-    tmp->set_visible(true);
-
-#ifdef USE_TILE_LOCAL
-    tiles.get_crt()->attach_menu(&menu);
-#endif
-
     score_entries->set_visible(true);
     descriptor->set_visible(true);
     highlighter->set_visible(true);
@@ -464,32 +516,70 @@ void show_hiscore_table()
     score_entries->activate_first_item();
 
     enable_smart_cursor(false);
-    while (true)
-    {
-        menu.draw_menu();
-        textcolour(WHITE);
-        const int keyn = getch_ck();
+}
 
-        if (keyn == CK_REDRAW)
-            continue;
-
-        if (key_is_escape(keyn) || keyn == CK_MOUSE_CMD)
-        {
-            // Go back to the menu and return the smart cursor to its previous state
-            enable_smart_cursor(smart_cursor_enabled);
-            return;
-        }
-
-        if (menu.process_key(keyn))
-        {
-            menu.clear_selections();
-            _show_morgue(*hs_list[menu.get_active_item()->get_id()]);
-            clrscr();
+bool UIHiscoresMenu::on_event(const wm_event& ev)
+{
 #ifdef USE_TILE_LOCAL
-            tiles.get_crt()->attach_menu(&menu);
-#endif
+    if (ev.type == WME_MOUSEMOTION
+     || ev.type == WME_MOUSEBUTTONDOWN
+     || ev.type == WME_MOUSEWHEEL)
+    {
+        MouseEvent mouse_ev = ev.mouse_event;
+        mouse_ev.px -= m_region[0];
+        mouse_ev.py -= m_region[1];
+
+        int key = menu.handle_mouse(mouse_ev);
+        if (key && key != CK_NO_KEY)
+        {
+            wm_event fake_key = {0};
+            fake_key.type = WME_KEYDOWN;
+            fake_key.key.keysym.sym = key;
+            on_event(fake_key);
         }
+
+        if (ev.type == WME_MOUSEMOTION)
+            _expose();
+        return true;
     }
+#endif
+
+    if (ev.type != WME_KEYDOWN)
+        return false;
+    int keyn = ev.key.keysym.sym;
+
+    if (key_is_escape(keyn) || keyn == CK_MOUSE_CMD)
+        return done = true;
+
+    if (menu.process_key(keyn))
+    {
+        menu.clear_selections();
+        _show_morgue(*hs_list[menu.get_active_item()->get_id()]);
+    }
+    _expose();
+
+    return true;
+}
+
+void show_hiscore_table()
+{
+    unwind_var<string> sprintmap(crawl_state.map, crawl_state.sprint_map);
+
+    auto vbox = make_shared<Box>(Widget::VERT);
+    auto title = make_shared<Text>(formatted_string("Dungeon Crawl Stone Soup: High Scores", YELLOW));
+    title->align_self = Widget::CENTER;
+    title->set_margin_for_sdl({0, 0, 20, 0});
+    auto hiscore_ui = make_shared<UIHiscoresMenu>();
+    vbox->add_child(move(title));
+    vbox->add_child(hiscore_ui);
+    auto popup = make_shared<ui::Popup>(move(vbox));
+
+    bool smart_cursor_enabled = is_smart_cursor_enabled();
+
+    ui::run_layout(move(popup), hiscore_ui->done);
+
+    // Go back to the menu and return the smart cursor to its previous state
+    enable_smart_cursor(smart_cursor_enabled);
 }
 
 // Trying to supply an appropriate verb for the attack type. -- bwr
@@ -757,10 +847,10 @@ actor* scorefile_entry::killer() const
 
 xlog_fields scorefile_entry::get_fields() const
 {
-    if (!fields.get())
+    if (!fields)
         return xlog_fields();
     else
-        return *fields.get();
+        return *fields;
 }
 
 bool scorefile_entry::parse(const string &line)
@@ -796,7 +886,7 @@ string scorefile_entry::raw_string() const
 
     set_score_fields();
 
-    if (!fields.get())
+    if (!fields)
         return "";
 
     return fields->xlog_line() + "\n";
@@ -973,7 +1063,7 @@ void scorefile_entry::init_with_fields()
     lvl     = fields->int_field("xl");
     race_class_name = fields->str_field("char");
 
-    best_skill     = str_to_skill(fields->str_field("sk"));
+    best_skill     = str_to_skill_safe(fields->str_field("sk"));
     best_skill_lvl = fields->int_field("sklev");
     title          = fields->str_field("title");
 
@@ -1052,7 +1142,7 @@ void scorefile_entry::init_with_fields()
 
 void scorefile_entry::set_base_xlog_fields() const
 {
-    if (!fields.get())
+    if (!fields)
         fields.reset(new xlog_fields);
 
     string score_version = SCORE_VERSION;
@@ -1150,7 +1240,7 @@ void scorefile_entry::set_score_fields() const
 {
     fields.reset(new xlog_fields);
 
-    if (!fields.get())
+    if (!fields)
         return;
 
     set_base_xlog_fields();
@@ -1223,7 +1313,7 @@ string scorefile_entry::long_kill_message() const
 {
     string msg = death_description(DDV_LOGVERBOSE);
     msg = make_oneline(msg);
-    msg[0] = tolower(msg[0]);
+    msg[0] = tolower_safe(msg[0]);
     trim_string(msg);
     return msg;
 }
@@ -1232,7 +1322,7 @@ string scorefile_entry::short_kill_message() const
 {
     string msg = death_description(DDV_ONELINE);
     msg = make_oneline(msg);
-    msg[0] = tolower(msg[0]);
+    msg[0] = tolower_safe(msg[0]);
     trim_string(msg);
     return msg;
 }
@@ -1638,7 +1728,7 @@ void scorefile_entry::init(time_t dt)
     status_info inf;
     for (unsigned i = 0; i <= STATUS_LAST_STATUS; ++i)
     {
-        if (fill_status_info(i, &inf) && !inf.short_text.empty())
+        if (fill_status_info(i, inf) && !inf.short_text.empty())
         {
             if (!status_effects.empty())
                 status_effects += ",";
@@ -1650,7 +1740,7 @@ void scorefile_entry::init(time_t dt)
 
     final_hp         = you.hp;
     final_max_hp     = you.hp_max;
-    final_max_max_hp = get_real_hp(true, true);
+    final_max_max_hp = get_real_hp(true, false);
 
     final_mp          = you.magic_points;
     final_max_mp      = you.max_magic_points;
@@ -1931,7 +2021,7 @@ scorefile_entry::character_description(death_desc_verbosity verbosity) const
         {
             if (god == GOD_XOM)
             {
-                desc + make_stringf("Was a %sPlaything of Xom.",
+                desc += make_stringf("Was a %sPlaything of Xom.",
                                     (lvl >= 20) ? "Favourite " : "");
 
                 desc += _hiscore_newline_string();
@@ -2577,7 +2667,7 @@ string scorefile_entry::death_description(death_desc_verbosity verbosity) const
     }
 
     if (oneline && desc.length() > 2)
-        desc[1] = tolower(desc[1]);
+        desc[1] = tolower_safe(desc[1]);
 
     // TODO: Eventually, get rid of "..." for cases where the text fits.
     if (terse)
@@ -2710,8 +2800,21 @@ string scorefile_entry::death_description(death_desc_verbosity verbosity) const
                 if (you.duration[DUR_PARALYSIS])
                 {
                     desc += "... while paralysed";
-                    if (you.props.exists("paralysed_by"))
-                        desc += " by " + you.props["paralysed_by"].get_string();
+                    if (you.props.exists(PARALYSED_BY_KEY))
+                    {
+                        desc += " by "
+                                + you.props[PARALYSED_BY_KEY].get_string();
+                    }
+                    desc += _hiscore_newline_string();
+                }
+                else if (you.duration[DUR_PETRIFIED])
+                {
+                    desc += "... while petrified";
+                    if (you.props.exists(PETRIFIED_BY_KEY))
+                    {
+                        desc += " by "
+                                + you.props[PETRIFIED_BY_KEY].get_string();
+                    }
                     desc += _hiscore_newline_string();
                 }
 

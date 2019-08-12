@@ -21,31 +21,35 @@ enum object_selector
     OSEL_ANY                     =  -1,
     OSEL_WIELD                   =  -2,
     OSEL_UNIDENT                 =  -3,
-//  OSEL_EQUIP                   =  -4,
-    OSEL_RECHARGE                =  -5,
-    OSEL_ENCHANTABLE_ARMOUR      =  -6,
-    OSEL_BEOGH_GIFT              =  -7,
-    OSEL_DRAW_DECK               =  -8,
-    OSEL_THROWABLE               =  -9,
-    OSEL_EVOKABLE                = -10,
-    OSEL_WORN_ARMOUR             = -11,
-//  OSEL_FRUIT                   = -12,
-    OSEL_CURSED_WORN             = -13,
 #if TAG_MAJOR_VERSION == 34
-    OSEL_UNCURSED_WORN_ARMOUR    = -14,
-    OSEL_UNCURSED_WORN_JEWELLERY = -15,
+    OSEL_RECHARGE                =  -4,
 #endif
-    OSEL_BRANDABLE_WEAPON        = -16,
-    OSEL_ENCHANTABLE_WEAPON      = -17,
-    OSEL_BLESSABLE_WEAPON        = -18,
-    OSEL_SUPERCHARGE             = -19,
-    OSEL_CURSABLE                = -20, // Items that are cursable and not
+    OSEL_ENCHANTABLE_ARMOUR      =  -5,
+    OSEL_BEOGH_GIFT              =  -6,
+#if TAG_MAJOR_VERSION == 34
+    OSEL_DRAW_DECK               =  -7,
+#endif
+    OSEL_THROWABLE               =  -8,
+    OSEL_EVOKABLE                =  -9,
+    OSEL_WORN_ARMOUR             = -10,
+    OSEL_CURSED_WORN             = -11,
+#if TAG_MAJOR_VERSION == 34
+    OSEL_UNCURSED_WORN_ARMOUR    = -12,
+    OSEL_UNCURSED_WORN_JEWELLERY = -13,
+#endif
+    OSEL_BRANDABLE_WEAPON        = -14,
+    OSEL_ENCHANTABLE_WEAPON      = -15,
+    OSEL_BLESSABLE_WEAPON        = -16,
+    OSEL_CURSABLE                = -17, // Items that are cursable and not
                                         // known-cursed. Unknown-cursed items
                                         // are included, to prevent information
                                         // leakage.
-    OSEL_DIVINE_RECHARGE         = -21,
-    OSEL_BRANDABLE_ARMOUR        = -22,
-    OSEL_BRANDABLE_AMMUNITION    = -23,
+#if TAG_MAJOR_VERSION == 34
+    OSEL_DIVINE_RECHARGE         = -18,
+#endif
+    OSEL_UNCURSED_WORN_RINGS     = -19,
+    OSEL_BRANDABLE_ARMOUR        = -20,
+    OSEL_BRANDABLE_AMMUNITION    = -21,
 };
 
 /// Behaviour flags for prompt_invent_item().
@@ -68,7 +72,6 @@ DEF_BITFIELD(invent_prompt_flags, invprompt_flag);
 #define PROMPT_ABORT         -1
 #define PROMPT_GOT_SPECIAL   -2
 #define PROMPT_NOTHING       -3
-#define PROMPT_INAPPROPRIATE -4
 
 #define SLOT_BARE_HANDS      PROMPT_GOT_SPECIAL
 
@@ -79,10 +82,10 @@ struct SelItem
     int slot;
     int quantity;
     const item_def *item;
-
-    SelItem() : slot(0), quantity(0), item(nullptr) { }
-    SelItem(int s, int q, const item_def *it = nullptr)
-        : slot(s), quantity(q), item(it)
+    bool has_star;
+    SelItem() : slot(0), quantity(0), item(nullptr), has_star(false) { }
+    SelItem(int s, int q, const item_def *it = nullptr, bool do_star = false)
+        : slot(s), quantity(q), item(it), has_star(do_star)
     {
     }
 };
@@ -139,6 +142,8 @@ public:
     }
 
     virtual void select(int qty = -1) override;
+    void set_star(bool);
+    bool has_star() const;
 
     virtual string get_filter_text() const override;
 
@@ -147,6 +152,7 @@ public:
 
 private:
     void add_class_hotkeys(const item_def &i);
+    bool _has_star;
 };
 
 class InvMenu : public Menu
@@ -192,8 +198,13 @@ public:
     const menu_sort_condition *find_menu_sort_condition() const;
     void sort_menu(vector<InvEntry*> &items, const menu_sort_condition *cond);
 
+    // Drop menu only: if true, dropped items are removed from autopickup.
+    bool mode_special_drop() const;
+
 protected:
     void do_preselect(InvEntry *ie);
+    void select_item_index(int idx, int qty, bool draw_cursor = true) override;
+    int pre_process(int key) override;
     virtual bool is_selectable(int index) const override;
     virtual string help_key() const override;
 
@@ -203,6 +214,9 @@ protected:
 
     invtitle_annotator title_annotate;
     string temp_title;
+
+private:
+    bool _mode_special_drop;
 };
 
 void get_class_hotkeys(const int type, vector<char> &glyphs);
@@ -223,7 +237,7 @@ int prompt_invent_item(const char *prompt,
 vector<SelItem> select_items(
                         const vector<const item_def*> &items,
                         const char *title, bool noselect = false,
-                        menu_type mtype = MT_PICKUP,
+                        menu_type mtype = menu_type::pickup,
                         invtitle_annotator titlefn = nullptr);
 
 vector<SelItem> prompt_drop_items(const vector<SelItem> &preselected_items);
@@ -235,6 +249,10 @@ void identify_inventory();
 
 const char *item_class_name(int type, bool terse = false);
 const char *item_slot_name(equipment_type type);
+
+#ifdef USE_TILE
+bool get_tiles_for_item(const item_def &item, vector<tile_def>& tileset, bool show_background);
+#endif
 
 bool check_old_item_warning(const item_def& item, operation_types oper);
 bool check_warning_inscriptions(const item_def& item, operation_types oper);
@@ -248,9 +266,8 @@ void list_charging_evokers(FixedVector<item_def*, NUM_MISCELLANY> &evokers);
 
 bool item_is_wieldable(const item_def &item);
 bool item_is_evokable(const item_def &item, bool reach = true,
-                      bool known = false, bool all_wands = false,
-                      bool msg = false, bool equip = true);
+                      bool known = false, bool msg = false, bool equip = true);
 bool needs_notele_warning(const item_def &item, operation_types oper);
 bool needs_handle_warning(const item_def &item, operation_types oper,
                           bool &penance);
-int digit_inscription_to_inv_index(char digit, operation_types oper);
+item_def *digit_inscription_to_item(char digit, operation_types oper);

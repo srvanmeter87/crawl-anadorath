@@ -1,5 +1,5 @@
 #include "AppHdr.h"
-
+#ifdef USE_TILE
 #include "tilecell.h"
 
 #include "cloud.h"
@@ -24,6 +24,7 @@ void packed_cell::clear()
     flv.feat = 0;
     flv.special = 0;
 
+    is_highlighted_summoner   = false;
     is_bloody        = false;
     is_silenced      = false;
     halo             = HALO_NONE;
@@ -501,3 +502,4 @@ void pack_cell_overlays(const coord_def &gc, packed_cell *cell)
         _pack_wall_shadows(gc, cell, shadow_tile);
     }
 }
+#endif //TILECELL.CC

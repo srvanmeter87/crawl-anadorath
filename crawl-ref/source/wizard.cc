@@ -2,8 +2,9 @@
  * @file
  * @brief Wizard mode command handling.
 **/
-#ifdef WIZARD
 #include "AppHdr.h"
+
+#ifdef WIZARD
 
 #include "wizard.h"
 
@@ -32,7 +33,6 @@
 #include "spl-transloc.h" // wizard_blink
 #include "stairs.h" // down_stairs
 #include "state.h"
-#include "timed-effects.h" // change_labyrinth
 #include "wizard-option-type.h"
 #include "wiz-dgn.h"
 #include "wiz-dump.h"
@@ -111,17 +111,11 @@ static void _do_wizard_command(int wiz_command)
     // case CONTROL('J'): break;
 
     case 'k': wizard_set_xl(true); break;
-    case 'K':
-        if (player_in_branch(BRANCH_LABYRINTH))
-            change_labyrinth(true);
-        else
-            mpr("This only makes sense in a labyrinth!");
-        break;
-    case CONTROL('K'): wizard_clear_used_vaults(); break;
+    case 'K': wizard_clear_used_vaults(); break;
 
     case 'l': wizard_set_xl(); break;
     case 'L': debug_place_map(false); break;
-    // case CONTROL('L'): break;
+    case CONTROL('L'): debug_show_builder_logs(); break;
 
     case 'M':
     case 'm': wizard_create_spec_monster_name(); break;
@@ -193,7 +187,7 @@ static void _do_wizard_command(int wiz_command)
     case '(': wizard_create_feature(); break;
     // case ')': break;
 
-    // case '`': break;
+    case '`': debug_list_vacant_keys(); break;
     case '~': wizard_interlevel_travel(); break;
 
     case '-': wizard_get_god_gift(); break;
@@ -214,7 +208,6 @@ static void _do_wizard_command(int wiz_command)
         if (!wizard_add_mutation())
             mpr("Failure to give mutation.");
         break;
-    case '}': wizard_reveal_traps(); break;
 
     case '\\': debug_make_shop(); break;
     case '|': wizard_create_all_artefacts(); break;
@@ -323,7 +316,7 @@ void handle_wizard_command()
         cursor_control con(true);
         wiz_command = getchm();
         if (wiz_command == '*')
-            wiz_command = CONTROL(toupper(getchm()));
+            wiz_command = CONTROL(toupper_safe(getchm()));
     }
 
     if (crawl_state.cmd_repeat_start)
@@ -406,9 +399,6 @@ int list_wizard_commands(bool do_redraw_screen)
 {
     // 2 columns
     column_composer cols(2, 44);
-    // Page size is number of lines - one line for --more-- prompt.
-    cols.set_pagesize(get_number_of_lines());
-
     cols.add_formatted(0,
                        "<yellow>Player stats</yellow>\n"
                        "<w>A</w>      set all skills to level\n"
@@ -435,14 +425,13 @@ int list_wizard_commands(bool do_redraw_screen)
                        "<w>,</w>/<w>.</w>    create up/down staircase\n"
                        "<w>(</w>      turn cell into feature\n"
                        "<w>\\</w>      make a shop\n"
-                       "<w>Ctrl-K</w> mark all vaults as unused\n"
+                       "<w>K</w> mark all vaults as unused\n"
                        "\n"
                        "<yellow>Other level related commands</yellow>\n"
                        "<w>Ctrl-A</w> generate new Abyss area\n"
                        "<w>b</w>      controlled blink\n"
                        "<w>B</w>      controlled teleport\n"
                        "<w>Ctrl-B</w> banish yourself to the Abyss\n"
-                       "<w>K</w>      shift section of a labyrinth\n"
                        "<w>R</w>      change monster spawn rate\n"
                        "<w>Ctrl-S</w> change Abyss speed\n"
                        "<w>u</w>/<w>d</w>    shift up/down one level\n"
@@ -451,9 +440,14 @@ int list_wizard_commands(bool do_redraw_screen)
                        "       temples in the dungeon\n"
                        "<w>;</w>      list known levels and counters\n"
                        "<w>{</w>      magic mapping\n"
-                       "<w>}</w>      detect all traps on level\n"
                        "<w>Ctrl-W</w> change Shoals' tide speed\n"
                        "<w>Ctrl-E</w> dump level builder information\n"
+#ifdef DEBUG
+                       // might be present in any save, but only generated
+                       // in debug builds; hide this for regular wizmode so as
+                       // to not confuse non-devs. The command will still work.
+                       "<w>Ctrl-L</w> show builder logs for level\n"
+#endif
                        "<w>Ctrl-R</w> regenerate current level\n"
                        "<w>P</w>      create a level based on a vault\n",
                        true);
@@ -510,6 +504,7 @@ int list_wizard_commands(bool do_redraw_screen)
 #endif
                        "<w>Ctrl-Y</w> temporarily suppress wizmode\n"
                        "<w>Ctrl-C</w> force a crash\n"
+                       "<w>`</w>      list unassigned command keys\n"
                        "\n"
                        "<yellow>Other wizard commands</yellow>\n"
                        "(not prefixed with <w>&</w>!)\n"
@@ -517,8 +512,7 @@ int list_wizard_commands(bool do_redraw_screen)
                        "<w>X?</w>     list map-mode commands\n",
                        true);
 
-    int key = show_keyhelp_menu(cols.formatted_lines(), false,
-                                Options.easy_exit_menu);
+    int key = show_keyhelp_menu(cols.formatted_lines());
     if (do_redraw_screen)
         redraw_screen();
     return key;
