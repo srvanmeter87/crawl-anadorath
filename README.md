@@ -1,6 +1,6 @@
 # Dungeon Crawl Stone Soup
 
-[![Build Status](https://travis-ci.org/srvanmeter87/crawl.svg?branch=active)](https://travis-ci.org/srvanmeter87/active)
+[![Build Status](https://travis-ci.org/srvanmeter87/crawl-anadorath.svg?branch=master)](https://travis-ci.org/srvanmeter87/crawl-anadorath)
 
 Dungeon Crawl Stone Soup is a game of dungeon exploration, combat and magic, involving characters of diverse skills, worshipping deities of great power and caprice. To win, you'll need to be a master of tactics and strategy, and prevail against overwhelming odds.
 
