@@ -32,6 +32,6 @@
 -I PURE
 -I IMMUTABLE
 --sort=yes
---tag-relative=yes
+--tag-relative=no
 --totals=yes
 --verbose=no
