@@ -924,37 +924,38 @@ static formatted_string _describe_god_powers(god_type which_god)
         have_any = true;
         if (have_passive(passive_t::elemental_shield_1))
         {
-            piety >= piety_breakpoint(5) ? desc.textcolour(LIGHTBLUE) :
-            piety >= piety_breakpoint(2) ? desc.textcolour(LIGHTGREEN) :
-                                           desc.textcolour(LIGHTMAGENTA);
+            piety >= piety_breakpoint(4) ? desc.textcolour(LIGHTBLUE) :
+            piety >= piety_breakpoint(1) ? desc.textcolour(LIGHTGREEN) :
+            piety >= piety_breakpoint(0) ? desc.textcolour(BROWN) :
+                                           desc.textcolour(DARKGREY);
         }
         else
         {
-            textcolour(DARKGREY);
+            desc.textcolour(DARKGREY);
         }
         desc.cprintf("%s grants you a %s forged from primal elements. (AC+%d SH+%d%s)\n",
                 uppercase_first(god_name(which_god)).c_str(),
-                piety >= piety_breakpoint(5) ? "large elemental shield" :
-                piety >= piety_breakpoint(2) ? "moderate-size shield" :
+                piety >= piety_breakpoint(4) ? "large elemental shield" :
+                piety >= piety_breakpoint(1) ? "moderate-size shield" :
                                                "small buckler",
                 anadorath_def_boost(piety) / 100,
                 (anadorath_def_boost(piety) + 50) / 200,
-                piety >= piety_breakpoint(5) ? " RMsl" : "");
+                piety >= piety_breakpoint(4) ? " DMsl" : "");
         
-        have_passive(passive_t::elemental_resistance) ? desc.textcolour(LIGHTMAGENTA) :
+        have_passive(passive_t::elemental_resistance) ? desc.textcolour(LIGHTBLUE) :
                                                         desc.textcolour(DARKGREY);
 
         desc.cprintf("%s protects you from primal elements.%s\n",
                 uppercase_first(god_name(which_god)).c_str(),
-                piety >= piety_breakpoint(3) ? " (rC+ rF+ rElec+)" : "");
+                piety >= piety_breakpoint(2) ? " (rC+ rF+ rElec+)" : "");
         
-        have_passive(passive_t::elemental_conversion_2) ? textcolour(LIGHTMAGENTA) :
-        have_passive(passive_t::elemental_conversion_1) ? textcolour(BROWN) :
+        have_passive(passive_t::elemental_conversion_2) ? textcolour(LIGHTBLUE) :
+        have_passive(passive_t::elemental_conversion_1) ? textcolour(YELLOW) :
                                                           textcolour(DARKGREY);
         desc.cprintf("%s's boon%s.\n",
                 uppercase_first(god_name(which_god)).c_str(),
-                piety >= piety_breakpoint(6) ? " allies you with primal elementals" :
-                piety >= piety_breakpoint(4) ? " neutralises primal elementals" :
+                piety >= piety_breakpoint(5) ? " allies you with primal elementals" :
+                piety >= piety_breakpoint(3) ? " neutralises primal elementals" :
                                                " would make primal elementals cease hostility");
         break;
     }

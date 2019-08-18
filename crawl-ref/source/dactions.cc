@@ -106,14 +106,11 @@ bool mons_matches_daction(const monster* mon, daction_type act)
         // the moment you converted to Fedhas.
         return mons_is_plant(*mon);
     case DACT_ALLY_ELEMENTAL:
-        // Anadorath's elementals.
-        return mon->wont_attack() && mons_is_god_gift(*mon, GOD_ANADORATH);
+        return mon->friendly() && mons_is_god_gift(*mon, GOD_ANADORATH);
     case DACT_NEUTRAL_ELEMENTAL:
+        return mon->neutral() && mons_is_god_gift(*mon, GOD_ANADORATH);
     case DACT_ELEMENTAL_NEW_ATTEMPT:
-        return mons_is_airy(*mon)
-               || mons_is_earthy(*mon)
-               || mons_is_fiery(*mon)
-               || mons_is_icy(*mon);
+        return anadorath_converts(*mon);
     case DACT_ALLY_HEPLIAKLQANA:
     case DACT_UPGRADE_ANCESTOR:
         return mon->wont_attack() && mons_is_god_gift(*mon, GOD_HEPLIAKLQANA);
@@ -224,7 +221,7 @@ void apply_daction_to_mons(monster* mon, daction_type act, bool local,
 
         case DACT_ALLY_ELEMENTAL:
             simple_monster_message(*mon, " senses your lack of devotion to Anadorath.");
-            mon->attitude = ATT_GOOD_NEUTRAL;
+            mon->attitude = ATT_NEUTRAL;
             if (local)
                 behaviour_event(mon, ME_ALERT, &you);
             mons_att_changed(mon);

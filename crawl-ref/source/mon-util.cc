@@ -832,7 +832,10 @@ bool cheibriados_thinks_mons_is_fast(const monster& mon)
     return cheibriados_monster_player_speed_delta(mon) > 0;
 }
 
-// Dithmenos also hates fire users, flaming weapons, and generally fiery beings.
+/**
+ * Anadorath likes users of primal elements, sentient weapons, and
+ * other inherently (natural or magical) elemental beings.
+ */
 bool mons_is_fiery(const monster& mon)
 {
     if (mons_genus(mon.type) == MONS_DRACONIAN
@@ -850,7 +853,7 @@ bool mons_is_fiery(const monster& mon)
            || mon.has_attack_flavour(AF_STICKY_FLAME)
            || mon.has_spell_of_type(spschool::fire);
 }
-/** ... ice ... */
+
 bool mons_is_icy(const monster& mon)
 {
     if (mons_genus(mon.type) == MONS_DRACONIAN
@@ -874,7 +877,7 @@ bool mons_is_icy(const monster& mon)
     return mon.has_attack_flavour(AF_COLD)
            || mon.has_spell_of_type(spschool::ice);
 }
-/** ... earth ... */
+
 bool mons_is_earthy(const monster& mon)
 {
     if (mons_genus(mon.type) == MONS_DRACONIAN
@@ -897,7 +900,7 @@ bool mons_is_earthy(const monster& mon)
     }
     return mon.has_spell_of_type(spschool::earth);
 }
-/** ...and air. */
+
 bool mons_is_airy(const monster& mon)
 {
     if (mons_genus(mon.type) == MONS_DRACONIAN

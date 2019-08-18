@@ -133,9 +133,9 @@ item_def* newgame_make_item(object_class_type base,
     {
         if (item.sub_type == ARM_HELMET || item.sub_type == ARM_HAT)
             item.sub_type = ARM_HAT;
-        else if (item.sub_type == ARM_BUCKLER)
-            item.sub_type = ARM_SHIELD;
         else if (is_shield(item))
+            item.sub_type = ARM_SHIELD;
+        else if (item.sub_type == ARM_SHIELD)
             item.sub_type = ARM_BUCKLER;
         else if (item.sub_type == ARM_ROBE)
             item.sub_type = ARM_CLOAK;
@@ -255,14 +255,8 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_ARMOUR] += 2;
         else
         {
-            if (!is_useless_skill(SK_DODGING)) // Pyroliths
-            {
-                you.skills[SK_DODGING]++;
-                if (!is_useless_skill(SK_ARMOUR))
-                {
-                    you.skills[SK_ARMOUR]++; // converted later
-                }
-            }
+            you.skills[SK_DODGING]++;
+            you.skills[SK_ARMOUR]++; // converted later
         }
         break;
     }
@@ -293,16 +287,81 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_ARMOUR]++;
         break;
     }
+    case JOB_CONJURER:
+    case JOB_EARTH_ELEMENTALIST:
+    case JOB_FIRE_ELEMENTALIST:
+    case JOB_SUMMONER:
+    case JOB_WIZARD:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_DODGING] += 2;
+            you.skills[SK_STEALTH] += 2;
+        }
+        break;
+    }
+    case JOB_ARCANE_MARKSMAN:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_DODGING] += 2;
+        }
+        break;
+    }
+    case JOB_FIGHTER:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_ARMOUR] += 3;
+        }
+        break;
+    }
+    case JOB_GLADIATOR:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_DODGING] += 3;
+        }
+        break;
+    }
+    case JOB_HUNTER:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_DODGING] += 2;
+            you.skills[SK_STEALTH]++;
+        }
+        break;
+    }
     case JOB_PRIMALIST:
     {
         you.religion = GOD_ANADORATH;
         you.piety = 20;
+
+        you.skills[SK_EARTH_MAGIC] += 2;
+        you.skills[SK_FIRE_MAGIC] += 2;
+
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_AIR_MAGIC] += 2;
+            you.skills[SK_ICE_MAGIC] += 2;
+        }
 
         if (species_apt(SK_SPELLCASTING) < species_apt(SK_CONJURATIONS))
             you.skills[SK_CONJURATIONS]++;
         else
             you.skills[SK_SPELLCASTING]++;
         break;
+    }
+    case JOB_SKALD:
+    {
+        if (you.species != SP_PYROLITH)
+        {
+            you.skills[SK_ARMOUR]++;
+            you.skills[SK_DODGING] += 2;
+        }
+        break;
+    }
     case JOB_WANDERER:
     {
         create_wanderer();
@@ -310,7 +369,6 @@ static void _give_items_skills(const newgame_def& ng)
     }
     default:
         break;
-    }
     }
     if (you.char_class == JOB_ABYSSAL_KNIGHT)
         newgame_make_item(OBJ_WEAPONS, ng.weapon, 1, +1);

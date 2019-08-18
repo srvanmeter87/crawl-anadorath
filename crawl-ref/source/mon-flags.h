@@ -199,9 +199,12 @@ enum monster_flag_type : uint64_t
     MF_HARD_RESET         = BIT(7),
     /// mirror to CREATED_FRIENDLY for neutrals
     MF_WAS_NEUTRAL        = BIT(8),
-    /// Saw player and attitude changed (or not); currently used for holy
-    /// beings (good god worshippers -> neutral) orcs (Beogh worshippers
-    /// -> friendly), and slimes (Jiyva worshippers -> neutral)
+    /**
+     * Saw player and attitude changed (or not); currently used for holy
+     * beings (good god worshippers -> neutral) orcs (Beogh worshippers
+     * -> friendly), slimes (Jiyva worshippers -> neutral), and elementals
+     * (Anadorath worshippers -> neutral/friendly).
+     */
     MF_ATT_CHANGE_ATTEMPT = BIT(9),
     /// Was in view during previous turn.
     MF_WAS_IN_VIEW        = BIT(10),

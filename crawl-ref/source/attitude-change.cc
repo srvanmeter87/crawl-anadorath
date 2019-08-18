@@ -57,7 +57,8 @@ void mons_att_changed(monster* mon)
 
     if (mon->attitude == ATT_HOSTILE
         && (mons_is_god_gift(*mon, GOD_BEOGH)
-           || mons_is_god_gift(*mon, GOD_YREDELEMNUL)))
+            || mons_is_god_gift(*mon, GOD_YREDELEMNUL)
+            || mons_is_god_gift(*mon, GOD_ANADORATH)))
     {
         remove_companion(mon);
     }
@@ -149,7 +150,7 @@ void anadorath_neutralise(monster* mons)
     if (have_passive(passive_t::elemental_conversion_1)
         && !have_passive(passive_t::elemental_conversion_2)
         && anadorath_converts(*mons)
-        && !mons->wont_attack()
+        && !mons->neutral()
         && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
     {
         mons->flags |= MF_ATT_CHANGE_ATTEMPT;
@@ -382,13 +383,10 @@ static void _fedhas_neutralise_plant(monster* plant)
     mons_att_changed(plant);
 }
 
-static void _anadorath_convert_elemental(monster* elemental)
+static void _anadorath_convert_elemental(monster *elemental)
 {
     ASSERT(elemental);
-    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
-           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
-
-    behaviour_event(elemental, ME_ALERT);
+    ASSERT(anadorath_converts(*elemental));
 
     if (you.can_see(*elemental))
     {
@@ -398,20 +396,21 @@ static void _anadorath_convert_elemental(monster* elemental)
     }
 
     elemental->attitude = ATT_FRIENDLY;
-    elemental->flags   |= MF_WAS_NEUTRAL;
+    elemental->flags   |= MF_NO_REWARD;
 
     mons_make_god_gift(*elemental, GOD_ANADORATH);
+    add_companion(elemental);
+
+    behaviour_event(elemental, ME_ALERT);
 
     mons_att_changed(elemental);
 }
 
-static void _anadorath_neutralise_elemental(monster* elemental)
+static void _anadorath_neutralise_elemental(monster *elemental)
 {
     ASSERT(elemental);
-    ASSERT(mons_is_airy(*elemental) || mons_is_earthy(*elemental)
-           || mons_is_fiery(*elemental) || mons_is_icy(*elemental));
+    ASSERT(anadorath_converts(*elemental));
 
-    behaviour_event(elemental, ME_ALERT);
 
     if (you.can_see(*elemental))
     {
@@ -425,6 +424,8 @@ static void _anadorath_neutralise_elemental(monster* elemental)
     elemental->flags   |= MF_WAS_NEUTRAL;
 
     mons_make_god_gift(*elemental, GOD_ANADORATH);
+
+    behaviour_event(elemental, ME_ALERT);
 
     mons_att_changed(elemental);
 }

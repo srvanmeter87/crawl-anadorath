@@ -344,17 +344,6 @@ bool can_wield(const item_def *weapon, bool say_reason,
         return false;
     }
 
-    if (you.get_mutation_level(MUT_NO_BOWS)
-        && (*weapon).is_type(OBJ_WEAPONS, WPN_ARBALEST)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_SHORTBOW)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_LONGBOW)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_HAND_CROSSBOW)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_TRIPLE_CROSSBOW))
-    {
-        SAY(mpr("You can't use bows."));
-        return false;
-    }
-
     if (you.get_mutation_level(MUT_NO_SHORT_BLADES)
         && ((*weapon).is_type(OBJ_WEAPONS, WPN_DAGGER)
             || (*weapon).is_type(OBJ_WEAPONS, WPN_QUICK_BLADE)
@@ -362,6 +351,23 @@ bool can_wield(const item_def *weapon, bool say_reason,
             || (*weapon).is_type(OBJ_WEAPONS, WPN_SHORT_SWORD)))
     {
         SAY(mpr("You can't use short blades."));
+        return false;
+    }
+
+    if (you.get_mutation_level(MUT_NO_BOWS)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_SHORTBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_LONGBOW)))
+    {
+        SAY(mpr("You can't use bows."));
+        return false;
+    }
+
+    if (you.get_mutation_level(MUT_NO_XBOWS)
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_ARBALEST)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_HAND_CROSSBOW)
+            || (*weapon).is_type(OBJ_WEAPONS, WPN_TRIPLE_CROSSBOW)))
+    {
+        SAY(mpr("You can't use crossbows."));
         return false;
     }
 

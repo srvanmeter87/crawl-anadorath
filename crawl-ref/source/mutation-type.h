@@ -220,6 +220,7 @@ enum mutation_type
 #endif
     MUT_NO_SHORT_BLADES,
     MUT_NO_BOWS,
+    MUT_NO_XBOWS,
     MUT_NO_THROWING,
     MUT_NO_SLINGS,
     NUM_MUTATIONS,

@@ -24,7 +24,7 @@ aptitudes:
   crossbows: 1
   throwing: 4
   slings: -2
-  armour: 5
+  armour: false
   dodging: false
   shields: 5
   spellcasting: 2
@@ -125,7 +125,6 @@ recommended_jobs:
   - JOB_HUNTER
   - JOB_PRIMALIST
   - JOB_SKALD
-  - JOB_WANDERER
   - JOB_WIZARD
 recommended_weapons:
   - SK_LONG_BLADES

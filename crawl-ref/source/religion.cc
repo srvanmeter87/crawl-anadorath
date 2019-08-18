@@ -392,8 +392,8 @@ const vector<god_power> god_powers[NUM_GODS] =
     },
 
     // Anadorath
-    {
-        {  6, ABIL_ANADORATH_ELEMENTAL_BLAST, "conjure a chaotic blast of elements" },
+    { { 6, ABIL_ANADORATH_ELEMENTAL_BLAST,
+           "conjure a chaotic blast of elements" },
     },
 };
 
@@ -862,18 +862,18 @@ static void _inc_penance(god_type god, int val)
         }
         else if (god == GOD_ANADORATH)
         {
-            if (you.piety >= piety_breakpoint(4))
+            if (you.piety >= piety_breakpoint(5))
             {
-                mprf(MSGCH_GOD, god, "Elemental worshippers frown upon you.");
-            }
-            if (you.piety >= piety_breakpoint(3))
-            {
-                mprf(MSGCH_GOD, god, "Your elemental resistance dissipates.");
-                you.redraw_armour_class = true;
+                simple_god_message("Elemental worshippers frown upon you.");
             }
             if (you.piety >= piety_breakpoint(2))
             {
-                mprf(MSGCH_GOD, god, "Your elemental shield shrinks.");
+                simple_god_message("Your elemental resistance dissipates.");
+                you.redraw_armour_class = true;
+            }
+            if (you.piety >= piety_breakpoint(0))
+            {
+                simple_god_message("Your elemental shield shrinks.");
                 you.redraw_armour_class = true;
             }
         }
@@ -4434,6 +4434,23 @@ colour_t god_message_altar_colour(god_type god)
     }
 }
 
+/**
+ * Utilises piety_breakpoint() to determine your piety rank in stars (*).
+ * 
+ * @param int piety: range(0, MAX_PIETY=200)
+ * 
+ * The rank ranges in piety to piety_breakpoints are as follows:
+ * 0-29: 0,
+ * 30-49: 1,
+ * 50-74: 2,
+ * 75-99: 3,
+ * 100-119: 4,
+ * 120-159: 5,
+ * 160-199: 6,
+ * 200: 7
+ * 
+ * @returns your piety rank in number of stars (*).
+ */
 int piety_rank(int piety)
 {
     // XXX: this seems to be used only in dat/database/godspeak.txt?
@@ -4453,6 +4470,15 @@ int piety_rank(int piety)
     return 0;
 }
 
+/**
+ * @param int i: range(0, MAX_PIETY_STARS=6)
+ * 
+ * The breakpoints are as follows in the array:
+ * 0: =  30, 1: =  50, 2: =  75,
+ * 3: = 100, 4: = 120, 5: = 160
+ * 
+ * @return the corresponding piety breakpoint (breakpoints[i]).
+ */
 int piety_breakpoint(int i)
 {
     int breakpoints[NUM_PIETY_STARS] = { 30, 50, 75, 100, 120, 160 };

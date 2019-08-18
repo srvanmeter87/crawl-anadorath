@@ -1929,6 +1929,14 @@ static const mutation_def mut_data[] =
   {"You can use drawn bows again.", "", ""},
 },
 
+{ MUT_NO_XBOWS, 0, 1, mutflag::bad, false,
+   "no crossbows",
+
+   {"You cannot use crossbows.", "", ""},
+   {"You can no longer use crossbows.", "", ""},
+   {"You can use crossbows again.", "", ""},
+},
+
 { MUT_NO_THROWING, 0, 1, mutflag::bad, false,
   "no throwing weapons",
 

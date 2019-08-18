@@ -46,11 +46,10 @@ static bool _banned_combination(job_type job, species_type species)
             || job == JOB_ASSASSIN
             || job == JOB_BERSERKER
             || job == JOB_CHAOS_KNIGHT
-            || job == JOB_GLADIATOR
-            || job == JOB_HUNTER
+            || job == JOB_ENCHANTER
             || job == JOB_ICE_ELEMENTALIST
             || job == JOB_MONK
-            || job == JOB_SKALD
+            || job == JOB_NECROMANCER
             || job == JOB_TRANSMUTER
             || job == JOB_VENOM_MAGE
             || job == JOB_WANDERER
