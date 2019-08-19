@@ -391,7 +391,7 @@ static void _anadorath_convert_elemental(monster *elemental)
     if (you.can_see(*elemental))
     {
         mprf(MSGCH_GOD, "%s seems to appreciate your presence and joins you!",
-        
+
         elemental->name(DESC_THE).c_str());
     }
 

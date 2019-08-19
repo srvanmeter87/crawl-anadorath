@@ -7369,9 +7369,7 @@ spret wu_jian_wall_jump_ability()
         hitfunc.set_aim(pos);
 
         if (stop_attack_prompt(hitfunc, "cloud"))
-        {
             return SPRET_ABORT;
-        }
 
         fail_check();
 
@@ -7380,15 +7378,13 @@ spret wu_jian_wall_jump_ability()
         for (const auto &entry : hitfunc.zapped)
         {
             if (entry.second <= 0)
-            {
                 continue;
-            }
 
             place_cloud(cloud, entry.first,
                         5 + random2avg(12 + div_rand_round(pow * 3, 4), 3),
                         &you);
         }
-                    
+
         mprf("You create a blast of frostfire!");
         did_god_conduct(DID_FIRE, min(5 + pow/2, 23));
         did_god_conduct(DID_ICE, min(5 + pow/2, 23));

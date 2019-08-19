@@ -1427,7 +1427,7 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
 
         // rings of magic resistance
         rec += you.wearing(EQ_RINGS, RING_PROTECTION_FROM_MAGIC, calc_unid);
-        
+
         // rings of magic boosting
         rec += you.wearing(EQ_RINGS, RING_MAGICAL_POWER, calc_unid);
         rec += you.wearing(EQ_RINGS, RING_WIZARDRY, calc_unid);
@@ -1440,10 +1440,8 @@ int player_res_elemental_chaos(bool calc_unid, bool temp, bool items)
         // body armour
         const item_def *body_armour = you.slot_item(EQ_BODY_ARMOUR);
         if (body_armour)
-        {
             rec += armour_type_prop(body_armour->sub_type, ARMF_RES_MAGIC) / 2;
-        }
-        
+
         // ego armours
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_ARCHMAGI);
         rec += you.wearing_ego(EQ_ALL_ARMOUR, SPARM_CLOUD_IMMUNE) * 10;

@@ -303,25 +303,19 @@ static void _give_items_skills(const newgame_def& ng)
     case JOB_ARCANE_MARKSMAN:
     {
         if (you.species != SP_PYROLITH)
-        {
             you.skills[SK_DODGING] += 2;
-        }
         break;
     }
     case JOB_FIGHTER:
     {
         if (you.species != SP_PYROLITH)
-        {
             you.skills[SK_ARMOUR] += 3;
-        }
         break;
     }
     case JOB_GLADIATOR:
     {
         if (you.species != SP_PYROLITH)
-        {
             you.skills[SK_DODGING] += 3;
-        }
         break;
     }
     case JOB_HUNTER:

@@ -1150,9 +1150,9 @@ int tso_sh_boost()
 
 /**
  * Calculate Anadorath's defense boosts from piety rank.
- * 
+ *
  * @param piety = you.piety.
- * 
+ *
  * @return Strength of AC/SH bonuses. Based on piety * 10 / 2.
  */
 int anadorath_def_boost(int piety)

@@ -863,9 +863,7 @@ static void _inc_penance(god_type god, int val)
         else if (god == GOD_ANADORATH)
         {
             if (you.piety >= piety_breakpoint(5))
-            {
                 simple_god_message("Elemental worshippers frown upon you.");
-            }
             if (you.piety >= piety_breakpoint(2))
             {
                 simple_god_message("Your elemental resistance dissipates.");
@@ -4436,9 +4434,9 @@ colour_t god_message_altar_colour(god_type god)
 
 /**
  * Utilises piety_breakpoint() to determine your piety rank in stars (*).
- * 
+ *
  * @param int piety: range(0, MAX_PIETY=200)
- * 
+ *
  * The rank ranges in piety to piety_breakpoints are as follows:
  * 0-29: 0,
  * 30-49: 1,
@@ -4448,7 +4446,7 @@ colour_t god_message_altar_colour(god_type god)
  * 120-159: 5,
  * 160-199: 6,
  * 200: 7
- * 
+ *
  * @returns your piety rank in number of stars (*).
  */
 int piety_rank(int piety)
@@ -4472,11 +4470,11 @@ int piety_rank(int piety)
 
 /**
  * @param int i: range(0, MAX_PIETY_STARS=6)
- * 
+ *
  * The breakpoints are as follows in the array:
  * 0: =  30, 1: =  50, 2: =  75,
  * 3: = 100, 4: = 120, 5: = 160
- * 
+ *
  * @return the corresponding piety breakpoint (breakpoints[i]).
  */
 int piety_breakpoint(int i)
