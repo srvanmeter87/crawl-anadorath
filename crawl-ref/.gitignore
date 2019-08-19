@@ -235,4 +235,4 @@ icon.png
 /source/util/monster/*.d
 
 # custom sound files
-*.wav
+/source/sound*/
