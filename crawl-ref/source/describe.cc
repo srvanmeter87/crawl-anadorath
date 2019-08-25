@@ -3820,7 +3820,7 @@ static void _describe_monster_mr(const monster_info& mi, ostringstream &result)
 {
     if (mi.res_magic() == MAG_IMMUNE)
     {
-        result << "MR âˆž\n";
+        result << "MR ∞\n";
         return;
     }
 

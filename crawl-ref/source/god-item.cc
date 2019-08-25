@@ -494,7 +494,7 @@ bool is_earthy_item(const item_def& item, bool calc_unid)
         break;
     }
 
-    return false;
+    return retval;
 }
 
 bool is_airy_item(const item_def& item, bool calc_unid)
@@ -749,8 +749,6 @@ vector<conduct_type> item_conducts(const item_def &item)
     if (is_good_god(you.religion) && item_handling_is_evil(item))
         return DID_EVIL;
 
-    if (is_elemental_god(you.religion) && is_antichaotic_item(item))
-
     switch (you.religion)
     {
     case GOD_ZIN:
@@ -860,14 +858,6 @@ bool god_likes_item_type(const item_def &item, god_type which_god)
     // XXX: also check god_hates_item()?
     switch (which_god)
     {
-        case GOD_ANADORATH:
-            if (item.is_type(OBJ_JEWELLERY, AMU_GUARDIAN_SPIRIT)
-                || item.is_type(OBJ_JEWELLERY, AMU_RAGE))
-            {
-                return false;
-            }
-            break;
-
         case GOD_ELYVILON:
             // Peaceful healer god: no weapons, no berserking.
             if (item.base_type == OBJ_WEAPONS)

@@ -199,6 +199,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Lorenzo Lami
     Lantier
     Maciej Lapinski
+    Nikolai Lavsky
     Lamil Lerran
     Jordan Lewis
     Sami Liedes
@@ -234,7 +235,6 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Naruni
     neofelis
     nicolae
-    Nikolai Lavsky
     Jonathon Nooner
     NormalPerson7
     Michael Nowack

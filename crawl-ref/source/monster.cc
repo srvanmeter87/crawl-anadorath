@@ -2316,7 +2316,7 @@ string monster::name(description_level_type desc, bool force_vis,
     // I keep re-adding this over and over during debugging.
            + (Options.quiet_debug_messages[DIAG_MONINDEX]
               ? string()
-              : make_stringf("Â«%d:%dÂ»", mindex(), mid))
+              : make_stringf("«%d:%d»", mindex(), mid))
 #endif
     ;
 }
@@ -3987,13 +3987,6 @@ int monster::res_negative_energy(bool intrinsic_only) const
 
     return u;
 }
-
-/* int monster::res_elemental_chaos() const
-{
-    if (true)
-        return 3;
-}
- */
 
 bool monster::res_torment() const
 {

@@ -2165,12 +2165,6 @@ bool god_hates_brand(const int brand)
         return true;
     }
 
-    if (you_worship(GOD_ANADORATH)
-        && (brand == SPWPN_ANTIMAGIC || brand == SPWPN_HOLY_WRATH))
-    {
-        return true;
-    }
-
     if (you_worship(GOD_CHEIBRIADOS) && (brand == SPWPN_CHAOS
                                          || brand == SPWPN_SPEED))
     {

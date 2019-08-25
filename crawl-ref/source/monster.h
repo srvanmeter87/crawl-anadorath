@@ -387,7 +387,6 @@ public:
     bool res_sticky_flame() const override;
     int res_holy_energy() const override;
     int res_negative_energy(bool intrinsic_only = false) const override;
-    // int res_elemental_chaos() const override;
     bool res_torment() const override;
     int res_acid(bool calc_unid = true) const override;
     bool res_tornado() const override;

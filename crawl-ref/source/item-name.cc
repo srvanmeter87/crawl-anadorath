@@ -3460,7 +3460,8 @@ bool is_useless_item(const item_def &item, bool temp)
         case SCR_ENCHANT_ARMOUR:
         case SCR_BRAND_WEAPON:
         case SCR_BRAND_ARMOUR:
-            return you.species == SP_FELID;
+            return you.species == SP_FELID
+                   || you.species == SP_PYROLITH;
         case SCR_SUMMONING:
             return you.get_mutation_level(MUT_NO_LOVE) > 0;
         case SCR_FOG:

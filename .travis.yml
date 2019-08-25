@@ -15,6 +15,7 @@ addons:
             - liblua5.1-0-dev # strictly speaking, only BUILD_ALL builds
             - liblua5.1-0-dbg
             - gdb
+
 env:
     global:
         - CCACHE_CPP2=yes
@@ -22,8 +23,10 @@ env:
         - NOTHING=1
         - FULLDEBUG=1
         - WEBTILES=1 FULLDEBUG=1
+
 git:
     submodules: false
+
 # the rest of the build matrix, specifying each combo directly. Anything
 # without explicit addons here will uses *basic_deps above, and any addons list
 # overrides the global one.
@@ -95,6 +98,7 @@ matrix:
           env: USE_DGAMELAUNCH=1 EXTERNAL_DEFINES=-UTOURNEY
         - compiler: gcc
           env: USE_DGAMELAUNCH=1 WEBTILES=1 EXTERNAL_DEFINES=-UTOURNEY
+
 before_install:
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then if [ "$CC" == "clang" ]; then sudo ln -s `which ccache` /usr/lib/ccache/clang; fi; fi
     - if [ "$TRAVIS_OS_NAME" == "linux" ]; then if [ "$CXX" == "clang++" ]; then sudo ln -s `which ccache` /usr/lib/ccache/clang++; fi; fi

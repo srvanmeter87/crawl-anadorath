@@ -93,8 +93,7 @@ static string _describe_favour(god_type which_god)
     if (player_under_penance())
     {
         const int penance = you.penance[which_god];
-        return (penance >= 80) ? "Terrible godly wrath is upon you!" :
-               (penance >= 50) ? "Godly wrath is upon you!" :
+        return (penance >= 50) ? "Godly wrath is upon you!" :
                (penance >= 40) ? "Your transgressions are precluding godly wrath!" :
                (penance >= 30) ? "You've transgressed terribly! Be penitent!" :
                (penance >= 20) ? "You've transgressed heavily! Be penitent!" :
@@ -110,30 +109,21 @@ static string _describe_favour(god_type which_god)
     const string godname = god_name(which_god);
     switch (god_favour_rank(which_god))
     {
-        case 7:
-
-            if (you_worship(GOD_ANADORATH))
-                 return "A prime elemental of " + godname + ".";
-            else
-                 return "A prized avatar of " + godname + ".";
+        case 7:  return "A prized avatar of " + godname;
         case 6:  return "A favoured servant of " + godname + ".";
         case 5:
 
-            if (you_worship(GOD_ANADORATH))
-                 return "A fiery wind in the eyes of " + godname + ".";
-            else if (you_worship(GOD_DITHMENOS))
-                 return "A glorious shadow in the eyes of " + godname + ".";
+            if (you_worship(GOD_DITHMENOS))
+                return "A glorious shadow in the eyes of " + godname + ".";
             else
-                 return "A shining star in the eyes of " + godname + ".";
+                return "A shining star in the eyes of " + godname + ".";
 
         case 4:
 
-            if (you_worship(GOD_ANADORATH))
-                 return "An icy ember in the eyes of " + godname + ".";
-            else if (you_worship(GOD_DITHMENOS))
-                 return "A rising shadow in the eyes of " + godname + ".";
+            if (you_worship(GOD_DITHMENOS))
+                return "A rising shadow in the eyes of " + godname + ".";
             else
-                 return "A rising star in the eyes of " + godname + ".";
+                return "A rising star in the eyes of " + godname + ".";
 
         case 3:  return uppercase_first(godname) + " is pleased with you.";
         case 2:  return uppercase_first(godname) + " is aware of your devotion.";
