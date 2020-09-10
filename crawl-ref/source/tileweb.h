@@ -35,6 +35,7 @@ enum WebtilesUIState
 struct player_info
 {
     player_info();
+    bool _state_ever_synced;
 
     string name;
     string job_title;
@@ -116,9 +117,6 @@ public:
     void add_text_tag(text_tag_type type, const monster_info& mon);
 
     const coord_def &get_cursor() const;
-
-    void add_overlay(const coord_def &gc, tileidx_t idx);
-    void clear_overlays();
 
     void draw_doll_edit();
 
@@ -205,10 +203,12 @@ public:
     void update_input_mode(mouse_mode mode);
 
     void send_mcache(mcache_entry *entry, bool submerged,
-                     bool send_doll = true);
+                     bool send = true);
     void write_tileidx(tileidx_t t);
 
     void zoom_dungeon(bool in);
+
+    void send_doll(const dolls_data &doll, bool submerged, bool ghost);
 
 protected:
     int m_sock;
@@ -259,10 +259,10 @@ protected:
     bool m_view_loaded;
     bool m_player_on_level;
 
-    FixedArray<screen_cell_t, GXM, GYM> m_current_view;
+    crawl_view_buffer m_current_view;
     coord_def m_current_gc;
 
-    FixedArray<screen_cell_t, GXM, GYM> m_next_view;
+    crawl_view_buffer m_next_view;
     coord_def m_next_gc;
     coord_def m_next_view_tl;
     coord_def m_next_view_br;

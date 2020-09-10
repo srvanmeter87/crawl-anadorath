@@ -4,10 +4,11 @@
 
 #include "tilereg-grid.h"
 
+#include "format.h"
 #include "libutil.h"
 #include "random.h"
 #include "tile-inventory-flags.h"
-#include "tiledef-icons.h"
+#include "rltiles/tiledef-icons.h"
 #include "tilefont.h"
 #include "tiles-build-specific.h"
 
@@ -80,20 +81,17 @@ void GridRegion::draw_desc(const char *desc)
     ASSERT(desc);
 
     // Always draw the description in the inventory header. (jpeg)
-    int x = sx + ox + dx / 2;
-    int y = sy + oy;
+    int x = sx + ox;
+    int y = sy + oy - dx / 2;
 
     // ... unless we're using the touch UI, in which case: put at bottom
     if (tiles.is_using_small_layout())
         y = wy;
 
-    const coord_def min_pos(sx, sy - dy);
-    const coord_def max_pos(ex, ey);
-
-    m_tag_font->render_string(x, y, desc, min_pos, max_pos, WHITE, false, 200);
+    m_tag_font->render_string(x, y, formatted_string(desc, WHITE));
 }
 
-bool GridRegion::place_cursor(MouseEvent &event, unsigned int &item_idx)
+bool GridRegion::place_cursor(wm_mouse_event &event, unsigned int &item_idx)
 {
     int cx, cy;
     if (!mouse_pos(event.px, event.py, cx, cy))
@@ -111,7 +109,7 @@ bool GridRegion::place_cursor(MouseEvent &event, unsigned int &item_idx)
         return false;
     }
 
-    if (event.event != MouseEvent::PRESS)
+    if (event.event != wm_mouse_event::PRESS)
         return false;
 
     item_idx = cursor_index();

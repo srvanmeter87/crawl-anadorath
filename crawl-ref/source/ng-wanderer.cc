@@ -186,7 +186,7 @@ static skill_type _wanderer_role_weapon_select(stat_type role)
     const skill_type casting_schools[] =
         { SK_SUMMONINGS, SK_NECROMANCY, SK_TRANSLOCATIONS,
           SK_TRANSMUTATIONS, SK_POISON_MAGIC, SK_CONJURATIONS,
-          SK_HEXES, SK_CHARMS, SK_FIRE_MAGIC, SK_ICE_MAGIC,
+          SK_HEXES, SK_FIRE_MAGIC, SK_ICE_MAGIC,
           SK_AIR_MAGIC, SK_EARTH_MAGIC };
 
     int casting_size = ARRAYSZ(casting_schools);
@@ -302,10 +302,6 @@ static void _give_wanderer_book(skill_type skill)
     case SK_HEXES:
         book = BOOK_MALEDICT;
         break;
-
-    case SK_CHARMS:
-        book = BOOK_BATTLE;
-        break;
     }
 
     newgame_make_item(OBJ_BOOKS, book);
@@ -405,7 +401,8 @@ static void _good_potion_or_scroll()
             (you.species == SP_MUMMY
              || you.species == SP_VINE_STALKER) ? 0 : 1 },
         { { OBJ_POTIONS, POT_HASTE },
-            you.species == SP_MUMMY ? 0 : 1 },
+            (you.species == SP_MUMMY
+             || you.species == SP_FORMICID) ? 0 : 1 },
         { { OBJ_POTIONS, POT_BERSERK_RAGE },
             (you.species == SP_FORMICID
              || you.is_lifeless_undead(false)) ? 0 : 1},
@@ -447,8 +444,9 @@ static void _wanderer_random_evokable()
     if (one_chance_in(3))
     {
         int selected_evoker =
-              random_choose(MISC_BOX_OF_BEASTS, MISC_LAMP_OF_FIRE,
-                            MISC_FAN_OF_GALES, MISC_PHIAL_OF_FLOODS);
+              random_choose(MISC_BOX_OF_BEASTS, MISC_PHIAL_OF_FLOODS,
+                            MISC_PHANTOM_MIRROR, MISC_CONDENSER_VANE,
+                            MISC_TIN_OF_TREMORSTONES, MISC_LIGHTNING_ROD);
 
         newgame_make_item(OBJ_MISCELLANY, selected_evoker, 1);
     }
@@ -524,7 +522,7 @@ static void _wanderer_good_equipment(skill_type & skill)
 
 
     case SK_SHIELDS:
-        newgame_make_item(OBJ_ARMOUR, ARM_SHIELD);
+        newgame_make_item(OBJ_ARMOUR, ARM_KITE_SHIELD);
         break;
 
     case SK_SPELLCASTING:
@@ -539,7 +537,6 @@ static void _wanderer_good_equipment(skill_type & skill)
     case SK_EARTH_MAGIC:
     case SK_POISON_MAGIC:
     case SK_HEXES:
-    case SK_CHARMS:
         _give_wanderer_book(skill);
         break;
 
@@ -683,6 +680,12 @@ static void _wanderer_cover_equip_holes()
 // levels/equipment, but pretty randomised.
 void create_wanderer()
 {
+    // intentionally create the subgenerator either way, so that this has the
+    // same impact on the current main rng for all chars.
+    rng::subgenerator wn_rng;
+    if (you.char_class != JOB_WANDERER)
+        return;
+
     // Decide what our character roles are.
     stat_type primary_role   = _wanderer_choose_role();
     stat_type secondary_role = _wanderer_choose_role();

@@ -55,7 +55,7 @@ static void _do_wizard_command(int wiz_command)
         return;
     }
 
-    case 'a': acquirement(OBJ_RANDOM, AQ_WIZMODE); break;
+    case 'a': acquirement_menu(); break;
     case 'A': wizard_set_all_skills(); break;
     case CONTROL('A'):
         if (player_in_branch(BRANCH_ABYSS))
@@ -81,7 +81,6 @@ static void _do_wizard_command(int wiz_command)
     case 'D': wizard_detect_creatures(); break;
     case CONTROL('D'): wizard_edit_durations(); break;
 
-    case 'e': wizard_set_hunger_state(); break;
     case 'E': wizard_freeze_time(); break;
     case CONTROL('E'): debug_dump_levgen(); break;
 
@@ -210,7 +209,8 @@ static void _do_wizard_command(int wiz_command)
         break;
 
     case '\\': debug_make_shop(); break;
-    case '|': wizard_create_all_artefacts(); break;
+    case '|': wizard_create_all_artefacts(true); break;
+    case CONTROL('\\'): wizard_create_all_artefacts(false); break;
 
     case ';': wizard_list_levels(); break;
     case ':': wizard_list_branches(); break;
@@ -270,6 +270,7 @@ void handle_wizard_command()
         you.wizard = true;
         you.suppress_wizard = false;
         redraw_screen();
+        update_screen();
         if (crawl_state.cmd_repeat_start)
         {
             crawl_state.cancel_cmd_repeat("Can't repeat re-activating wizard "
@@ -302,6 +303,7 @@ void handle_wizard_command()
         you.wizard = true;
         save_game(false);
         redraw_screen();
+        update_screen();
 
         if (crawl_state.cmd_repeat_start)
         {
@@ -386,6 +388,7 @@ void enter_explore_mode()
         you.explore = true;
         save_game(false);
         redraw_screen();
+        update_screen();
 
         if (crawl_state.cmd_repeat_start)
         {
@@ -459,7 +462,6 @@ int list_wizard_commands(bool do_redraw_screen)
                        "<w>Ctrl-G</w> save/load ghost (bones file)\n"
 #endif
                        "<w>h</w>/<w>H</w>    heal yourself (super-Heal)\n"
-                       "<w>e</w>      set hunger state\n"
                        "<w>X</w>      make Xom do something now\n"
                        "<w>z</w>      cast spell by number/name\n"
                        "<w>!</w>      memorise spell\n"
@@ -486,6 +488,7 @@ int list_wizard_commands(bool do_redraw_screen)
                        "<w>Ctrl-V</w> show gold value of an item\n"
                        "<w>-</w>      get a god gift\n"
                        "<w>|</w>      create all unrand artefacts\n"
+                       "<w>Ctrl-\\</w> create all unrands / fallbacks\n"
                        "<w>+</w>      make randart from item\n"
                        "<w>'</w>      list items\n"
                        "<w>J</w>      Jiyva off-level sacrifice\n"
@@ -514,7 +517,10 @@ int list_wizard_commands(bool do_redraw_screen)
 
     int key = show_keyhelp_menu(cols.formatted_lines());
     if (do_redraw_screen)
+    {
         redraw_screen();
+        update_screen();
+    }
     return key;
 }
 #endif // defined(WIZARD)

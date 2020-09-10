@@ -92,7 +92,7 @@ const Branch branches[NUM_BRANCHES] =
       "Spider Nest", "the Spider Nest", "Spider",
       nullptr,
       BROWN, YELLOW,
-      'N', { RUNE_SPIDER }, branch_noise::normal },
+      'N', { RUNE_SPIDER }, branch_noise::quiet },
 
     { BRANCH_SLIME, BRANCH_LAIR, 5, 6, 5, 17,
       brflag::no_items | brflag::dangerous_end | brflag::spotty,
@@ -363,3 +363,8 @@ const Branch branches[NUM_BRANCHES] =
       '!', {}, branch_noise::normal },
 #endif
 };
+
+/*
+ * There's a few more constant data structures related to branches in
+ * the early parts of branch.cc (Example: danger_branch_order)
+ */

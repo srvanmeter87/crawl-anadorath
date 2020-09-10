@@ -8,14 +8,18 @@
 #include "job-type.h"
 #include "species-type.h"
 
-class MenuFreeform;
+class UINewGameMenu;
 struct menu_letter;
 struct newgame_def;
+
+string newgame_char_description(const newgame_def& ng);
 
 void choose_tutorial_character(newgame_def& ng_choice);
 
 bool choose_game(newgame_def& ng, newgame_def& choice,
                  const newgame_def& defaults);
+
+string newgame_random_name();
 
 /*
  * A structure for grouping backgrounds by category.
@@ -29,7 +33,7 @@ struct job_group
 
     /// A method to attach the group to a freeform.
     void attach(const newgame_def& ng, const newgame_def& defaults,
-                MenuFreeform* menu, menu_letter &letter);
+                UINewGameMenu* menu, menu_letter &letter);
 };
 
 struct species_group
@@ -41,5 +45,5 @@ struct species_group
 
     /// A method to attach the group to a freeform.
     void attach(const newgame_def& ng, const newgame_def& defaults,
-                MenuFreeform* menu, menu_letter &letter);
+                UINewGameMenu* menu, menu_letter &letter);
 };

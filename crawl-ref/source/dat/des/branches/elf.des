@@ -1275,11 +1275,7 @@ ENDMAP
 NAME:    minmay_guarded_unrand_folly
 DEPTH:   Elf
 ORIENT:  float
-: if you.unrands("robe_of_folly") then
-ITEM:    robe randart no_pickup
-: else
 ITEM:    robe_of_folly no_pickup
-: end
 MONS:    deep elf sorcerer / deep elf annihilator
 NSUBST:  1 = 2:2 / 5=1.. / .
 SUBST:   2 = 1.
@@ -1349,10 +1345,6 @@ NSUBST:   . = 6:1 / 3:2 / 1:34 / 4 = 4 / 2 = 42 / 6 = 14...
 SUBVAULT: A : elf_blade_entry
 SUBST:    A : x"", ' = .
 CLEAR:    "
-veto {{
-  return crawl.game_started()
-         and (dgn.br_exists("Blade"))
-}}
 MAP
                                 "
                                 "
@@ -1419,10 +1411,6 @@ NSUBST:   . = 6:1 / 3:2 / 1:34 / 4 = 4 / 2 = 42 / 6 = 14...
 SUBVAULT: A : elf_blade_entry
 SUBST:    A : x"", ' = .
 CLEAR:    "
-veto {{
-  return crawl.game_started()
-         and (dgn.br_exists("Blade"))
-}}
 MAP
                                   "
                                   "
@@ -1455,16 +1443,6 @@ xccF-.........5.........-Fcc             ccF-.........6.........-Fccx
 xcccc--EE-EE--E--EE--EE-cccc             cccc-EE--EE--E--EE-EE--ccccx
 xccccccccccccccccccccccccccc             cccccccccccccccccccccccccccx
 xxxxxxxxxxxxxxxxxxxxxxxxxxxx             xxxxxxxxxxxxxxxxxxxxxxxxxxxx
-ENDMAP
-
-NAME:     elven_hall_of_blades_dummy
-# Not tagged 'dummy' because then the veto doesn't run.
-TAGS:     no_dump
-PLACE:    Elf:2
-ORIENT:   float
-veto {{ return crawl.game_started() and not dgn.br_exists("Blade") }}
-MAP
-.
 ENDMAP
 
 NAME:   mumra_blade_entry_bloodbath
@@ -1563,7 +1541,7 @@ NAME: nicolae_vaults_blade_armed_guards
 KMONS: 2 = deep elf knight ; battleaxe | broad axe | flail | glaive | great mace | \
    halberd | hand axe | long sword | morningstar | scimitar | short sword | \
    trident | war axe . chain mail | plate armour . \
-   shield | buckler w:20 | nothing w:60
+   kite shield | buckler w:20 | nothing w:60
 : elven_blade_entry(_G)
 MAP
       =

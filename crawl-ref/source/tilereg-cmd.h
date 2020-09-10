@@ -49,7 +49,6 @@ static const command_type ct_action_commands[] =
 {
     CMD_EXPLORE,
     CMD_REST, CMD_WAIT,
-    CMD_BUTCHER,
     CMD_DISPLAY_INVENTORY, CMD_DROP,
     CMD_CAST_SPELL, CMD_USE_ABILITY,
     CMD_DISPLAY_SKILLS, CMD_MEMORISE_SPELL,
@@ -69,7 +68,7 @@ public:
     int n_common_commands;
 
     virtual void update() override;
-    virtual int handle_mouse(MouseEvent &event) override;
+    virtual int handle_mouse(wm_mouse_event &event) override;
     virtual bool update_tip_text(string &tip) override;
     virtual bool update_tab_tip_text(string &tip, bool active) override;
     virtual bool update_alt_text(string &alt) override;

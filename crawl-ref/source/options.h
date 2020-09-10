@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <unordered_set>
 
 #include "activity-interrupt-type.h"
 #include "char-set-type.h"
@@ -10,7 +11,6 @@
 #include "feature.h"
 #include "flang-t.h"
 #include "flush-reason-type.h"
-#include "hunger-state-t.h"
 #include "lang-t.h"
 #include "maybe-bool.h"
 #include "mpr.h"
@@ -173,7 +173,8 @@ public:
 
     uint64_t    seed;           // Non-random games.
     uint64_t    seed_from_rc;
-    bool        pregen_dungeon; // Is the dungeon generated at the beginning?
+    bool        pregen_dungeon; // Is the dungeon completely generated at the beginning?
+    bool        incremental_pregen; // Does the dungeon always generate in a specified order?
 
 #ifdef DGL_SIMPLE_MESSAGING
     bool        messaging;      // Check for messages.
@@ -190,6 +191,8 @@ public:
     int         msg_max_height;
     int         msg_webtiles_height;
     bool        mlist_allow_alternate_layout;
+    bool        monster_item_view_coordinates;
+    vector<text_pattern> monster_item_view_features;
     bool        messages_at_top;
     bool        msg_condense_repeats;
     bool        msg_condense_short;
@@ -200,7 +203,7 @@ public:
     bool        view_lock_x;
     bool        view_lock_y;
 
-    // For an unlocked viewport, this will center the viewport when scrolling.
+    // For an unlocked viewport, this will centre the viewport when scrolling.
     bool        center_on_scroll;
 
     // If symmetric_scroll is set, for diagonal moves, if the view
@@ -234,9 +237,6 @@ public:
     bool        warn_hatches;    // offer a y/n prompt when the player uses an escape hatch
     bool        enable_recast_spell; // Allow recasting spells with 'z' Enter.
     confirm_butcher_type confirm_butcher; // When to prompt for butchery
-    hunger_state_t auto_butcher; // auto-butcher corpses while travelling
-    bool        easy_eat_chunks; // make 'e' auto-eat the oldest safe chunk
-    bool        auto_eat_chunks; // allow eating chunks while resting or travelling
     skill_focus_mode skill_focus; // is the focus skills available
     bool        auto_hide_spells; // hide new spells
 
@@ -351,7 +351,7 @@ public:
     vector<text_pattern> auto_exclude; // Automatically set an exclusion
                                        // around certain monsters.
 
-    unsigned    evil_colour; // Colour for things player's god dissapproves
+    unsigned    evil_colour; // Colour for things player's god disapproves
 
     unsigned    remembered_monster_colour;  // Colour of remembered monsters
     unsigned    detected_monster_colour;    // Colour of detected monsters
@@ -380,13 +380,15 @@ public:
     // How much more eager greedy-explore is for items than to explore.
     int         explore_item_greed;
 
-    // How much autoexplore favors visiting squares next to walls.
+    // How much autoexplore favours visiting squares next to walls.
     int         explore_wall_bias;
 
     // Wait for rest wait percent HP and MP before exploring.
     bool        explore_auto_rest;
 
     bool        travel_key_stop;   // Travel stops on keypress.
+
+    bool        travel_one_unsafe_move; // Allow one unsafe move of auto travel
 
     vector<sound_mapping> sound_mappings;
     string sound_file_path;
@@ -402,6 +404,7 @@ public:
     int         dump_item_origins;  // Show where items came from?
     int         dump_item_origin_price;
 
+    unordered_set<string> dump_fields;
     // Order of sections in the character dump.
     vector<string> dump_order;
 
@@ -419,7 +422,7 @@ public:
                                     // CL options would bring up the startup
                                     // menu.
     bool        restart_after_save; // .. or on save
-    bool        newgame_after_quit; // override the restart_after_game behavior
+    bool        newgame_after_quit; // override the restart_after_game behaviour
                                     // to always start a new game on quit.
 
     bool        name_bypasses_menu; // should the menu be skipped if there is
@@ -522,6 +525,7 @@ public:
 
     VColour     tile_window_col;
 #ifdef USE_TILE_LOCAL
+    int         game_scale;
     // font settings
     string      tile_font_crt_file;
     string      tile_font_msg_file;
@@ -535,6 +539,8 @@ public:
     string      tile_font_msg_family;
     string      tile_font_stat_family;
     string      tile_font_lbl_family;
+    string      glyph_mode_font;
+    int         glyph_mode_font_size;
 #endif
     int         tile_font_crt_size;
     int         tile_font_msg_size;
@@ -568,6 +574,7 @@ public:
     bool        tile_show_minihealthbar;
     bool        tile_show_minimagicbar;
     bool        tile_show_demon_tier;
+    string      tile_show_threat_levels;
     bool        tile_water_anim;
     bool        tile_misc_anim;
     vector<string> tile_layout_priority;

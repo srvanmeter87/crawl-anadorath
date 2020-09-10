@@ -53,6 +53,10 @@ const char * const GOZAG_SHOP_COST_KEY       = "gozag_shop_cost_%d";
 #define USKAYAW_MONSTER_HURT_VALUE "uskayaw_monster_hurt_value"
 #define USKAYAW_AUT_SINCE_PIETY_GAIN "uskayaw_aut_since_piety_gain"
 
+#define WU_JIAN_HEAVENLY_STORM_KEY "wu_jian_heavenly_storm_amount"
+#define WU_JIAN_HEAVENLY_STORM_INITIAL 5
+#define WU_JIAN_HEAVENLY_STORM_MAX 15
+
 struct bolt;
 class stack_iterator;
 
@@ -106,29 +110,7 @@ bool kiku_gift_necronomicon();
 bool fedhas_passthrough_class(const monster_type mc);
 bool fedhas_passthrough(const monster* target);
 bool fedhas_passthrough(const monster_info* target);
-struct mgen_data;
-int place_ring(vector<coord_def>& ring_points,
-               const coord_def& origin,
-               mgen_data prototype,
-               int n_arcs,
-               int arc_occupancy,
-               int& seen_count);
-// Collect lists of points that are within LOS, unoccupied, and not solid
-// (walls/statues).
-void collect_radius_points(vector<vector<coord_def> > &radius_points,
-                           const coord_def &origin, los_type los);
-int fedhas_fungal_bloom();
-spret fedhas_sunlight(bool fail = false);
-void process_sunlights(bool future = false);
-bool prioritise_adjacent(const coord_def& target, vector<coord_def>& candidates);
-bool fedhas_plant_ring_from_rations();
 int fedhas_rain(const coord_def &target);
-int count_corpses_in_los(vector<stack_iterator> *positions);
-int fedhas_check_corpse_spores(bool quiet = false);
-int fedhas_corpse_spores(beh_type attitude = BEH_FRIENDLY);
-bool mons_is_evolvable(const monster* mon);
-bool fedhas_check_evolve_flora(bool quiet);
-spret fedhas_evolve_flora(bool fail);
 
 void lugonu_bend_space();
 
@@ -159,7 +141,7 @@ bool gozag_check_bribe_branch(bool quiet = false);
 bool gozag_bribe_branch();
 
 spret qazlal_upheaval(coord_def target, bool quiet = false,
-                           bool fail = false);
+                      bool fail = false);
 spret qazlal_elemental_force(bool fail);
 bool qazlal_disaster_area();
 
@@ -194,8 +176,6 @@ void hepliaklqana_choose_identity();
 
 bool wu_jian_can_wall_jump_in_principle(const coord_def& target);
 bool wu_jian_can_wall_jump(const coord_def& target, string &error_ret);
-bool wu_jian_do_wall_jump(coord_def targ, bool ability);
+bool wu_jian_do_wall_jump(coord_def targ);
 spret wu_jian_wall_jump_ability();
-
-// spret_type anadorath_blistering_cold(const coord_def &pos, bool fail);
-// void anadorath_elemental_shielding();
+void wu_jian_heavenly_storm();

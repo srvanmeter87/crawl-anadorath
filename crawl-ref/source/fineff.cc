@@ -8,10 +8,10 @@
 
 #include "fineff.h"
 
-#include "act-iter.h"
 #include "bloodspatter.h"
 #include "coordit.h"
 #include "dactions.h"
+#include "death-curse.h"
 #include "directn.h"
 #include "english.h"
 #include "env.h"
@@ -32,7 +32,6 @@
 #include "terrain.h"
 #include "transform.h"
 #include "view.h"
-#include "viewchar.h"
 
 /*static*/ void final_effect::schedule(final_effect *eff)
 {
@@ -113,7 +112,7 @@ bool shock_serpent_discharge_fineff::mergeable(const final_effect &fe) const
     return o && def == o->def;
 }
 
-bool delayed_action_fineff::mergeable(const final_effect &fe) const
+bool delayed_action_fineff::mergeable(const final_effect &) const
 {
     return false;
 }
@@ -123,6 +122,13 @@ bool rakshasa_clone_fineff::mergeable(const final_effect &fe) const
     const rakshasa_clone_fineff *o =
         dynamic_cast<const rakshasa_clone_fineff *>(&fe);
     return o && att == o->att && def == o->def && posn == o->posn;
+}
+
+bool summon_dismissal_fineff::mergeable(const final_effect &fe) const
+{
+    const summon_dismissal_fineff *o =
+        dynamic_cast<const summon_dismissal_fineff *>(&fe);
+    return o && def == o->def;
 }
 
 void mirror_damage_fineff::merge(const final_effect &fe)
@@ -175,6 +181,12 @@ void shock_serpent_discharge_fineff::merge(const final_effect &fe)
     power += ssdfe->power;
 }
 
+void summon_dismissal_fineff::merge(const final_effect &)
+{
+    // no damage to accumulate, but no need to fire this more than once
+    return;
+}
+
 void mirror_damage_fineff::fire()
 {
     actor *attack = attacker();
@@ -200,9 +212,6 @@ void mirror_damage_fineff::fire()
     else if (def == MID_PLAYER)
     {
         simple_god_message(" mirrors your injury!");
-#ifndef USE_TILE_LOCAL
-        flash_monster_colour(monster_by_mid(att), RED, 200);
-#endif
 
         attack->hurt(&you, damage);
 
@@ -542,7 +551,7 @@ void infestation_death_fineff::fire()
                                                        SPELL_INFESTATION),
                                          false))
     {
-        scarab->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
+        scarab->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 5));
 
         if (you.see_cell(posn) || you.can_see(*scarab))
         {
@@ -572,13 +581,24 @@ void make_derived_undead_fineff::fire()
         if (!mg.mname.empty())
             name_zombie(*undead, mg.base_type, mg.mname);
 
-        undead->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 6));
+        undead->add_ench(mon_enchant(ENCH_FAKE_ABJURATION, 5));
         if (!agent.empty())
         {
             mons_add_blame(undead,
                 "animated by " + agent);
         }
     }
+}
+
+const actor *mummy_death_curse_fineff::fixup_attacker(const actor *a)
+{
+    if (a && a->is_monster() && a->as_monster()->friendly()
+        && !crawl_state.game_is_arena())
+    {
+        // Mummies are smart enough not to waste curses on summons or allies.
+        return &you;
+    }
+    return a;
 }
 
 void mummy_death_curse_fineff::fire()
@@ -601,7 +621,7 @@ void mummy_death_curse_fineff::fire()
             break;
     }
 
-    actor * victim;
+    actor* victim;
 
     if (YOU_KILL(killer))
         victim = &you;
@@ -614,13 +634,6 @@ void mummy_death_curse_fineff::fire()
     // Mummy was killed by a ballistomycete spore or ball lightning?
     if (!victim->alive())
         return;
-
-    // Mummies are smart enough not to waste curses on summons or allies.
-    if (victim->is_monster() && victim->as_monster()->friendly()
-        && !crawl_state.game_is_arena())
-    {
-        victim = &you;
-    }
 
     // Stepped from time?
     if (!in_bounds(victim->pos()))
@@ -635,8 +648,15 @@ void mummy_death_curse_fineff::fire()
     }
     const string cause = make_stringf("%s death curse",
                             apostrophise(name).c_str());
-    MiscastEffect(victim, nullptr, {miscast_source::mummy}, spschool::necromancy,
-                  pow, random2avg(88, 3), cause.c_str());
+    // source is used as a melee source and must be alive
+    // since the mummy is dead now we pass nullptr
+    death_curse(*victim, nullptr, cause, pow);
+}
+
+void summon_dismissal_fineff::fire()
+{
+    if (defender() && defender()->alive())
+        monster_die(*(defender()->as_monster()), KILL_DISMISSED, NON_MONSTER);
 }
 
 // Effects that occur after all other effects, even if the monster is dead.

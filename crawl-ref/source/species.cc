@@ -6,6 +6,7 @@
 #include "item-prop.h"
 #include "mutation.h"
 #include "output.h"
+#include "playable.h"
 #include "player.h"
 #include "player-stats.h"
 #include "random.h"
@@ -457,7 +458,7 @@ void change_species_to(species_type sp)
         }
     }
 
-    update_vision_range(); // for Ba, and for DS with Nightstalker
+    update_vision_range(); // for Ba, and for Ko
 
     if ((old_sp == SP_OCTOPODE) != (sp == SP_OCTOPODE))
     {
@@ -492,6 +493,50 @@ void change_species_to(species_type sp)
     init_player_doll();
 #endif
     redraw_screen();
+    update_screen();
+}
+
+// A random valid (selectable on the new game screen) species.
+species_type random_starting_species()
+{
+    const auto species = playable_species();
+    return species[random2(species.size())];
+}
+
+// Ensure the species isn't SP_RANDOM/SP_VIABLE and it has recommended jobs
+// (old disabled species have none).
+bool is_starting_species(species_type species)
+{
+    return species < NUM_SPECIES
+        && !get_species_def(species).recommended_jobs.empty();
+}
+
+// A random non-base draconian colour appropriate for the player.
+species_type random_draconian_colour()
+{
+  species_type species;
+  do {
+      species =
+          static_cast<species_type>(random_range(0,
+                                                 NUM_SPECIES - 1));
+  } while (!species_is_draconian(species)
+           || species_is_removed(species)
+           || species == SP_BASE_DRACONIAN);
+  return species;
+}
+
+bool species_is_removed(species_type species)
+{
+#if TAG_MAJOR_VERSION == 34
+    if (species == SP_MOTTLED_DRACONIAN)
+        return true;
+#endif
+    // all other derived Dr are ok and don't have recommended jobs
+    if (species_is_draconian(species))
+        return false;
+    if (get_species_def(species).recommended_jobs.empty())
+        return true;
+    return false;
 }
 
 // A random valid (selectable on the new game screen) species.

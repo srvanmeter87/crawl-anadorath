@@ -2,12 +2,10 @@
 
 #include "ng-setup.h"
 
-#include "ability.h"
 #include "adjust.h"
 #include "dungeon.h"
 #include "end.h"
 #include "files.h"
-#include "food.h"
 #include "god-companions.h"
 #include "hints.h"
 #include "invent.h"
@@ -16,6 +14,7 @@
 #include "items.h"
 #include "item-use.h"
 #include "jobs.h"
+#include "message.h"
 #include "mutation.h"
 #include "ng-init.h"
 #include "ng-wanderer.h"
@@ -98,15 +97,14 @@ item_def* newgame_make_item(object_class_type base,
         return nullptr;
 
     // not an actual item
-    if (sub_type == WPN_UNARMED)
+    // the WPN_UNKNOWN case is used when generating a paper doll during
+    // character creation
+    if (sub_type == WPN_UNARMED || sub_type == WPN_UNKNOWN)
         return nullptr;
 
     int slot;
     for (slot = 0; slot < ENDOFPACK; ++slot)
     {
-        if (base == OBJ_FOOD && slot == letter_to_index('e'))
-            continue;
-
         item_def& item = you.inv[slot];
         if (!item.defined())
             break;
@@ -133,10 +131,12 @@ item_def* newgame_make_item(object_class_type base,
     {
         if (item.sub_type == ARM_HELMET || item.sub_type == ARM_HAT)
             item.sub_type = ARM_HAT;
-        else if (is_shield(item))
-            item.sub_type = ARM_SHIELD;
-        else if (item.sub_type == ARM_SHIELD)
+        else if (item.sub_type == ARM_TOWER_SHIELD)
+            item.sub_type = ARM_KITE_SHIELD;
+        else if (item.sub_type == ARM_KITE_SHIELD)
             item.sub_type = ARM_BUCKLER;
+        else if (is_shield(item))
+            item.sub_type = ARM_ROBE;
         else if (item.sub_type == ARM_ROBE)
             item.sub_type = ARM_CLOAK;
         else if (item.sub_type == ARM_CLOAK)
@@ -144,14 +144,14 @@ item_def* newgame_make_item(object_class_type base,
         else if (item.sub_type == ARM_BOOTS)
             item.sub_type = ARM_GLOVES;
         else
-            item.sub_type = ARM_ROBE;
+            item.sub_type = ARM_SCARF;
     }
 
     // Make sure we didn't get a stack of shields or such nonsense.
     ASSERT(item.quantity == 1 || is_stackable_item(item));
 
     // If that didn't help, nothing will.
-    if (is_useless_item(item))
+    if (is_useless_item(item, false, true))
     {
         item = item_def();
         return nullptr;
@@ -169,8 +169,6 @@ item_def* newgame_make_item(object_class_type base,
     // You can get the books without the corresponding items as a wanderer.
     else if (item.base_type == OBJ_BOOKS && item.sub_type == BOOK_GEOMANCY)
         _autopickup_ammo(MI_STONE);
-    else if (item.base_type == OBJ_BOOKS && item.sub_type == BOOK_CHANGES)
-        _autopickup_ammo(MI_ARROW);
     // You probably want to pick up both.
     if (item.is_type(OBJ_MISSILES, MI_SLING_BULLET))
         _autopickup_ammo(MI_STONE);
@@ -242,8 +240,10 @@ static void _give_ammo(weapon_type weapon, int plus)
     }
 }
 
-static void _give_items_skills(const newgame_def& ng)
+void give_items_skills(const newgame_def& ng)
 {
+    create_wanderer();
+
     switch (you.char_class)
     {
     case JOB_BERSERKER:
@@ -258,6 +258,14 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_DODGING]++;
             you.skills[SK_ARMOUR]++; // converted later
         }
+        break;
+
+    case JOB_ARTIFICER:
+    {
+        if (species_apt(SK_ARMOUR) < species_apt(SK_DODGING))
+            you.skills[SK_DODGING]++;
+        else
+            you.skills[SK_ARMOUR]++;
         break;
     }
     case JOB_CHAOS_KNIGHT:
@@ -347,15 +355,6 @@ static void _give_items_skills(const newgame_def& ng)
             you.skills[SK_SPELLCASTING]++;
         break;
     }
-    case JOB_SKALD:
-    {
-        if (you.species != SP_PYROLITH)
-        {
-            you.skills[SK_ARMOUR]++;
-            you.skills[SK_DODGING] += 2;
-        }
-        break;
-    }
     case JOB_WANDERER:
     {
         create_wanderer();
@@ -394,23 +393,6 @@ static void _give_items_skills(const newgame_def& ng)
     }
 }
 
-static void _give_starting_food()
-{
-    // No food for those who don't need it.
-    if (you_foodless())
-        return;
-
-    object_class_type base_type = OBJ_FOOD;
-    int sub_type = FOOD_RATION;
-    int quantity = 1;
-
-    // Give another one for hungry species.
-    if (you.get_mutation_level(MUT_FAST_METABOLISM))
-        quantity = 2;
-
-    newgame_make_item(base_type, sub_type, quantity);
-}
-
 static void _setup_tutorial_miscs()
 {
     // Allow for a few specific hint mode messages.
@@ -440,14 +422,12 @@ static void _give_basic_knowledge()
     // Removed item types are handled in _set_removed_types_as_identified.
 }
 
-static void _setup_normal_game();
-static void _setup_tutorial(const newgame_def& ng);
-static void _setup_sprint(const newgame_def& ng);
-static void _setup_hints();
-static void _setup_generic(const newgame_def& ng);
+static void _setup_generic(const newgame_def& ng,
+                          bool normal_dungeon_setup /*for catch2-tests*/);
 
 // Initialise a game based on the choice stored in ng.
-void setup_game(const newgame_def& ng)
+void setup_game(const newgame_def& ng,
+                bool normal_dungeon_setup /*for catch2-tests */)
 {
     crawl_state.type = ng.type; // by default
     if (Options.seed_from_rc && ng.type != GAME_TYPE_CUSTOM_SEED)
@@ -474,16 +454,11 @@ void setup_game(const newgame_def& ng)
     {
     case GAME_TYPE_NORMAL:
     case GAME_TYPE_CUSTOM_SEED:
-        _setup_normal_game();
-        break;
     case GAME_TYPE_TUTORIAL:
-        _setup_tutorial(ng);
-        break;
     case GAME_TYPE_SPRINT:
-        _setup_sprint(ng);
         break;
     case GAME_TYPE_HINTS:
-        _setup_hints();
+        init_hints();
         break;
     case GAME_TYPE_ARENA:
     default:
@@ -491,39 +466,7 @@ void setup_game(const newgame_def& ng)
         end(-1);
     }
 
-    _setup_generic(ng);
-}
-
-/**
- * Special steps that normal game needs;
- */
-static void _setup_normal_game()
-{
-    make_hungry(0, true);
-}
-
-/**
- * Special steps that tutorial game needs;
- */
-static void _setup_tutorial(const newgame_def& ng)
-{
-    make_hungry(0, true);
-}
-
-/**
- * Special steps that sprint needs;
- */
-static void _setup_sprint(const newgame_def& ng)
-{
-    // nothing currently
-}
-
-/**
- * Special steps that hints mode needs;
- */
-static void _setup_hints()
-{
-    init_hints();
+    _setup_generic(ng, normal_dungeon_setup);
 }
 
 static void _free_up_slot(char letter)
@@ -541,7 +484,7 @@ static void _free_up_slot(char letter)
 
 void initial_dungeon_setup()
 {
-    rng_generator levelgen_rng(BRANCH_DUNGEON);
+    rng::generator levelgen_rng(BRANCH_DUNGEON);
 
     initialise_branch_depths();
     initialise_temples();
@@ -549,11 +492,19 @@ void initial_dungeon_setup()
     initialise_item_descriptions();
 }
 
-static void _setup_generic(const newgame_def& ng)
+static void _setup_generic(const newgame_def& ng,
+                           bool normal_dungeon_setup /*for catch2-tests*/)
 {
-    reset_rng(); // initialize rng from Options.seed
+    // this seems non-ideal, but messages are not being displayed at this point
+    // so if a force_more_message triggers, the more will just show on a blank
+    // screen. TODO: it's not clear to me why the more can show up without
+    // the message that triggered it.
+    unwind_bool no_more(crawl_state.show_more_prompt, false);
+
+    rng::reset(); // initialize rng from Options.seed
     _init_player();
     you.game_seed = crawl_state.seed;
+    you.deterministic_levelgen = Options.incremental_pregen;
 
 #if TAG_MAJOR_VERSION == 34
     // Avoid the remove_dead_shops() Gozag fixup in new games: see
@@ -581,16 +532,12 @@ static void _setup_generic(const newgame_def& ng)
 
     _unfocus_stats();
 
-    // Needs to be done before handing out food.
     give_basic_mutations(you.species);
 
     // This function depends on stats and mutations being finalised.
-    _give_items_skills(ng);
+    give_items_skills(ng);
 
-    if (you.species == SP_DEMONSPAWN)
-        roll_demonspawn_mutations();
-
-    _give_starting_food();
+    roll_demonspawn_mutations();
 
     if (crawl_state.game_is_sprint())
         _give_bonus_items();
@@ -608,8 +555,11 @@ static void _setup_generic(const newgame_def& ng)
 
     _give_basic_knowledge();
 
-    // Must be after _give_basic_knowledge
-    add_held_books_to_library();
+    {
+        msg::suppress quiet;
+        // Must be after _give_basic_knowledge
+        add_held_books_to_library();
+    }
 
     if (you.char_class == JOB_WANDERER)
         memorise_wanderer_spell();
@@ -660,7 +610,8 @@ static void _setup_generic(const newgame_def& ng)
     set_hp(you.hp_max);
     set_mp(you.max_magic_points);
 
-    initial_dungeon_setup();
+    if (normal_dungeon_setup)
+        initial_dungeon_setup();
 
     // Generate the second name of Jiyva
     fix_up_jiyva_name();

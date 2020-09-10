@@ -32,7 +32,6 @@
 #include "libutil.h"
 #include "mapmark.h"
 #include "maps.h"
-#include "mon-book.h"
 #include "mon-cast.h"
 #include "mon-place.h"
 #include "mutant-beast.h"
@@ -44,8 +43,38 @@
 #include "spl-util.h"
 #include "stringutil.h"
 #include "terrain.h"
-#include "tiledef-dngn.h"
-#include "tiledef-player.h"
+#include "rltiles/tiledef-dngn.h"
+#include "rltiles/tiledef-player.h"
+
+#ifdef DEBUG_TAG_PROFILING
+static map<string,int> _tag_profile;
+
+static void _profile_inc_tag(const string &tag)
+{
+    if (!_tag_profile.count(tag))
+        _tag_profile[tag] = 0;
+    _tag_profile[tag]++;
+}
+
+void tag_profile_out()
+{
+    long total = 0;
+    vector<pair<int, string>> resort;
+    fprintf(stderr, "\nTag hits:\n");
+    for (auto k : _tag_profile)
+    {
+        resort.emplace_back(k.second, k.first);
+        total += k.second;
+    }
+    sort(resort.begin(), resort.end());
+    for (auto p : resort)
+    {
+        long percent = ((long) p.first) * 100 / total;
+        fprintf(stderr, "%8d (%2ld%%): %s\n", p.first, percent, p.second.c_str());
+    }
+    fprintf(stderr, "Total: %ld\n", total);
+}
+#endif
 
 #ifdef DEBUG_TAG_PROFILING
 static map<string,int> _tag_profile;
@@ -2265,15 +2294,40 @@ void map_def::reinit()
     update_cached_tags();
 }
 
+void map_def::reload_epilogue()
+{
+    if (!epilogue.empty())
+        return;
+    // reload the epilogue from the current .des cache; this is because it
+    // isn't serialized but with pregen orderings could need to be run after
+    // vaults have been generated, saved, and reloaded. This can be a tricky
+    // situation in save-compat terms, but is exactly the same as how lua code
+    // triggered by markers is currently handled.
+    const map_def *cache_version = find_map_by_name(name);
+    if (cache_version)
+    {
+        map_def tmp = *cache_version;
+        // TODO: I couldn't reliably get the epilogue to be in vdefs, is there
+        // a way to cache it and not do a full load here? The original idea
+        // was to not clear it out in strip(), but this fails under some
+        // circumstances.
+        tmp.load();
+        epilogue = tmp.epilogue;
+    }
+    // for save compat reasons, fail silently if the map is no longer around.
+    // Probably shouldn't do anything really crucial in the epilogue that you
+    // aren't prepared to deal with save compat for somehow...
+}
+
 bool map_def::map_already_used() const
 {
-    return you.uniq_map_names.count(name)
+    return get_uniq_map_names().count(name)
            || env.level_uniq_maps.find(name) !=
                env.level_uniq_maps.end()
            || env.new_used_subvault_names.find(name) !=
                env.new_used_subvault_names.end()
-           || has_any_tag(you.uniq_map_tags.begin(),
-                          you.uniq_map_tags.end())
+           || has_any_tag(get_uniq_map_tags().begin(),
+                          get_uniq_map_tags().end())
            || has_any_tag(env.level_uniq_map_tags.begin(),
                           env.level_uniq_map_tags.end())
            || has_any_tag(env.new_used_subvault_tags.begin(),
@@ -2341,8 +2395,7 @@ string map_def::desc_or_name() const
 void map_def::write_full(writer& outf) const
 {
     cache_offset = outf.tell();
-    marshallUByte(outf, TAG_MAJOR_VERSION);
-    marshallUByte(outf, TAG_MINOR_VERSION);
+    write_save_version(outf, save_version::current());
     marshallString4(outf, name);
     prelude.write(outf);
     mapchunk.write(outf);
@@ -2352,7 +2405,7 @@ void map_def::write_full(writer& outf) const
     epilogue.write(outf);
 }
 
-void map_def::read_full(reader& inf, bool check_cache_version)
+void map_def::read_full(reader& inf)
 {
     // There's a potential race-condition here:
     // - If someone modifies a .des file while there are games in progress,
@@ -2362,8 +2415,8 @@ void map_def::read_full(reader& inf, bool check_cache_version)
     // reloading the index), but it's easier to save the game at this
     // point and let the player reload.
 
-    const uint8_t major = unmarshallUByte(inf);
-    const uint8_t minor = unmarshallUByte(inf);
+    const auto version = get_save_version(inf);
+    const auto major = version.major, minor = version.minor;
 
     if (major != TAG_MAJOR_VERSION || minor > TAG_MINOR_VERSION)
     {
@@ -2449,7 +2502,7 @@ void map_def::load()
                 make_stringf("Map inf is invalid: %s", name.c_str()));
     }
     inf.advance(cache_offset);
-    read_full(inf, true);
+    read_full(inf);
 
     index_only = false;
 }
@@ -2814,6 +2867,8 @@ bool map_def::has_exit() const
 
 string map_def::validate_map_def(const depth_ranges &default_depths)
 {
+    UNUSED(default_depths);
+
     unwind_bool valid_flag(validating_map_flag, true);
 
     string err = run_lua(true);
@@ -4204,6 +4259,7 @@ mons_list::mons_spec_slot mons_list::parse_mons_spec(string spec)
                          || mons_class_itemuse(mspec.monbase)
                             < MONUSE_STARTING_EQUIPMENT))
             {
+                // TODO: skip this error if the monspec is `nothing`
                 error = make_stringf("Monster '%s' can't use items.",
                     mon_str.c_str());
             }
@@ -4785,9 +4841,7 @@ void item_spec::release_corpse_monster_spec()
 
 bool item_spec::corpselike() const
 {
-    return base_type == OBJ_CORPSES && (sub_type == CORPSE_BODY
-                                        || sub_type == CORPSE_SKELETON)
-           || base_type == OBJ_FOOD && sub_type == FOOD_CHUNK;
+    return base_type == OBJ_CORPSES;
 }
 
 const mons_spec &item_spec::corpse_monster_spec() const
@@ -4948,9 +5002,7 @@ int str_to_ego(object_class_type item_type, string ego_str)
         "resistance",
         "positive_energy",
         "archmagi",
-#if TAG_MAJOR_VERSION == 34
         "preservation",
-#endif
         "reflection",
         "spirit_shield",
         "archery",
@@ -4958,7 +5010,12 @@ int str_to_ego(object_class_type item_type, string ego_str)
         "jumping",
 #endif
         "repulsion",
+#if TAG_MAJOR_VERSION == 34
         "cloud_immunity",
+#endif
+        "harm",
+        "shadows",
+        "rampaging",
         nullptr
     };
     COMPILE_CHECK(ARRAYSZ(armour_egos) == NUM_REAL_SPECIAL_ARMOURS);
@@ -4997,6 +5054,7 @@ int str_to_ego(object_class_type item_type, string ego_str)
 #endif
         "penetration",
         "reaping",
+        "spectral",
         nullptr
     };
     COMPILE_CHECK(ARRAYSZ(weapon_brands) == NUM_REAL_SPECIAL_WEAPONS);
@@ -5015,8 +5073,8 @@ int str_to_ego(object_class_type item_type, string ego_str)
         "penetration",
 #endif
         "dispersal",
-#if TAG_MAJOR_VERSION == 34
         "exploding",
+#if TAG_MAJOR_VERSION == 34
         "steel",
 #endif
         "silver",
@@ -5099,9 +5157,7 @@ int item_list::parse_acquirement_source(const string &source)
 
 bool item_list::monster_corpse_is_valid(monster_type *mons,
                                         const string &name,
-                                        bool corpse,
-                                        bool skeleton,
-                                        bool chunk)
+                                        bool skeleton)
 {
     if (*mons == RANDOM_NONBASE_DRACONIAN || *mons == RANDOM_NONBASE_DEMONSPAWN)
     {
@@ -5141,12 +5197,10 @@ bool item_list::parse_corpse_spec(item_spec &result, string s)
 
     const bool corpse = strip_suffix(s, "corpse");
     const bool skeleton = !corpse && strip_suffix(s, "skeleton");
-    const bool chunk = !corpse && !skeleton && strip_suffix(s, "chunk");
 
-    result.base_type = chunk ? OBJ_FOOD : OBJ_CORPSES;
-    result.sub_type  = (chunk ? static_cast<int>(FOOD_CHUNK) :
-                        static_cast<int>(corpse ? CORPSE_BODY :
-                                         CORPSE_SKELETON));
+    result.base_type = OBJ_CORPSES;
+    result.sub_type  = static_cast<int>(corpse ? CORPSE_BODY :
+                                         CORPSE_SKELETON);
 
     // The caller wants a specific monster, no doubt with the best of
     // motives. Let's indulge them:
@@ -5161,7 +5215,7 @@ bool item_list::parse_corpse_spec(item_spec &result, string s)
     // Get the actual monster spec:
     mons_spec spec = mlist.get_monster(0);
     monster_type mtype = static_cast<monster_type>(spec.type);
-    if (!monster_corpse_is_valid(&mtype, s, corpse, skeleton, chunk))
+    if (!monster_corpse_is_valid(&mtype, s, skeleton))
     {
         error = make_stringf("Requested corpse '%s' is invalid",
                              s.c_str());
@@ -5511,12 +5565,9 @@ bool item_list::parse_single_spec(item_spec& result, string s)
 
     error.clear();
 
-    // Look for corpses, chunks, skeletons:
-    if (ends_with(s, "corpse") || ends_with(s, "chunk")
-        || ends_with(s, "skeleton"))
-    {
+    // Look for corpses, skeletons:
+    if (ends_with(s, "corpse") || ends_with(s, "skeleton"))
         return parse_corpse_spec(result, s);
-    }
 
     const int unrand_id = get_unrandart_num(s.c_str());
     if (unrand_id)
@@ -5947,8 +5998,6 @@ void keyed_mapspec::parse_features(const string &s)
 feature_spec keyed_mapspec::parse_trap(string s, int weight)
 {
     strip_tag(s, "trap");
-    // All traps are known, strip this tag for compatibility
-    strip_tag(s, "known");
 
     trim_string(s);
     lowercase(s);

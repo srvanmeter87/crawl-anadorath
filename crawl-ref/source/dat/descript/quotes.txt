@@ -238,7 +238,8 @@ A staircase to the Shoals
 %%%%
 A staircase to the Tomb
 
-<Tomb>
+“A tomb now suffices him for whom the world was not enough.”
+    -Alexander the Great's epitaph
 %%%%
 A stormy altar of Qazlal
 
@@ -429,12 +430,6 @@ Crazy Yiuf
  Four Larks and a Wren,
  Have all built their nests in my beard!’”
     -Edward Lear, _A Book of Nonsense [No. 1]_. 1846.
-%%%%
-Darkness spell
-
-“If I must die, I will encounter darkness as a bride,
-     And hug it in my arms.”
-    -William Shakespeare, “Measure for Measure”
 %%%%
 Dispater
 
@@ -803,10 +798,6 @@ will hurt you.’”
     -Victor Marie Hugo, _Notre Dame de Paris_, Book II, chapter VII “A Wedding
      Night”. 1831.
 %%%%
-amulet of harm
-
-<amulet>
-%%%%
 amulet of faith
 
 <amulet>
@@ -823,19 +814,6 @@ amulet of magic regeneration
 
 <amulet>
 %%%%
-amulet of rage
-
-“We there, in strife bewild’ring,
- Split blood enough to swim in:
- We orphaned many children,
- And widowed many women.
- The eagles and the ravens
- We glutted with our foemen;
- The heroes and the cravens,
- The spearmen and the bowmen.”
-    -Thomas Love Peacock, “The War Song of Dinas Vawr”. 1829.
-
-%%%%
 amulet of regeneration
 
 <amulet>
@@ -843,11 +821,6 @@ amulet of regeneration
 amulet of nothing
 
 <amulet>
-%%%%
-amulet of the gourmand
-
-“put a knife to thy throat, if thou be a man given to appetite.”
-    -KJV Bible, Proverbs 23:2.
 %%%%
 animal skin
 
@@ -1512,7 +1485,9 @@ hand axe
 %%%%
 hand crossbow
 
-<arbalest>
+“Energy may be likened to the bending of a crossbow;
+ decision, to the releasing of a trigger.”
+    -Sun Tzu
 %%%%
 harpy
 
@@ -1537,7 +1512,7 @@ hell hound
  If aught disturbed their noise, into her womb,
  And kennel there; yet there still barked and howled
  Within unseen.”
-    -John Milton, _Paradise Lost_, Book II, l. 653-659. 1667.
+    -John Milton, _Paradise Lost_, Book II, 1667.
 %%%%
 hell knight
 
@@ -1627,7 +1602,7 @@ insubstantial wisp
  Misleads th' amaz'd Night-wanderer from his way
  To Boggs and Mires, and oft through Pond or Poole,
  There swallow'd up and lost, from succour farr.”
-    -John Milton, _Paradise Lost_
+    -John Milton, _Paradise Lost_, Book IX, 1667.
 %%%%
 Iskenderun's Battlesphere spell
 
@@ -1715,7 +1690,7 @@ large rock
  There's no hiding place down here.”
     -Negro spiritual. 19th cent.
 %%%%
-large shield
+tower shield
 
 <buckler>
 %%%%
@@ -1806,7 +1781,8 @@ hee most desireth.”
 %%%%
 manual
 
-<book>
+“Manuals have their uses... but they are not to be confused with living.”
+    -Robert Fulghum
 %%%%
 merfolk
 
@@ -1943,6 +1919,15 @@ naga warrior
 
 <naga>
 %%%%
+nameless horror
+
+“Then the sallow oval between Ged's arms grew bright. It widened and spread, a
+rent in the darkness of the earth and night, a ripping open of the fabric of
+the world. Through it blazed a terrible brightness. And through that bright
+misshapen breach clambered something like a clot of black shadow, quick and
+hideous, and it leaped straight out at Ged's face.”
+    -Ursula K. Le Guin, _A Wizard Of Earthsea_. 1968.
+%%%%
 needle
 
 “I pray that, risen from the dead,
@@ -2050,7 +2035,7 @@ pandemonium lord
  A solemn Councel forthwith to be held
  At Pandaemonium, the high Capital
  Of Satan and his Peers...”
-    -John Milton, _Paradise Lost_,  Book I, l. 752-7. 1667.
+    -John Milton, _Paradise Lost_, Book I, 1667.
 %%%%
 Passwall spell
 
@@ -2338,15 +2323,20 @@ see rightly; what is essential is invisible to the eye.”
 %%%%
 ring of slaying
 
-<ring>
+“Life is too short to occupy oneself with the slaying of the slain more than
+ once.”
+    -Thomas Huxley
 %%%%
 ring of strength
 
-<ring>
+“That which does not kill us makes us stronger.”
+    -Friedrich Nietzsche
 %%%%
 ring of stealth
 
-<ring>
+“No one ever approaches perfection except by stealth, and unknown to
+ themselves.”
+    -William Hazlitt
 %%%%
 ring of teleportation
 
@@ -2414,7 +2404,8 @@ scroll of acquirement
 %%%%
 scroll of amnesia
 
-<scroll>
+“But revenge is hollow. I'd prefer amnesia.”
+    -Tera Lynn Childs
 %%%%
 scroll of blinking
 
@@ -2434,7 +2425,9 @@ scroll of enchant weapon
 %%%%
 scroll of fear
 
-<scroll>
+“We can easily forgive a child who is afraid of the dark;
+the real tragedy of life is when men are afraid of the light.”
+    -Plato
 %%%%
 scroll of fog
 
@@ -2442,7 +2435,9 @@ scroll of fog
 %%%%
 scroll of holy word
 
-<scroll>
+“However many holy words you read, however many you speak,
+what good will they do you if you do not act on upon them?”
+    -Gautama Buddha
 %%%%
 scroll of identify
 
@@ -2483,7 +2478,9 @@ scroll of silence
 %%%%
 scroll of summoning
 
-<scroll>
+“When thou attended gloriously from heaven, Shalt in the sky appear, and from
+ thee send Thy summoning archangels to proclaim Thy dread tribunal.”
+    -John Milton, _Paradise Lost_, Book III, 1667.
 %%%%
 scroll of teleportation
 
@@ -2579,7 +2576,8 @@ shapeshifter
 %%%%
 shield
 
-<buckler>
+“...for the shield may be as important for victory, as the sword or spear.”
+    -Charles Darwin, “The Origin of Species”. 1859.
 %%%%
 shortbow
 
@@ -2809,10 +2807,6 @@ staff of earth
 
 <staff>
 %%%%
-staff of energy
-
-<staff>
-%%%%
 staff of fire
 
 “The wizard suddenly remembered the words of the god. He remembered that of all
@@ -2825,18 +2819,6 @@ another man's dreams—what an incomparable humiliation, what madness!”
     trans. Anthony Bonner, 1962.
 %%%%
 staff of poison
-
-<staff>
-%%%%
-staff of power
-
-<staff>
-%%%%
-staff of summoning
-
-<staff>
-%%%%
-staff of wizardry
 
 <staff>
 %%%%

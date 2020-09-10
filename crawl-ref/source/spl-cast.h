@@ -13,10 +13,9 @@ enum class spflag
     dir_or_target      = 0x00000001,      // use DIR_NONE targeting
     target             = 0x00000002,      // use DIR_TARGET targeting
                      //  0x00000004,
-    dir                = 0x00000008,      // use DIR_DIR targeting
-    targeting_mask     = spflag::dir_or_target | spflag::target
-                             | spflag::dir, // used to test for targeting
-    // TODO: we need a new flag if we want to target corpses too.
+                     //  0x00000008,
+                                          // used to test for targeting
+    targeting_mask     = spflag::dir_or_target | spflag::target,
     obj                = 0x00000010,      // TARG_MOVABLE_OBJECT used
     helpful            = 0x00000020,      // TARG_FRIEND used
     neutral            = 0x00000040,      // TARG_ANY used
@@ -35,7 +34,7 @@ enum class spflag
     needs_tracer       = 0x00080000,      // monster casting needs tracer
     noisy              = 0x00100000,      // makes noise, even if innate
     testing            = 0x00200000,      // a testing/debugging spell
-    corpse_violating   = 0x00400000,      // Conduct violation for Fedhas
+                     //  0x00400000,      // was spflag::corpse_violating
                      //  0x00800000,      // was SPFLAG_ALLOW_SELF
     utility            = 0x01000000,      // usable no matter what foe is
     no_ghost           = 0x02000000,      // ghosts can't get this spell
@@ -94,7 +93,7 @@ bool cast_a_spell(bool check_range, spell_type spell = SPELL_NO_SPELL);
 int apply_enhancement(const int initial_power, const int enhancer_levels);
 
 void inspect_spells();
-bool can_cast_spells(bool quiet = false);
+bool can_cast_spells(bool quiet = false, bool exegesis = false);
 void do_cast_spell_cmd(bool force);
 
 int hex_success_chance(const int mr, int powc, int scale,
@@ -107,7 +106,7 @@ spret your_spells(spell_type spell, int powc = 0, bool allow_fail = true,
 
 extern const char *fail_severity_adjs[];
 
-double get_miscast_chance(spell_type spell, int severity = 2);
+int max_miscast_damage(spell_type spell);
 int fail_severity(spell_type spell);
 int failure_rate_colour(spell_type spell);
 int failure_rate_to_int(int fail);
@@ -119,10 +118,7 @@ string spell_power_string(spell_type spell);
 string spell_range_string(spell_type spell);
 string range_string(int range, int maxrange, char32_t caster_char);
 string spell_schools_string(spell_type spell);
-string spell_hunger_string(spell_type spell);
 string spell_failure_rate_string(spell_type spell);
 string spell_noise_string(spell_type spell, int chop_wiz_display_width = 0);
 
 void spell_skills(spell_type spell, set<skill_type> &skills);
-
-bool spell_removed(spell_type spell);

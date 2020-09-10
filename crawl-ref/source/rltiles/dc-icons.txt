@@ -1,11 +1,8 @@
 %prefix TILEI
 %name icons
-%startvalue 0
+%startvalue TILEG_GUI_MAX gui
 
 %back none
-
-# idx == 0 must be invalid
-dngn/unseen
 
 %sdir misc
 effect/net_trap TRAP_NET
@@ -33,6 +30,8 @@ animated_weapon ANIMATED_WEAPON
 summoned SUMMONED
 summoned_durable PERM_SUMMON
 poison POISON
+poison_more MORE_POISON
+poison_max MAX_POISON
 sticky_flame STICKY_FLAME
 inner_flame INNER_FLAME
 constricted CONSTRICTED
@@ -48,7 +47,6 @@ fleeing FLEEING
 may_stab_brand MAY_STAB_BRAND
 sleeping STAB_BRAND
 pain_mirror PAIN_MIRROR
-deaths_door DEATHS_DOOR
 recall RECALL
 drain DRAIN
 idealised IDEALISED
@@ -56,9 +54,9 @@ bound_soul BOUND_SOUL
 infested INFESTED
 corroded CORRODED
 swift SWIFT
-pinned PINNED
 vile_clutch VILE_CLUTCH
 possessable POSSESSABLE
+slowly_dying SLOWLY_DYING
 
 something_under SOMETHING_UNDER
 new_stair NEW_STAIR

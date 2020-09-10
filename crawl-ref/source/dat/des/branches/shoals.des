@@ -608,10 +608,10 @@ DEPTH: Shoals, !Shoals:$
 TAGS: no_pool_fixup water_ok no_item_gen no_trap_gen no_monster_gen
 KPROP: YycfZ. = no_tide
 KPROP: ZYcf. = no_tele_into
-KMONS: c = patrolling hungry ghost
+KMONS: c = patrolling wraith
 NSUBST: f = 1:g / 2:f / *:.
-KITEM: g = ration
-KITEM: f = ration / nothing w:10
+KITEM: g = gold
+KITEM: f = gold / nothing w:10
 : dgn.delayed_decay(_G, 'c', 'human skeleton')
 SUBST: Z = yY
 KFEAT: y = w
@@ -1327,8 +1327,8 @@ DEPTH: Shoals, !Shoals:$
 ORIENT: float
 KMONS: P = plant
 MONS: sea snake, merfolk aquamancer
-ITEM: buckler ego:reflection / shield ego:reflection \
-      / large shield ego:reflection
+ITEM: buckler ego:reflection / kite shield ego:reflection \
+      / tower shield ego:reflection
 KPROP: . = no_tide
 NSUBST: " = 1:2 / 1:1 / 3=1., _ = 1:2 / 1:1 / 3=1.
 NSUBST: ' = 1:2 / 2:1 / 3=1., ` = 1=d* / 2:* / 3:% / 5=%.

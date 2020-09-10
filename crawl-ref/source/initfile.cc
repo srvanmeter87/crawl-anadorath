@@ -13,6 +13,9 @@
 
 #include "initfile.h"
 
+#include "json.h"
+#include "json-wrapper.h"
+
 #include <algorithm>
 #include <cinttypes>
 #include <cctype>
@@ -22,6 +25,7 @@
 #include <set>
 #include <string>
 
+#include "branch-data-json.h"
 #include "chardump.h"
 #include "clua.h"
 #include "colour.h"
@@ -45,7 +49,6 @@
 #include "macro.h"
 #include "mapdef.h"
 #include "message.h"
-#include "misc.h"
 #include "mon-util.h"
 #include "monster.h"
 #include "newgame.h"
@@ -70,7 +73,7 @@
 #include "wizard-option-type.h"
 #ifdef USE_TILE
 #include "tilepick.h"
-#include "tiledef-player.h"
+#include "rltiles/tiledef-player.h"
 #endif
 #include "tiles-build-specific.h"
 
@@ -87,7 +90,7 @@ extern char **NXArgv;
 #ifndef DATA_DIR_PATH
 #include <unistd.h>
 #endif
-#elif defined(TARGET_OS_LINUX) || defined(TARGET_OS_CYGWIN)
+#elif defined(UNIX) || defined(TARGET_COMPILER_MINGW)
 #include <unistd.h>
 #endif
 
@@ -110,11 +113,13 @@ static bool _first_greater(const pair<int, int> &l, const pair<int, int> &r)
 
 const vector<GameOption*> game_options::build_options_list()
 {
+#ifndef DEBUG
     const bool USING_TOUCH =
 #if defined(TOUCH_UI)
         true;
 #else
         false;
+#endif
 #endif
     const bool USING_DGL =
 #if defined(DGAMELAUNCH)
@@ -159,8 +164,6 @@ const vector<GameOption*> game_options::build_options_list()
         new BoolGameOption(SIMPLE_NAME(easy_door), true),
         new BoolGameOption(SIMPLE_NAME(warn_hatches), false),
         new BoolGameOption(SIMPLE_NAME(enable_recast_spell), true),
-        new BoolGameOption(SIMPLE_NAME(easy_eat_chunks), false),
-        new BoolGameOption(SIMPLE_NAME(auto_eat_chunks), true),
         new BoolGameOption(SIMPLE_NAME(auto_hide_spells), false),
         new BoolGameOption(SIMPLE_NAME(blink_brightens_background), false),
         new BoolGameOption(SIMPLE_NAME(bold_brightens_foreground), false),
@@ -180,6 +183,8 @@ const vector<GameOption*> game_options::build_options_list()
         new BoolGameOption(SIMPLE_NAME(animate_equip_bar), false),
         new BoolGameOption(SIMPLE_NAME(mouse_input), false),
         new BoolGameOption(SIMPLE_NAME(mlist_allow_alternate_layout), false),
+        new BoolGameOption(SIMPLE_NAME(monster_item_view_coordinates), false),
+        new ListGameOption<text_pattern>(SIMPLE_NAME(monster_item_view_features)),
         new BoolGameOption(SIMPLE_NAME(messages_at_top), false),
         new BoolGameOption(SIMPLE_NAME(msg_condense_repeats), true),
         new BoolGameOption(SIMPLE_NAME(msg_condense_short), true),
@@ -194,7 +199,11 @@ const vector<GameOption*> game_options::build_options_list()
         new BoolGameOption(SIMPLE_NAME(note_chat_messages), false),
         new BoolGameOption(SIMPLE_NAME(note_dgl_messages), true),
         new BoolGameOption(SIMPLE_NAME(clear_messages), false),
+#ifdef DEBUG
+        new BoolGameOption(SIMPLE_NAME(show_more), false),
+#else
         new BoolGameOption(SIMPLE_NAME(show_more), !USING_TOUCH),
+#endif
         new BoolGameOption(SIMPLE_NAME(small_more), false),
         new BoolGameOption(SIMPLE_NAME(pickup_thrown), true),
         new BoolGameOption(SIMPLE_NAME(show_travel_trail), USING_DGL),
@@ -207,8 +216,9 @@ const vector<GameOption*> game_options::build_options_list()
         new BoolGameOption(SIMPLE_NAME(bad_item_prompt), true),
         new BoolGameOption(SIMPLE_NAME(dos_use_background_intensity), true),
         new BoolGameOption(SIMPLE_NAME(explore_greedy), true),
-        new BoolGameOption(SIMPLE_NAME(explore_auto_rest), false),
+        new BoolGameOption(SIMPLE_NAME(explore_auto_rest), true),
         new BoolGameOption(SIMPLE_NAME(travel_key_stop), true),
+        new BoolGameOption(SIMPLE_NAME(travel_one_unsafe_move), false),
         new BoolGameOption(SIMPLE_NAME(dump_on_save), true),
         new BoolGameOption(SIMPLE_NAME(rest_wait_both), false),
         new BoolGameOption(SIMPLE_NAME(rest_wait_ancestor), false),
@@ -293,16 +303,13 @@ const vector<GameOption*> game_options::build_options_list()
         new ColourThresholdOption(stat_colour, {"stat_colour", "stat_color"},
                                   "3:red", _first_less),
         new StringGameOption(SIMPLE_NAME(sound_file_path), ""),
-#ifndef DGAMELAUNCH
-        new BoolGameOption(SIMPLE_NAME(pregen_dungeon), false),
-#endif
 
 #ifdef DGL_SIMPLE_MESSAGING
         new BoolGameOption(SIMPLE_NAME(messaging), false),
 #endif
 #ifndef DGAMELAUNCH
         new BoolGameOption(SIMPLE_NAME(name_bypasses_menu), true),
-        new BoolGameOption(SIMPLE_NAME(restart_after_save), false),
+        new BoolGameOption(SIMPLE_NAME(restart_after_save), true),
         new BoolGameOption(SIMPLE_NAME(newgame_after_quit), false),
         new StringGameOption(SIMPLE_NAME(map_file_name), ""),
         new StringGameOption(SIMPLE_NAME(save_dir), _get_save_path("saves/")),
@@ -317,6 +324,7 @@ const vector<GameOption*> game_options::build_options_list()
         new BoolGameOption(SIMPLE_NAME(tile_show_minihealthbar), true),
         new BoolGameOption(SIMPLE_NAME(tile_show_minimagicbar), true),
         new BoolGameOption(SIMPLE_NAME(tile_show_demon_tier), false),
+        new StringGameOption(SIMPLE_NAME(tile_show_threat_levels), ""),
         new StringGameOption(SIMPLE_NAME(tile_show_items), "!?/%=([)x}:|\\"),
         // disabled by default due to performance issues
         new BoolGameOption(SIMPLE_NAME(tile_water_anim), !USING_WEB_TILES),
@@ -367,6 +375,7 @@ const vector<GameOption*> game_options::build_options_list()
 #endif
 #endif
 #ifdef USE_TILE_LOCAL
+        new IntGameOption(SIMPLE_NAME(game_scale), 1, 1, 8),
         new IntGameOption(SIMPLE_NAME(tile_key_repeat_delay), 200, 0, INT_MAX),
         new IntGameOption(SIMPLE_NAME(tile_window_width), -90, INT_MIN, INT_MAX),
         new IntGameOption(SIMPLE_NAME(tile_window_height), -90, INT_MIN, INT_MAX),
@@ -386,6 +395,8 @@ const vector<GameOption*> game_options::build_options_list()
         new StringGameOption(SIMPLE_NAME(tile_font_msg_family), "monospace"),
         new StringGameOption(SIMPLE_NAME(tile_font_stat_family), "monospace"),
         new StringGameOption(SIMPLE_NAME(tile_font_lbl_family), "monospace"),
+        new StringGameOption(SIMPLE_NAME(glyph_mode_font), "monospace"),
+        new IntGameOption(SIMPLE_NAME(glyph_mode_font_size), 24, 8, 144),
 #endif
 #ifdef USE_FT
         new BoolGameOption(SIMPLE_NAME(tile_font_ft_light), false),
@@ -430,8 +441,6 @@ object_class_type item_class_by_sym(char32_t c)
         return OBJ_ARMOUR;
     case '/':
         return OBJ_WANDS;
-    case '%':
-        return OBJ_FOOD;
     case '?':
         return OBJ_SCROLLS;
     case '"': // Make the amulet symbol equiv to ring -- bwross
@@ -494,7 +503,7 @@ static msg_colour_type _str_to_channel_colour(const string &str)
 static const string message_channel_names[] =
 {
     "plain", "friend_action", "prompt", "god", "duration", "danger", "warning",
-    "food", "recovery", "sound", "talk", "talk_visual", "intrinsic_gain",
+    "recovery", "sound", "talk", "talk_visual", "intrinsic_gain",
     "mutation", "monster_spell", "monster_enchant", "friend_spell",
     "friend_enchant", "monster_damage", "monster_target", "banishment",
     "rotten_meat", "equipment", "floor", "multiturn", "examine",
@@ -806,11 +815,18 @@ void game_options::new_dump_fields(const string &text, bool add, bool prepend)
     // Easy; chardump.cc has most of the intelligence.
     vector<string> fields = split_string(",", text, true, true);
     if (add)
+    {
+        erase_if(fields, [this](const string &x) { return dump_fields.count(x) > 0; });
+        dump_fields.insert(fields.begin(), fields.end());
         merge_lists(dump_order, fields, prepend);
+    }
     else
     {
         for (const string &field : fields)
+        {
+            dump_fields.erase(field);
             erase_val(dump_order, field);
+        }
     }
 }
 
@@ -922,6 +938,7 @@ void game_options::set_activity_interrupt(const string &activity_name,
 #if defined(DGAMELAUNCH)
 static string _resolve_dir(string path, string suffix)
 {
+    UNUSED(suffix);
     return catpath(path, "");
 }
 #else
@@ -1030,6 +1047,9 @@ void game_options::reset_options()
 
     char_set      = CSET_DEFAULT;
 
+    incremental_pregen = true;
+    pregen_dungeon = false;
+
     // set it to the .crawlrc default
     autopickups.reset();
     autopickups.set(OBJ_GOLD);
@@ -1038,10 +1058,8 @@ void game_options::reset_options()
     autopickups.set(OBJ_BOOKS);
     autopickups.set(OBJ_JEWELLERY);
     autopickups.set(OBJ_WANDS);
-    autopickups.set(OBJ_FOOD);
 
     confirm_butcher        = confirm_butcher_type::normal;
-    auto_butcher           = HS_VERY_HUNGRY;
     easy_confirm           = easy_confirm_type::safe;
     allow_self_target      = confirm_prompt_type::prompt;
     skill_focus            = SKM_FOCUS_ON;
@@ -1148,15 +1166,14 @@ void game_options::reset_options()
 
     // Clear vector options.
     dump_order.clear();
+    dump_fields.clear();
     new_dump_fields("header,hiscore,stats,misc,inventory,"
                     "skills,spells,overview,mutations,messages,"
-                    "screenshot,monlist,kills,notes");
-    if (Version::ReleaseType == VER_ALPHA)
-        new_dump_fields("vaults");
-    new_dump_fields("skill_gains,action_counts");
+                    "screenshot,monlist,kills,notes,screenshots,vaults,"
+                    "skill_gains,action_counts");
     // Currently enabled by default for testing in trunk.
     if (Version::ReleaseType == VER_ALPHA)
-        new_dump_fields("xp_by_level");
+        new_dump_fields("turns_by_place");
 
     use_animations = (UA_BEAM | UA_RANGE | UA_HP | UA_MONSTER_IN_SIGHT
                       | UA_PICKUP | UA_MONSTER | UA_PLAYER | UA_BRANCH_ENTRY
@@ -1334,7 +1351,7 @@ cglyph_t game_options::parse_mon_glyph(const string &s) const
     return md;
 }
 
-void game_options::remove_mon_glyph_override(const string &text, bool prepend)
+void game_options::remove_mon_glyph_override(const string &text, bool /*prepend*/)
 {
     vector<string> override = split_string(":", text);
 
@@ -1355,7 +1372,7 @@ void game_options::remove_mon_glyph_override(const string &text, bool prepend)
         mon_glyph_overrides.erase(m);;
 }
 
-void game_options::add_mon_glyph_override(const string &text, bool prepend)
+void game_options::add_mon_glyph_override(const string &text, bool /*prepend*/)
 {
     vector<string> override = split_string(":", text);
     if (override.size() != 2u)
@@ -1393,7 +1410,7 @@ void game_options::add_mon_glyph_override(const string &text, bool prepend)
             mon_glyph_overrides[m] = mdisp;
 }
 
-void game_options::remove_item_glyph_override(const string &text, bool prepend)
+void game_options::remove_item_glyph_override(const string &text, bool /*prepend*/)
 {
     string key = text;
     trim_string(key);
@@ -1422,7 +1439,7 @@ void game_options::add_item_glyph_override(const string &text, bool prepend)
     }
 }
 
-void game_options::remove_feature_override(const string &text, bool prepend)
+void game_options::remove_feature_override(const string &text, bool /*prepend*/)
 {
     string fname;
     string::size_type epos = text.rfind("}");
@@ -1441,7 +1458,7 @@ void game_options::remove_feature_override(const string &text, bool prepend)
     }
 }
 
-void game_options::add_feature_override(const string &text, bool prepend)
+void game_options::add_feature_override(const string &text, bool /*prepend*/)
 {
     string::size_type epos = text.rfind("}");
     if (epos == string::npos)
@@ -1568,7 +1585,6 @@ static const char* config_defaults[] =
     "defaults/autopickup_exceptions.txt",
     "defaults/runrest_messages.txt",
     "defaults/standard_colours.txt",
-    "defaults/food_colouring.txt",
     "defaults/menu_colours.txt",
     "defaults/glyph_colours.txt",
     "defaults/messages.txt",
@@ -1693,6 +1709,8 @@ newgame_def read_startup_prefs()
         temp.game.weapon = temp.game.allowed_weapons[0];
     if (!Options.seed_from_rc)
         Options.seed = temp.seed_from_rc;
+    if (!Options.remember_name)
+        temp.game.name = "";
     return temp.game;
 #endif // !DISABLE_STICKY_STARTUP_OPTIONS
 }
@@ -1700,6 +1718,8 @@ newgame_def read_startup_prefs()
 #ifndef DISABLE_STICKY_STARTUP_OPTIONS
 static void write_newgame_options(const newgame_def& prefs, FILE *f)
 {
+    if (Options.no_save)
+        return;
     if (prefs.type != NUM_GAME_TYPE)
         fprintf(f, "type = %s\n", gametype_to_str(prefs.type).c_str());
     if (!prefs.map.empty())
@@ -2362,7 +2382,7 @@ void game_options::split_parse(const string &s, const string &separator,
     }
 }
 
-void game_options::set_option_fragment(const string &s, bool prepend)
+void game_options::set_option_fragment(const string &s, bool /*prepend*/)
 {
     if (s.empty())
         return;
@@ -2631,7 +2651,7 @@ void game_options::read_option_line(const string &str, bool runscript)
         else if (field == "default")
             char_set = CSET_DEFAULT;
         else
-            fprintf(stderr, "Bad character set: %s\n", field.c_str());
+            report_error("Bad character set, using default: %s\n", field.c_str());
     }
     else if (key == "language")
     {
@@ -2679,25 +2699,6 @@ void game_options::read_option_line(const string &str, bool runscript)
         else if (field == "auto")
             confirm_butcher = confirm_butcher_type::normal;
     }
-    else if (key == "auto_butcher")
-    {
-        if (field == "true" || field == "engorged")
-            auto_butcher = HS_ENGORGED;
-        else if (field == "very full")
-            auto_butcher = HS_VERY_FULL;
-        else if (field == "full")
-            auto_butcher = HS_FULL;
-        else if (field == "satiated")
-            auto_butcher = HS_SATIATED;
-        else if (field == "hungry")
-            auto_butcher = HS_HUNGRY;
-        else if (field == "very hungry")
-            auto_butcher = HS_VERY_HUNGRY;
-        else if (field == "near starving")
-            auto_butcher = HS_NEAR_STARVING;
-        else if (field == "false" || field == "starving")
-            auto_butcher = HS_STARVING;
-    }
     else if (key == "lua_file" && runscript)
     {
 #ifdef CLUA_BINDINGS
@@ -2717,7 +2718,7 @@ void game_options::read_option_line(const string &str, bool runscript)
             colour[orig_col] = result_col;
         else
         {
-            fprintf(stderr, "Bad colour -- %s=%d or %s=%d\n",
+            report_error("Bad colour -- %s=%d or %s=%d\n",
                      subkey.c_str(), orig_col, field.c_str(), result_col);
         }
     }
@@ -2729,9 +2730,9 @@ void game_options::read_option_line(const string &str, bool runscript)
         if (chnl != -1 && col != MSGCOL_NONE)
             channels[chnl] = col;
         else if (chnl == -1)
-            fprintf(stderr, "Bad channel -- %s\n", subkey.c_str());
+            report_error("Bad channel -- %s", subkey.c_str());
         else if (col == MSGCOL_NONE)
-            fprintf(stderr, "Bad colour -- %s\n", field.c_str());
+            report_error("Bad colour -- %s", field.c_str());
     }
     else if (key == "use_animations")
     {
@@ -2848,10 +2849,7 @@ void game_options::read_option_line(const string &str, bool runscript)
         if (isaalpha(field[0]))
             fire_items_start = letter_to_index(field[0]);
         else
-        {
-            fprintf(stderr, "Bad fire item start index: %s\n",
-                     field.c_str());
-        }
+            report_error("Bad fire item start index: %s\n", field.c_str());
     }
     else if (key == "assign_item_slot")
     {
@@ -3292,7 +3290,10 @@ void game_options::read_option_line(const string &str, bool runscript)
     else if (key == "dump_order")
     {
         if (plain)
+        {
+            dump_fields.clear();
             dump_order.clear();
+        }
 
         new_dump_fields(field, !minus_equal, caret_equal);
     }
@@ -3435,13 +3436,6 @@ void game_options::read_option_line(const string &str, bool runscript)
     }
     else if (key == "game_seed")
     {
-#ifdef DGAMELAUNCH
-        // try to avoid confusing online players who put this in their rc
-        // file. N.b. it is still possible to use the -seed CLO.
-        report_error("Your rc file specifies a game seed, but this build of "
-                     "crawl does not support seed selection. I will "
-                     "choose a seed randomly.");
-#else
         // special handling because of the large type.
         uint64_t tmp_seed = 0;
         if (sscanf(field.c_str(), "%" SCNu64, &tmp_seed))
@@ -3451,7 +3445,34 @@ void game_options::read_option_line(const string &str, bool runscript)
             if (!seed_from_rc)
                 seed_from_rc = tmp_seed;
         }
+    }
+    else if (key == "pregen_dungeon")
+    {
+        // TODO: probably convert the underlying values to some kind of enum
+        // TODO: store these options in a save?
+        if (field == "true" || field == "full")
+        {
+#ifdef DGAMELAUNCH
+            report_error(
+                "Full pregeneration is not allowed on this build of crawl.");
+#else
+            pregen_dungeon = true;
+            incremental_pregen = true; // still affects loading games not
+                                       // started with full pregen
 #endif
+        }
+        else if (field == "incremental")
+        {
+            pregen_dungeon = false;
+            incremental_pregen = true;
+        }
+        else if (field == "false" || field == "classic")
+            pregen_dungeon = incremental_pregen = false;
+        else
+        {
+            report_error("Unknown value '%s' for pregen_dungeon.",
+                                                            field.c_str());
+        }
     }
 #ifdef USE_TILE
     // TODO: generalize these to an option type?
@@ -3584,7 +3605,7 @@ static string _supported_language_listing()
     return comma_separated_fn(&lang_data[0], &lang_data[ARRAYSZ(lang_data)],
                               [](language_def ld){return ld.code ? ld.code : "en";},
                               ",", ",",
-                              [](language_def ld){return true;});
+                              [](language_def){return true;});
 }
 
 bool game_options::set_lang(const char *lc)
@@ -3779,7 +3800,7 @@ void game_options::report_error(const char* format, ...)
     string error = vmake_stringf(format, args);
     va_end(args);
 
-    mprf(MSGCH_ERROR, "Warning: %s (%s:%d)", error.c_str(),
+    mprf(MSGCH_ERROR, "Options error: %s (%s:%d)", error.c_str(),
          basefilename.c_str(), line_num);
 }
 
@@ -3885,6 +3906,9 @@ enum commandline_option_type
     CLO_THROTTLE,
     CLO_NO_THROTTLE,
     CLO_PLAYABLE_JSON, // JSON metadata for species, jobs, combos.
+    CLO_BRANCHES_JSON, // JSON metadata for branches.
+    CLO_SAVE_JSON,
+    CLO_GAMETYPES_JSON,
     CLO_EDIT_BONES,
 #ifdef USE_TILE_WEB
     CLO_WEBTILES_SOCKET,
@@ -3904,7 +3928,7 @@ static const char *cmd_ops[] =
     "extra-opt-first", "extra-opt-last", "sprint-map", "edit-save",
     "print-charset", "tutorial", "wizard", "explore", "no-save", "gdb",
     "no-gdb", "nogdb", "throttle", "no-throttle", "playable-json",
-    "bones",
+    "branches-json", "save-json", "gametypes-json", "bones",
 #ifdef USE_TILE_WEB
     "webtiles-socket", "await-connection", "print-webtiles-options",
 #endif
@@ -3925,7 +3949,7 @@ static string _find_executable_path()
         return utf16_to_8(tempPath);
     else
         return "";
-#elif defined (TARGET_OS_LINUX) || defined (TARGET_OS_CYGWIN)
+#elif defined (UNIX)
     char tempPath[2048];
     const ssize_t rsize =
         readlink("/proc/self/exe", tempPath, sizeof(tempPath) - 1);
@@ -4215,7 +4239,7 @@ static void _write_bones(const string &filename, vector<ghost_demon> ghosts)
     write_ghost_version(outw);
     tag_write_ghosts(outw, ghosts);
 
-    lk_close(ghost_file, filename);
+    lk_close(ghost_file);
 }
 
 static void _bones_ls(const string &filename, const string name_match,
@@ -4252,7 +4276,7 @@ static void _bones_ls(const string &filename, const string name_match,
             m.type = MONS_PLAYER_GHOST;
             monster_info mi(&m);
             bool has_stat_desc = false;
-            get_monster_db_desc(mi, inf, has_stat_desc, true);
+            get_monster_db_desc(mi, inf, has_stat_desc);
             cout << "#######################\n"
                  << inf.title << "\n"
                  << inf.body.str() << "\n"
@@ -4324,7 +4348,16 @@ static void _bones_merge(const vector<string> files, const string out_name)
     for (auto filename : files)
     {
         auto ghosts = load_bones_file(filename, false);
-        out.insert(out.end(), ghosts.begin(), ghosts.end());
+        auto end = ghosts.end();
+        if (out.size() + ghosts.size() > MAX_GHOSTS)
+        {
+            //cout << "ghosts " << out.size() + ghosts.size() - MAX_GHOSTS;
+            cout << "Too many ghosts! Capping merge at " << MAX_GHOSTS << "\n";
+            end = ghosts.begin() + (MAX_GHOSTS - out.size());
+        }
+        out.insert(out.end(), ghosts.begin(), end);
+        if (end != ghosts.end())
+            break;
     }
     if (file_exists(out_name))
         unlink(out_name.c_str());
@@ -4341,11 +4374,13 @@ static void _edit_bones(int argc, char **argv)
     if (argc <= 1 || !strcmp(argv[1], "help"))
     {
         printf("Usage: crawl --bones <command> ARGS, where <command> may be:\n"
-               "  ls <file> [<name>] [--long] list the ghosts in <file>\n"
+               "  ls <file> [<name>] [--long] List the ghosts in <file>\n"
                "                              --long shows full monster descriptions\n"
-               "  merge <file1> <file2>       merge two bones files together, rewriting into <file2>\n"
-               "  rm <file> <name>            rewrite a ghost file without <name>\n"
-               "  rewrite <file> [--dedup]    rewrite a ghost file, fixing up version etc.\n"
+               "  merge <file1> <file2>       Merge two bones files together, rewriting into\n"
+               "                              <file2>. Capped at %d; read in reverse order.\n"
+               "  rm <file> <name>            Rewrite a ghost file without <name>\n"
+               "  rewrite <file> [--dedup]    Rewrite a ghost file, fixing up version etc.\n",
+               MAX_GHOSTS
              );
         return;
     }
@@ -4399,7 +4434,7 @@ static void _edit_bones(int argc, char **argv)
         else if (cmd == EB_MERGE)
         {
             const string out_name = argv[2];
-            _bones_merge({name, out_name}, out_name);
+            _bones_merge({out_name, name}, out_name);
         }
     }
     catch (corrupted_save &err)
@@ -4526,6 +4561,9 @@ void game_options::write_webtiles_options(const string& name)
     tiles.json_write_int("tile_font_msg_size", Options.tile_font_msg_size);
     tiles.json_write_int("tile_font_lbl_size", Options.tile_font_lbl_size);
 
+    tiles.json_write_string("glyph_mode_font", Options.glyph_mode_font);
+    tiles.json_write_int("glyph_mode_font_size", Options.glyph_mode_font_size);
+
     tiles.json_write_bool("show_game_time", Options.show_game_time);
 
     _write_minimap_colours();
@@ -4539,6 +4577,44 @@ static void _print_webtiles_options()
     printf("%s\n", tiles.get_message().c_str());
 }
 #endif
+
+static string _gametype_to_clo(game_type g)
+{
+    switch (g)
+    {
+    case GAME_TYPE_CUSTOM_SEED:
+        return cmd_ops[CLO_SEED];
+    case GAME_TYPE_TUTORIAL:
+        return cmd_ops[CLO_TUTORIAL];
+    case GAME_TYPE_ARENA:
+        return cmd_ops[CLO_ARENA];
+    case GAME_TYPE_SPRINT:
+        return cmd_ops[CLO_SPRINT];
+    case GAME_TYPE_HINTS: // no CLO?
+    case GAME_TYPE_NORMAL:
+    default:
+        return "";
+    }
+}
+
+static void _print_gametypes_json()
+{
+    JsonWrapper json(json_mkobject());
+
+    for (int i = 0; i < NUM_GAME_TYPE; ++i)
+    {
+        auto gt = static_cast<game_type>(i);
+        string c = _gametype_to_clo(gt);
+        if (c != "")
+            c = "-" + c;
+        if (c != "" || gt == GAME_TYPE_NORMAL)
+        {
+            json_append_member(json.node, gametype_to_str(gt).c_str(),
+                                                        json_mkstring(c));
+        }
+    }
+    fprintf(stdout, "%s", json.to_string().c_str());
+}
 
 static bool _check_extra_opt(char* _opt)
 {
@@ -4818,6 +4894,10 @@ bool parse_args(int argc, char **argv, bool rc_only)
             fprintf(stdout, "%s", playable_metadata_json().c_str());
             end(0);
 
+        case CLO_BRANCHES_JSON:
+            fprintf(stdout, "%s", branch_data_json().c_str());
+            end(0);
+
         case CLO_TEST:
             crawl_state.test = true;
             if (next_is_param)
@@ -4952,6 +5032,19 @@ bool parse_args(int argc, char **argv, bool rc_only)
                 return false;
 
             _print_save_version(next_arg);
+            end(0);
+
+        case CLO_SAVE_JSON:
+            // Always parse.
+            if (!next_is_param)
+                return false;
+
+            print_save_json(next_arg);
+            end(0);
+
+        case CLO_GAMETYPES_JSON:
+            // Always parse.
+            _print_gametypes_json();
             end(0);
 
         case CLO_EDIT_SAVE:

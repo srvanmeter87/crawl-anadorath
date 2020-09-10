@@ -77,10 +77,8 @@ void orb_pickup_noise(const coord_def& where, int loudness, const char* msg, con
 
 /**
  * Is the Orb interfering with translocations?
- * @param temp If true, consider temporary conditions.
- * @return True if the player is carrying the Orb or, if we're considering
- *         temporary conditions, if the player is in Zot. Returns false
- *         otherwise.
+ * @return True if the player is carrying the Orb or if the player is in Zot.
+ *         Returns false otherwise.
  */
 bool orb_limits_translocation(bool temp)
 {

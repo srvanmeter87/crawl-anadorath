@@ -4,10 +4,14 @@
 
 struct screen_cell_t
 {
+    // Console output part.
+#ifndef USE_TILE_LOCAL
     char32_t glyph;
     unsigned short colour; // TODO: check if this is real colour (8 bit)
-    unsigned short flash_colour;
+#endif
+    // Tiles output part.
 #ifdef USE_TILE
+    unsigned short flash_colour;
     packed_cell tile;
 #endif
 };
@@ -27,6 +31,14 @@ public:
     operator const screen_cell_t * () const { return m_buffer; }
     const crawl_view_buffer & operator = (const crawl_view_buffer &rhs);
 
+    template<class Indexer>
+    screen_cell_t& operator () (const Indexer &i)
+    {
+        ASSERT(i.x >= 0 && i.y >= 0 && i.x < m_size.x && i.y < m_size.y);
+        return m_buffer[i.y*m_size.x + i.x];
+    }
+
+    void fill(const screen_cell_t& value);
     void clear();
     void draw();
 private:
@@ -47,8 +59,6 @@ public:
     coord_def msgsz;               // Size of the message pane.
     coord_def mlistp;              // Left-top pos of the monster list.
     coord_def mlistsz;             // Size of the monster list.
-
-    crawl_view_buffer vbuf;        // Buffer for drawing the main game map.
 
     coord_def vgrdc;               // What grid pos is at the centre of the view
                                    // usually you.pos().

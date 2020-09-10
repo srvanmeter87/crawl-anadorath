@@ -11,7 +11,6 @@
 #include "clua.h"
 #include "delay.h"
 #include "libutil.h"
-#include "macro.h"
 #include "menu.h"
 #include "message.h"
 #include "options.h"
@@ -19,7 +18,7 @@
 #include "state.h"
 #include "stringutil.h"
 #ifdef USE_TILE
-#include "tiledef-gui.h"
+#include "rltiles/tiledef-gui.h"
 #endif
 #include "viewchar.h"
 #include "ui.h"
@@ -50,9 +49,8 @@ bool yes_or_no(const char* fmt, ...)
 //      -- idea borrowed from Nethack
 bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear_after,
            bool interrupt_delays, bool noprompt,
-           const explicit_keymap *map, GotoRegion region)
+           const explicit_keymap *map, bool allow_popup)
 {
-    bool message = (region == GOTO_MSG);
     if (interrupt_delays && !crawl_state.is_repeating_cmd())
         interrupt_activity(activity_interrupt::force);
 
@@ -69,7 +67,7 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
     bool use_popup = true;
 #else
     bool use_popup = !crawl_state.need_save || ui::has_layout();
-    use_popup = use_popup && str;
+    use_popup = use_popup && str && allow_popup;
 #endif
 
     Menu pop(MF_SINGLESELECT | MF_ANYPRINTABLE, "", KMC_CONFIRM);
@@ -80,10 +78,8 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
         status = new MenuEntry("", MEL_SUBTITLE);
         MenuEntry * const y_me = new MenuEntry("Yes", MEL_ITEM, 1, 'Y');
         MenuEntry * const n_me = new MenuEntry("No", MEL_ITEM, 1, 'N');
-#ifdef USE_TILE
-        y_me->add_tile(tile_def(TILEG_PROMPT_YES, TEX_GUI));
-        n_me->add_tile(tile_def(TILEG_PROMPT_NO, TEX_GUI));
-#endif
+        y_me->add_tile(tile_def(TILEG_PROMPT_YES));
+        n_me->add_tile(tile_def(TILEG_PROMPT_NO));
 
         pop.set_title(new MenuEntry(prompt, MEL_TITLE));
         pop.add_entry(status);
@@ -104,12 +100,7 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
             else
             {
                 if (!noprompt)
-                {
-                    if (message)
-                        mprf(MSGCH_PROMPT, "%s", prompt.c_str());
-                    else
-                        cprintf("%s", prompt.c_str());
-                }
+                    mprf(MSGCH_PROMPT, "%s", prompt.c_str());
 
                 tmp = ui::getch(KMC_CONFIRM);
             }
@@ -140,7 +131,7 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
             tmp = toupper_safe(tmp);
         }
 
-        if (clear_after && message)
+        if (clear_after)
             clear_messages();
 
         if (tmp == 'N')
@@ -156,10 +147,8 @@ bool yesno(const char *str, bool allow_lowercase, int default_answer, bool clear
                                            upper ? "Uppercase " : "");
             if (use_popup && status) // redundant, but will quiet a warning
                 status->text = pr;
-            else if (message)
-                mpr(pr);
             else
-                cprintf("%s\n", pr.c_str());
+                mpr(pr);
         }
     }
 }

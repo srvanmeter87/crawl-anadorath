@@ -17,14 +17,12 @@
 #include "delay.h"
 #include "english.h"
 #include "env.h"
-#include "food.h"
 #include "initfile.h"
 #include "item-name.h"
 #include "item-prop.h"
 #include "items.h"
 #include "jobs.h"
 #include "losglobal.h"
-#include "mapmark.h"
 #include "mutation.h"
 #include "nearby-danger.h"
 #include "newgame-def.h"
@@ -135,16 +133,6 @@ LUARET1(you_poison_survival, number, poison_survival())
  * @function corrosion
  */
 LUARET1(you_corrosion, number, you.props["corrosion_amount"].get_int())
-/*** Hunger state number.
- * @treturn int
- * @function hunger
- */
-LUARET1(you_hunger, number, you.hunger_state - 1)
-/*** Hunger state string.
- * @treturn string
- * @function hunger_name
- */
-LUARET1(you_hunger_name, string, hunger_level())
 /*** Strength.
  * @treturn int current strength
  * @treturn int max strength
@@ -178,18 +166,35 @@ LUARET1(you_xl_progress, number, get_exp_progress())
  * @treturn number percentage of the way to the next skill level
  * @function skill_progress
  */
-LUARET1(you_skill_progress, number,
-        lua_isstring(ls, 1)
-            ? get_skill_percentage(str_to_skill(lua_tostring(ls, 1)))
-            : 0)
+LUAFN(you_skill_progress)
+{
+    string sk_name = luaL_checkstring(ls, 1);
+    skill_type sk = str_to_skill(lua_tostring(ls, 1));
+    if (sk > NUM_SKILLS)
+    {
+        string err = make_stringf("Unknown skill name `%s`.", sk_name.c_str());
+        return luaL_argerror(ls, 1, err.c_str());
+    }
+    PLUARET(number, get_skill_percentage(str_to_skill(lua_tostring(ls, 1))));
+}
+
 /*** Can a skill be trained?
  * @tparam string name skill name
  * @treturn boolean
  * @function can_train_skill
  */
-LUARET1(you_can_train_skill, boolean,
-        lua_isstring(ls, 1) ? you.can_currently_train[str_to_skill(lua_tostring(ls, 1))]
-                            : false)
+LUAFN(you_can_train_skill)
+{
+    string sk_name = luaL_checkstring(ls, 1);
+    skill_type sk = str_to_skill(lua_tostring(ls, 1));
+    if (sk > NUM_SKILLS)
+    {
+        string err = make_stringf("Unknown skill name `%s`.", sk_name.c_str());
+        return luaL_argerror(ls, 1, err.c_str());
+    }
+    PLUARET(boolean, you.can_currently_train[sk]);
+}
+
 /*** Best skill.
  * @treturn string
  * @function best_skill
@@ -252,22 +257,11 @@ LUARET1(you_see_invisible, boolean, you.can_see_invisible(false))
  * @function spirit_shield
  */
 LUARET1(you_spirit_shield, number, you.spirit_shield(false) ? 1 : 0)
-/*** Gourmand.
- * @treturn boolean
- * @function gourmond
- */
-LUARET1(you_gourmand, boolean, you.gourmand(false))
 /*** Corrosion resistance (rCorr).
  * @treturn int resistance level
  * @function res_corr
  */
 LUARET1(you_res_corr, boolean, you.res_corr(false))
-/*** Do you like to eat chunks?
- * Returns a number so as not to break existing scripts.
- * @treturn int
- * @function like_chunks
- */
-LUARET1(you_like_chunks, number, player_likes_chunks(true) ? 3 : 0)
 /*** Are you flying?
  * @treturn boolean
  * @function flying
@@ -289,17 +283,25 @@ LUARET1(you_berserk, boolean, you.berserk())
  * @function confused
  */
 LUARET1(you_confused, boolean, you.confused())
-/*** Do you have a Shroud of Golubria?
- * @treturn boolean
- * @function shrouded
- */
-LUARET1(you_shrouded, boolean, you.duration[DUR_SHROUD_OF_GOLUBRIA])
 /*** Are you currently +Swift or -Swift?
  * If you have neither, returns 0. If you are +Swift, +1, and -Swift, -1.
  * @treturn int Swift level
  * @function swift
  */
 LUARET1(you_swift, number, you.duration[DUR_SWIFTNESS] ? ((you.attribute[ATTR_SWIFTNESS] >= 0) ? 1 : -1) : 0)
+/*** What was the loudest noise you heard in the last turn?
+ * Returns a number from [0, 1000], representing the current noise bar.
+ * If the player's coordinates are silenced, return 0.
+ *
+ * Noise bar colour breakpoints, listed here for clua api convenience:
+ * LIGHTGREY <= 333 , YELLOW <= 666 , RED < 1000 , else LIGHTMAGENTA
+ * Each colour breakpoint aims to approximate 1 additional los radius of noise.
+ *
+ * @treturn int noise value
+ * @function noise_perception
+ */
+LUARET1(you_noise_perception, number, silenced(you.pos())
+                                      ? 0 : you.get_noise_perception(true))
 /*** Are you paralysed?
  * @treturn boolean
  * @function paralysed
@@ -374,8 +376,7 @@ LUARET1(you_silencing, boolean, you.duration[DUR_SILENCE])
  * @treturn boolean
  * @function regenerating
  */
-LUARET1(you_regenerating, boolean, you.duration[DUR_REGENERATION]
-                                   || you.duration[DUR_TROGS_HAND])
+LUARET1(you_regenerating, boolean, you.duration[DUR_TROGS_HAND])
 /*** Are you out of breath?
  * @treturn boolean
  * @function breath_timeout
@@ -814,8 +815,7 @@ static int you_gold(lua_State *ls)
  */
 static int you_can_consume_corpses(lua_State *ls)
 {
-    lua_pushboolean(ls, you.get_mutation_level(MUT_HERBIVOROUS) == 0
-                        && !you_foodless());
+    lua_pushboolean(ls, false);
     return 1;
 }
 
@@ -933,7 +933,7 @@ LUAFN(you_mutation)
     string mutname = luaL_checkstring(ls, 1);
     mutation_type mut = mutation_from_name(mutname, false);
     if (mut != NUM_MUTATIONS)
-        PLUARET(integer, you.get_base_mutation_level(mut, true, true, true)); // includes innate, temp mutations. I'm not sure if this is what was intended but this was the old behavior.
+        PLUARET(integer, you.get_base_mutation_level(mut, true, true, true)); // includes innate, temp mutations. I'm not sure if this is what was intended but this was the old behaviour.
 
     string err = make_stringf("No such mutation: '%s'.", mutname.c_str());
     return luaL_argerror(ls, 1, err.c_str());
@@ -1152,8 +1152,6 @@ static const struct luaL_reg you_clib[] =
     { "mp"          , you_mp },
     { "base_mp"     , you_base_mp },
     { "rot"         , you_rot },
-    { "hunger"      , you_hunger },
-    { "hunger_name" , you_hunger_name },
     { "strength"    , you_strength },
     { "intelligence", you_intelligence },
     { "dexterity"   , you_dexterity },
@@ -1179,15 +1177,13 @@ static const struct luaL_reg you_clib[] =
     { "res_mutation", you_res_mutation },
     { "see_invisible", you_see_invisible },
     { "spirit_shield", you_spirit_shield },
-    { "like_chunks",  you_like_chunks },
-    { "gourmand",     you_gourmand },
     { "res_corr",     you_res_corr },
     { "flying",       you_flying },
     { "transform",    you_transform },
     { "berserk",      you_berserk },
     { "confused",     you_confused },
+    { "noise_perception", you_noise_perception },
     { "paralysed",    you_paralysed },
-    { "shrouded",     you_shrouded },
     { "swift",        you_swift },
     { "caught",       you_caught },
     { "asleep",       you_asleep },
@@ -1285,12 +1281,7 @@ LUARET1(you_see_cell, boolean,
 LUARET1(you_see_cell_no_trans, boolean,
         you.see_cell_no_trans(coord_def(luaL_safe_checkint(ls, 1), luaL_safe_checkint(ls, 2))))
 
-LUAFN(you_stop_running)
-{
-    stop_running();
-
-    return 0;
-}
+LUAWRAP(you_stop_running, stop_running())
 
 LUAFN(you_moveto)
 {
@@ -1314,11 +1305,7 @@ LUAFN(you_teleport_to)
     return 1;
 }
 
-LUAFN(you_random_teleport)
-{
-    you_teleport_now();
-    return 0;
-}
+LUAWRAP(you_random_teleport, you_teleport_now())
 
 static int _you_uniques(lua_State *ls)
 {
@@ -1524,11 +1511,7 @@ LUAFN(you_init)
     PLUARET(string, skill_name(item_attack_skill(OBJ_WEAPONS, ng.weapon)));
 }
 
-LUAFN(you_enter_wizard_mode)
-{
-    you.wizard = true;
-    return 0;
-}
+LUAWRAP(you_enter_wizard_mode, you.wizard = true)
 
 LUARET1(you_exp_needed, number, exp_needed(luaL_safe_checkint(ls, 1)))
 LUAWRAP(you_exercise, exercise(str_to_skill(luaL_checkstring(ls, 1)), 1))

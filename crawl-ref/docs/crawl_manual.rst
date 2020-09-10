@@ -238,8 +238,8 @@ Place
   will read "Dungeon:1" for a new character.
 
 Noise
-  This is a colored bar indicating the loudness of noise that you heard on your
-  last turn. The color provides a rough guide to how far away the noise it
+  This is a coloured bar indicating the loudness of noise that you heard on your
+  last turn. The colour provides a rough guide to how far away the noise it
   indicates might be audible. If the bar is gray, the sound is less likely to
   be audible outside of your line of sight (at least in an open area); if it is
   yellow, the sound is likely to be audible outside of your line of sight; and
@@ -471,31 +471,30 @@ Seeded play
 ========================================
 
 Crawl dungeons are determined by a "seed" number used to initialise the game's
-random number generator. If you initialise the game, keeping the game version
-constant, then the same seed should (within certain parameters) lead to the same
-dungeon. In offline games you can view your game's seed with '?V' as well as in
-a character file; in online games you normally must finish a game in order to
-see the game's seed. There are two seeded modes:
+random number generator. You may either let the game choose a seed randomly,
+or specify a seed; if you choose a seed this puts the game in "Seeded" mode,
+which is scored separately. Playing games with the same seed value, as long as
+the game version is constant, should (within certain parameters) lead to the
+same dungeon. The entire connected dungeon will be determined by the game
+seed, including dungeon layout, monster placement, and items. Portal vaults
+and chaotic zones such as the abyss are not guaranteed to be the same, and the
+placement of rare unique artefacts may vary depending on certain player
+actions.
 
-Without dungeon pregeneration ('pregen_dungeon = false')
-  If dungeon pregeneration is turned off (the default), every game with the
-  same seed will have at least the same initial dungeon level and temple
-  layout. However, the order in which you explore levels after the first one
-  can lead to multiple possible dungeon layouts, depending on your choices. This
-  is implicitly how dungeon generation always worked before version 0.23.
-
-With dungeon pregeneration ('pregen_dungeon = true')
-  If dungeon pregeneration is turned on, the entire connected dungeon will be
-  determined by the game seed. Portal vaults and chaotic zones such as the
-  abyss are not guaranteed to be the same, though.
-
-To set a game seed, use the 'game_seed' rc file option, or the '-seed' command
-line option.
+To set a game seed, use the "Choose game seed" option from the main menu; you
+can also use the 'game_seed' rc file option, or the '-seed' command line
+option. In offline games you can view your game's seed with '?V' as well as in
+a character file; in online games a randomly chosen seed will only be shown to
+you after finishing the game.
 
 If you find that the same seed generates distinct parts of a dungeon on the
 same or different devices, please report it as a bug. However, keep in mind
-that upgrading your save game between multiple versions of crawl, or traversing
-dungeon levels in different orders, will naturally lead to seed divergence.
+that upgrading your save game between multiple versions of crawl will
+naturally lead to seed divergence. When playing offline, if you would like to
+ensure that your game can be upgraded without divergence, you can set
+'pregen_dungeon = full' in your options file. (This will also ensure
+completely stable unique artefact placement.) On the other hand, to completely
+disable incremental pregeneration, you can set 'pregen_dungeon = false'.
 
 Further Help
 ========================================
@@ -668,7 +667,7 @@ adventures, how they are displayed, and what commands there are to use them:
 =        rings          (use 'P'ut on and 'R'emove)
 "        amulets        (use 'P'ut on and 'R'emove)
 \|        staves         (use 'w'ield)
-:        spellbooks     (use 'r'ead and 'M'emorise and 'z'ap)
+:        spellbooks     (use 'M'emorise and 'z'ap)
 }        miscellaneous  (use 'V' for evoking from the inventory)
 $        gold           (use 'g' to pick up)
 =======  =============  ================================================
@@ -1027,8 +1026,8 @@ a while (resulting in a waste of magic and possibly dangerous side-effects).
 Your chance of failing to cast a spell properly depends on your skills, your
 intelligence, the level of the spell and whether you are wearing heavy armour.
 The chance of miscasting a spell is displayed on the spell screen, and coloured
-based on potential severity (with yellow representing a moderate chance, and red
-representing a severe chance).
+based on severity (yellow for moderate damage, light red for major
+damage, red for extreme damage, and magenta for potentially lethal damage).
 
 Be careful of magic-using enemies! Some of them can use magic just as well as
 you, if not better, and often use it intelligently.
@@ -1178,10 +1177,10 @@ Stone Soup's homepage is at:
   http://crawl.develz.org
 
 Use this page for direct links to downloads of the most recent version. You can
-also submit bug reports there at https://crawl.develz.org/mantis. Be sure to
-make sure that your bug isn't already in the list. Feature requests should be
-posted on the official forum or the development wiki on crawl.develz.org
-instead.
+also submit bug reports there at https://crawl.develz.org/mantis if you have an
+account, or on the Github issue tracker at:
+
+  https://github.com/crawl/crawl/issues
 
 The history of Crawl is somewhat convoluted: Crawl was created in 1995 by Linley
 Henzell. Linley based Crawl loosely on Angband and NetHack, but avoided several
@@ -1772,7 +1771,7 @@ Vampires (Vp)
 Demigods (Dg)
   Demigods are mortals with some divine or angelic ancestry, however distant;
   they can be created by a number of processes, including magical experiments
-  and the time-honoured practice of interplanar miscegenation.
+  and the time-honoured practise of interplanar miscegenation.
 
   Demigods look more or less like members of their mortal part's species, but
   have excellent attributes (Str, Int, Dex) and are extremely robust; they can
@@ -2025,7 +2024,7 @@ though usually excel at neither. They start with a book of spells, and usually
 with some way of defending themselves.
 
 Skalds
-  Formidable warriors in their own rights, Skalds practice a form of augmenting
+  Formidable warriors in their own rights, Skalds practise a form of augmenting
   battle magic that is either chanted or sung. Unique to the highlands in which
   they originate, these spells and formulae are second nature: they can either
   inspire greatness in themselves and their allies, or fear in the hearts of
@@ -2040,16 +2039,16 @@ Transmuters
   and a robe.
 
 Warpers
-  Warpers specialise in translocation magic, and are experts in traveling long
+  Warpers specialise in translocation magic, and are experts in travelling long
   distances and positioning themselves precisely and use this to their advantage
   in melee or missile combat. They start with a scroll of blinking, the Book of
-  Spatial Translocations, some dispersal tomahawks, a simple weapon of thier
+  Spatial Translocations, some dispersal tomahawks, a simple weapon of their
   choice, and leather armour.
 
 Arcane Marksmen
   Arcane Marksmen are Hunters who use debilitating spells to assist their ranged
   attacks. They are particularly good at keeping their enemies at a distance.
-  They begin the game with a the Book of Debilitation, a ranged weapon of their
+  They begin the game with the Book of Debilitation, a ranged weapon of their
   choice, and a robe.
 
 Enchanters
@@ -2255,7 +2254,7 @@ Shields
   Affects the amount of protection you gain by using a shield, and the degree to
   which it hinders you. For most races, 5/15/25 skill is enough to mitigate the
   encumbrance of bucklers/shields/large shields respectively, though larger
-  races need less skill and and smaller races more.
+  races need less skill and smaller races more.
 
 Invocations
   Affects your ability to call on your god for aid. Those skilled at Invocations
@@ -2351,6 +2350,8 @@ Ctrl-direction or * direction
 ;
   Examine occupied tile and auto-pickup eligible items. Can also be used to pick
   up only part of a stack with no other item on the same square.
+  When a monster is present the first press of ; will only examine the tile
+  and a second press of ; will pick up all auto-pickup eligible items.
 
 x
   Examine surroundings, see below. Has '?' help.
@@ -2551,7 +2552,7 @@ e
   synonymous to y.
 
 r
-  Read a scroll or book.
+  Read a scroll.
 
 M
   Memorise a spell from a book.

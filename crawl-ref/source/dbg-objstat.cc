@@ -13,16 +13,11 @@
 
 #include "artefact.h"
 #include "branch.h"
-#include "butcher.h"
-#include "chardump.h"
-#include "coord.h"
-#include "coordit.h"
+#include "corpse.h"
 #include "dbg-maps.h"
 #include "dbg-util.h"
-#include "dungeon.h"
 #include "end.h"
 #include "env.h"
-#include "god-abil.h"
 #include "initfile.h"
 #include "invent.h"
 #include "item-name.h"
@@ -39,7 +34,6 @@
 #include "state.h"
 #include "stepdown.h"
 #include "stringutil.h"
-#include "terrain.h"
 #include "version.h"
 
 #ifdef DEBUG_STATISTICS
@@ -51,7 +45,6 @@ const static char *stat_out_ext = ".txt";
 // This must match the order of item_fields
 enum item_base_type
 {
-    ITEM_FOOD,
     ITEM_GOLD,
     ITEM_SCROLLS,
     ITEM_POTIONS,
@@ -105,10 +98,6 @@ static map<level_id, vector< vector< int> > > missile_brands;
 
 // This must match the order of item_base_type
 static const vector<string> item_fields[NUM_ITEM_BASE_TYPES] = {
-    { // ITEM_FOOD
-        "Num", "NumMin", "NumMax", "NumSD", "NumPiles", "PileQuant",
-        "TotalNormNutr", "TotalCarnNutr", "TotalHerbNutr"
-    },
     { // ITEM_GOLD
         "Num", "NumMin", "NumMax", "NumSD", "NumHeldMons",
         "NumPiles", "PileQuant"
@@ -214,9 +203,6 @@ static item_base_type _item_base_type(const item_def &item)
         else
             type = ITEM_BOOKS;
         break;
-    case OBJ_FOOD:
-        type = ITEM_FOOD;
-        break;
     case OBJ_GOLD:
         type = ITEM_GOLD;
         break;
@@ -256,9 +242,6 @@ static object_class_type _item_orig_base_type(item_base_type base_type)
     object_class_type type;
     switch (base_type)
     {
-    case ITEM_FOOD:
-        type = OBJ_FOOD;
-        break;
     case ITEM_GOLD:
         type = OBJ_GOLD;
         break;
@@ -326,6 +309,9 @@ static int _item_orig_sub_type(const item_type &item)
     case ITEM_MISCELLANY:
         type = misc_types[item.sub_type];
         break;
+    case ITEM_POTIONS:
+        type = potion_types[item.sub_type];
+        break;
     case ITEM_ARTEBOOKS:
         type = item.sub_type + BOOK_RANDART_LEVEL;
         break;
@@ -346,6 +332,9 @@ static int _item_max_sub_type(item_base_type base_type)
     {
     case ITEM_MISCELLANY:
         num = misc_types.size();
+        break;
+    case ITEM_POTIONS:
+        num = potion_types.size();
         break;
     case ITEM_BOOKS:
         num = MAX_FIXED_BOOK + 1;
@@ -398,6 +387,11 @@ item_type::item_type(const item_def &item)
         sub_type = find(misc_types.begin(), misc_types.end(), item.sub_type)
                         - misc_types.begin();
         ASSERT(sub_type < (int) misc_types.size());
+    } else if (base_type == ITEM_POTIONS)
+    {
+        sub_type = find(potion_types.begin(), potion_types.end(), item.sub_type)
+                        - potion_types.begin();
+        ASSERT(sub_type < (int) potion_types.size());
     }
     else if (base_type == ITEM_ARTEBOOKS)
         sub_type = item.sub_type - BOOK_RANDART_LEVEL;
@@ -572,7 +566,6 @@ static bool _item_track_piles(item_base_type base_type)
     case ITEM_GOLD:
     case ITEM_POTIONS:
     case ITEM_SCROLLS:
-    case ITEM_FOOD:
     case ITEM_MISSILES:
         return true;
     default:
@@ -668,19 +661,6 @@ void objstat_record_item(const item_def &item)
     {
     case ITEM_MISSILES:
         brand = get_ammo_brand(item);
-        break;
-    case ITEM_FOOD:
-        _record_item_stat(cur_lev, itype, "TotalNormNutr",
-                          food_value(item) * item.quantity);
-        // Set these dietary mutations so we can get accurate nutrition.
-        you.mutation[MUT_CARNIVOROUS] = 1;
-        _record_item_stat(cur_lev, itype, "TotalCarnNutr",
-                          food_value(item) * item.quantity);
-        you.mutation[MUT_CARNIVOROUS] = 0;
-        you.mutation[MUT_HERBIVOROUS] = 1;
-        _record_item_stat(cur_lev, itype, "TotalHerbNutr",
-                          food_value(item) * item.quantity);
-        you.mutation[MUT_HERBIVOROUS] = 0;
         break;
     case ITEM_WEAPONS:
         brand = get_weapon_brand(item);
@@ -786,32 +766,31 @@ void objstat_record_monster(const monster *mons)
 
     _record_monster_stat(lev, mons_ind, "MonsHP", mons->max_hit_points);
     _record_monster_stat(lev, mons_ind, "MonsHD", mons->get_experience_level());
+}
 
-    const corpse_effect_type chunk_effect = mons_corpse_effect(type);
-    // Record chunks/nutrition if monster leaves a corpse.
-    if (chunk_effect != CE_NOCORPSE && mons_class_can_leave_corpse(type))
-    {
-        item_def chunk_item = _dummy_item(item_type(ITEM_FOOD, FOOD_CHUNK));
+static void _record_feature_stat(const level_id &lev,
+                                 dungeon_feature_type feat_type, string field,
+                                 double value)
+{
+    const level_id br_lev(lev.branch, -1);
 
-        you.mutation[MUT_CARNIVOROUS] = 1;
-        int carn_value = food_value(chunk_item);
-        you.mutation[MUT_CARNIVOROUS] = 0;
+    feature_recs[lev][feat_type][field] += value;
+    feature_recs[br_lev][feat_type][field] += value;
+    feature_recs[all_lev][feat_type][field] += value;
+}
 
-        // copied from turn_corpse_into_chunks()
-        double chunks = (1 + stepdown_value(max_corpse_chunks(type),
-                                            4, 4, 12, 12)) / 2.0;
-        _record_monster_stat(lev, mons_ind, "MonsNumChunks", chunks);
+void objstat_record_feature(dungeon_feature_type feat_type, bool vault)
+{
+    level_id lev = level_id::current();
 
-        if (chunk_effect == CE_CLEAN)
-        {
-            _record_monster_stat(lev, mons_ind, "TotalNutr",
-                                 chunks * food_value(chunk_item));
-            _record_monster_stat(lev, mons_ind, "TotalCarnNutr",
-                                 chunks * carn_value);
-        }
-        _record_monster_stat(lev, mons_ind, "TotalGhoulNutr",
-                             chunks * carn_value);
-    }
+    _record_feature_stat(lev, feat_type, "Num", 1);
+
+    if (vault)
+        _record_feature_stat(lev, feat_type, "NumVault", 1);
+    else
+        _record_feature_stat(lev, feat_type, "NumNonVault", 1);
+
+    _record_feature_stat(lev, feat_type, "NumForIter", 1);
 }
 
 static void _record_feature_stat(const level_id &lev,
@@ -1103,7 +1082,6 @@ static void _write_branch_item_stats(branch_type br, const item_type &item)
 {
     unsigned int level_count = 0;
     const vector<string> &fields = item_fields[item.base_type];
-    vector<level_id>::const_iterator li;
     const string name = _item_name(item);
     const char *num_field = _item_has_antiquity(item.base_type) ? "AllNum"
                                                                 : "Num";

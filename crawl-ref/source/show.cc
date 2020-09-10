@@ -19,10 +19,9 @@
 #include "libutil.h"
 #include "map-knowledge.h"
 #include "mon-place.h"
-#include "options.h"
 #include "state.h"
 #include "terrain.h"
-#include "tiledef-main.h"
+#include "rltiles/tiledef-main.h"
 #ifdef USE_TILE
  #include "tileview.h"
 #endif
@@ -167,15 +166,17 @@ static void _update_feat_at(const coord_def &gp)
     if (is_bloodcovered(gp))
         env.map_knowledge(gp).flags |= MAP_BLOODY;
 
-    if (is_moldy(gp))
-    {
-        env.map_knowledge(gp).flags |= MAP_MOLDY;
-        if (glowing_mold(gp))
-            env.map_knowledge(gp).flags |= MAP_GLOWING_MOLDY;
-    }
-
     if (env.level_state & LSTATE_SLIMY_WALL && slime_wall_neighbour(gp))
         env.map_knowledge(gp).flags |= MAP_CORRODING;
+
+    // We want to give non-solid terrain and the icy walls themselves MAP_ICY
+    // so we can properly recolor both.
+    if (env.level_state & LSTATE_ICY_WALL
+        && (is_icecovered(gp)
+            || !feat_is_wall(feat) && count_adjacent_icy_walls(gp)))
+    {
+        env.map_knowledge(gp).flags |= MAP_ICY;
+    }
 
     if (emphasise(gp))
         env.map_knowledge(gp).flags |= MAP_EMPHASIZE;
@@ -198,7 +199,9 @@ static show_item_type _item_to_show_code(const item_def &item)
     case OBJ_MISSILES:   return SHOW_ITEM_MISSILE;
     case OBJ_ARMOUR:     return SHOW_ITEM_ARMOUR;
     case OBJ_WANDS:      return SHOW_ITEM_WAND;
+#if TAG_MAJOR_VERSION == 34
     case OBJ_FOOD:       return SHOW_ITEM_FOOD;
+#endif
     case OBJ_SCROLLS:    return SHOW_ITEM_SCROLL;
     case OBJ_JEWELLERY:
         return jewellery_is_amulet(item) ? SHOW_ITEM_AMULET : SHOW_ITEM_RING;
@@ -441,7 +444,7 @@ static void _update_monster(monster* mons)
     if (you.attribute[ATTR_SEEN_INVIS_TURN] != you.num_turns)
     {
         you.attribute[ATTR_SEEN_INVIS_TURN] = you.num_turns;
-        you.attribute[ATTR_SEEN_INVIS_SEED] = get_uint32();
+        you.attribute[ATTR_SEEN_INVIS_SEED] = rng::get_uint32();
     }
     // After the player finishes this turn, the monster's unseen pos (and
     // its invis indicator due to going unseen) will be erased.
@@ -485,7 +488,7 @@ static void _update_monster(monster* mons)
 }
 
 /**
- * Update map knowledge and set the map tiles at a location.
+ * Updates the map knowledge at a location.
  * @param gp      The location to update.
  * @param layers  The information layers to display.
 **/
@@ -498,10 +501,9 @@ void show_update_at(const coord_def &gp, layers_type layers)
     else
         env.map_knowledge(gp).clear_monster();
     // The sequence is grid, items, clouds, monsters.
+    // XX it actually seems to be grid monsters clouds items??
     _update_feat_at(gp);
 
-    // If there's items on the boundary (shop inventory),
-    // we don't show them.
     if (in_bounds(gp))
     {
         if (layers & LAYER_MONSTERS)
@@ -520,13 +522,6 @@ void show_update_at(const coord_def &gp, layers_type layers)
         if (layers & LAYER_ITEMS)
             update_item_at(gp);
     }
-
-#ifdef USE_TILE
-    tile_draw_map_cell(gp, true);
-#endif
-#ifdef USE_TILE_WEB
-    tiles.mark_for_redraw(gp);
-#endif
 }
 
 void show_init(layers_type layers)
@@ -542,6 +537,8 @@ void show_init(layers_type layers)
         }
         return;
     }
+
+    ASSERT(you.on_current_level);
 
     vector <coord_def> update_locs;
     for (radius_iterator ri(you.pos(), you.xray_vision ? LOS_NONE : LOS_DEFAULT); ri; ++ri)

@@ -18,7 +18,6 @@
 #include "env.h"
 #include "hints.h"
 #include "libutil.h"
-#include "map-knowledge.h"
 #include "mon-util.h"
 #include "options.h"
 #include "stringutil.h"
@@ -60,8 +59,7 @@ static bool _need_auto_exclude(const monster* mon, bool sleepy = false)
     {
         if (pat.matches(name)
             && _mon_needs_auto_exclude(mon, sleepy)
-            && (mon->attitude == ATT_HOSTILE
-                || mon->type == MONS_HYPERACTIVE_BALLISTOMYCETE))
+            && (mon->attitude == ATT_HOSTILE))
         {
             return true;
         }
@@ -81,48 +79,37 @@ static int _get_full_exclusion_radius()
                              + (you.species == SP_BARACHI ? 1 : 0);
 }
 
-// If the monster is in the auto_exclude list, automatically set an
-// exclusion.
-void set_auto_exclude(const monster* mon)
+/**
+ * Adds auto-exclusions for any monsters in LOS that need them.
+ */
+void add_auto_excludes()
 {
-    if (!is_map_persistent())
+    if (!is_map_persistent() || !map_bounds(you.pos()))
         return;
 
-    // Something of a speed hack, but some vaults have a TON of plants.
-    if (mon->type == MONS_PLANT)
+    vector<monster*> mons;
+    for (radius_iterator ri(you.pos(), LOS_DEFAULT); ri; ++ri)
+    {
+        monster *mon = monster_at(*ri);
+        if (!mon)
+            continue;
+        // Something of a speed hack, but some vaults have a TON of plants.
+        if (mon->type == MONS_PLANT)
+            continue;
+        if (_need_auto_exclude(mon) && !is_exclude_root(*ri))
+        {
+            int radius = _get_full_exclusion_radius();
+            set_exclude(*ri, radius, true);
+            mons.emplace_back(mon);
+        }
+    }
+
+    if (mons.empty())
         return;
 
-    if (_need_auto_exclude(mon) && !is_exclude_root(mon->pos()))
-    {
-        int rad = _get_full_exclusion_radius();
-        if (mon->type == MONS_HYPERACTIVE_BALLISTOMYCETE)
-            rad = 2;
-        set_exclude(mon->pos(), rad, true);
-        // FIXME: If this happens for several monsters in the same turn
-        //        (as is possible for some vaults), this could be really
-        //        annoying. (jpeg)
-        mprf(MSGCH_WARN,
-             "Marking area around %s as unsafe for travelling.",
-             mon->name(DESC_THE).c_str());
-
-#ifdef USE_TILE
-        viewwindow();
-#endif
-        learned_something_new(HINT_AUTO_EXCLUSION, mon->pos());
-    }
-}
-
-// Clear auto exclusion if the monster is killed or wakes up with the
-// player in sight. If sleepy is true, stationary monsters are ignored.
-void remove_auto_exclude(const monster* mon, bool sleepy)
-{
-    if (_need_auto_exclude(mon, sleepy))
-    {
-        del_exclude(mon->pos());
-#ifdef USE_TILE
-        viewwindow();
-#endif
-    }
+    mprf(MSGCH_WARN, "Marking area around %s as unsafe for travelling.",
+            describe_monsters_condensed(mons).c_str());
+    learned_something_new(HINT_AUTO_EXCLUSION);
 }
 
 travel_exclude::travel_exclude(const coord_def &p, int r,
@@ -398,6 +385,8 @@ static void _exclude_update(const coord_def &p)
 {
 #ifdef USE_TILE
     _tile_exclude_gmap_update(p);
+#else
+    UNUSED(p);
 #endif
     _exclude_update();
 }
@@ -556,10 +545,8 @@ void maybe_remove_autoexclusion(const coord_def &p)
         string desc = exc->desc;
         bool cloudy_exc = ends_with(desc, "cloud");
         if ((!m || !you.can_see(*m)
-                || m->attitude != ATT_HOSTILE
-                    && m->type != MONS_HYPERACTIVE_BALLISTOMYCETE
-                || strcmp(mons_type_name(m->type, DESC_PLAIN).c_str(),
-                          exc->desc.c_str()) != 0)
+                || !_need_auto_exclude(m)
+                || mons_type_name(m->type, DESC_PLAIN) != desc)
             && !cloudy_exc)
         {
             del_exclude(p);
@@ -674,6 +661,7 @@ void marshallExcludes(writer& outf, const exclude_set& excludes)
 
 void unmarshallExcludes(reader& inf, int minorVersion, exclude_set &excludes)
 {
+    UNUSED(minorVersion);
     excludes.clear();
     int nexcludes = unmarshallShort(inf);
     if (nexcludes)

@@ -14,7 +14,6 @@
 #include <cstring>
 
 #include "art-enum.h"
-#include "cloud.h"
 #include "coord.h"
 #include "coordit.h"
 #include "delay.h"
@@ -22,7 +21,6 @@
 #include "env.h"
 #include "fineff.h"
 #include "fprop.h"
-#include "god-abil.h"
 #include "god-passive.h" // passive_t::shadow_attacks
 #include "hints.h"
 #include "invent.h"
@@ -30,7 +28,6 @@
 #include "item-use.h"
 #include "melee-attack.h"
 #include "message.h"
-#include "mgen-data.h"
 #include "misc.h"
 #include "mon-behv.h"
 #include "mon-cast.h"
@@ -42,7 +39,6 @@
 #include "random-var.h"
 #include "religion.h"
 #include "shopping.h"
-#include "spl-miscast.h"
 #include "spl-summoning.h"
 #include "state.h"
 #include "stringutil.h"
@@ -350,7 +346,7 @@ stab_type find_stab_type(const actor *attacker,
 {
     const monster* def = defender.as_monster();
 
-    // Stabbing intelligent monsters is unchivalric, and disabled under TSO!
+    // Stabbing monsters is unchivalric, and disabled under TSO!
     // When just checking for display purposes, still indicate when monsters
     // are sleeping/paralysed etc.
     if (actual && attacker && attacker->is_player()
@@ -599,7 +595,7 @@ int apply_chunked_AC(int dam, int ac)
 
     int hurt = 0;
     for (int i = 0; i < dam; i++)
-        if (get_uint32() < cr)
+        if (rng::get_uint32() < cr)
             hurt++;
 
     return hurt;
@@ -635,7 +631,7 @@ bool wielded_weapon_check(item_def *weapon)
     if (weapon)
         prompt = "Really attack while wielding " + weapon->name(DESC_YOUR) + "?";
     else
-        prompt = "Really attack barehanded?";
+        prompt = "Really attack unarmed?";
     if (penance)
         prompt += " This could place you under penance!";
 

@@ -49,8 +49,8 @@ enum enchant_type
     ENCH_EAT_ITEMS,
 #endif
     ENCH_AQUATIC_LAND,   // Water monsters lose hp while on land.
-    ENCH_SPORE_PRODUCTION,
 #if TAG_MAJOR_VERSION == 34
+    ENCH_SPORE_PRODUCTION,
     ENCH_SLOUCH,
 #endif
     ENCH_SWIFT,
@@ -146,7 +146,9 @@ enum enchant_type
     ENCH_GRAND_AVATAR,
 #endif
     ENCH_SAP_MAGIC,
+#if TAG_MAJOR_VERSION == 34
     ENCH_SHROUD,
+#endif
     ENCH_PHANTOM_MIRROR,
     ENCH_NEUTRAL_BRIBED,
     ENCH_FRIENDLY_BRIBED,
@@ -154,8 +156,8 @@ enum enchant_type
     ENCH_GOLD_LUST,
     ENCH_DRAINED,
     ENCH_REPEL_MISSILES,
-    ENCH_DEFLECT_MISSILES,
 #if TAG_MAJOR_VERSION == 34
+    ENCH_DEFLECT_MISSILES,
     ENCH_NEGATIVE_VULN,
     ENCH_CONDENSATION_SHIELD,
 #endif
@@ -175,10 +177,21 @@ enum enchant_type
     ENCH_INFESTATION,
     ENCH_STILL_WINDS,
     ENCH_RING_OF_THUNDER,
+#if TAG_MAJOR_VERSION == 34
     ENCH_WHIRLWIND_PINNED,
+#endif
     ENCH_VORTEX,
     ENCH_VORTEX_COOLDOWN,
     ENCH_VILE_CLUTCH,
+    ENCH_WATERLOGGED,
+    ENCH_RING_OF_FLAMES,
+    ENCH_RING_OF_CHAOS,
+    ENCH_RING_OF_MUTATION,
+    ENCH_RING_OF_FOG,
+    ENCH_RING_OF_ICE,
+    ENCH_RING_OF_DRAINING,
+    ENCH_RING_OF_ACID,
+    ENCH_RING_OF_MIASMA,
     // Update enchant_names[] in mon-ench.cc when adding or removing
     // enchantments.
     NUM_ENCHANTMENTS

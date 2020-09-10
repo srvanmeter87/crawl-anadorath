@@ -46,13 +46,13 @@ enum monclass_flag_type : uint64_t
     /// monster can split
     M_SPLITS            = BIT(12),
 
-                        //BIT(13), // was M_GLOWS
+    /// monster dies a few turns after being hit
+    M_FRAGILE           = BIT(13),
 
     /// monster is stationary
     M_STATIONARY        = BIT(14),
 
-    /// monster can smell blood
-    M_BLOOD_SCENT       = BIT(15),
+                        //BIT(15), // was M_BLOOD_SCENT
 
     /// susceptible to cold; drainable by vampires, splashes blood when hit
     M_COLD_BLOOD        = BIT(16),
@@ -115,8 +115,8 @@ enum monclass_flag_type : uint64_t
 
                         //BIT(36), // was M_ALWAYS_CORPSE
 
-    /// mostly doesn't try to melee
-    M_DONT_MELEE        = BIT(37),
+    /// prefer ranged attacks over melee
+    M_PREFER_RANGED     = BIT(37),
 
                         //BIT(38), // was M_ARTIFICIAL
 
@@ -131,8 +131,7 @@ enum monclass_flag_type : uint64_t
     // has a double-sized tile
     M_TALL_TILE         = BIT(42),
 
-    /// can sense vibrations in web traps
-    M_WEB_SENSE         = BIT(43),
+                        //BIT(43), // was M_WEB_SENSE
 
     /// tries to maintain LOS/2 range from its target
     M_MAINTAIN_RANGE    = BIT(44),
@@ -172,6 +171,10 @@ enum monclass_flag_type : uint64_t
 
     /// uses they/them pronouns
     M_GENDER_NEUTRAL    = BIT(57),
+
+    /// is surrounded by a ring of clouds. Only one can be active at a time!
+    M_THUNDER_RING      = BIT(58),
+    M_FIRE_RING         = BIT(59),
 };
 DEF_BITFIELD(monclass_flags_t, monclass_flag_type);
 

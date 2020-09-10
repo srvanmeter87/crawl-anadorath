@@ -14,7 +14,7 @@ enum fs_op_type
 class formatted_string
 {
 public:
-    formatted_string(int init_colour = 0);
+    explicit formatted_string(int init_colour = 0);
     explicit formatted_string(const string &s, int init_colour = 0);
 
     operator string() const;
@@ -44,7 +44,9 @@ public:
     string html_dump() const;
 
     bool operator < (const formatted_string &other) const;
+    bool operator == (const formatted_string &other) const;
     const formatted_string &operator += (const formatted_string &other);
+    const formatted_string &operator += (const string &other);
     char &operator [] (size_t idx);
 
 public:
@@ -68,23 +70,20 @@ public:
     struct fs_op
     {
         fs_op_type type;
-        int x, y;
-        bool relative;
+        int colour;
         string text;
 
-        fs_op(int colour)
-            : type(FSOP_COLOUR), x(colour), y(-1), relative(false), text()
+        fs_op(int _colour) : type(FSOP_COLOUR), colour(_colour), text()
         {
         }
 
-        fs_op(const string &s)
-            : type(FSOP_TEXT), x(-1), y(-1), relative(false), text(s)
+        fs_op(const string &s) : type(FSOP_TEXT), colour(-1), text(s)
         {
         }
 
-        operator fs_op_type () const
+        bool operator == (const fs_op &other) const
         {
-            return type;
+            return type == other.type && colour == other.colour && text == other.text;
         }
         void display() const;
     };
@@ -93,9 +92,34 @@ public:
     oplist ops;
 };
 
-int count_linebreaks(const formatted_string& fs);
+template<typename R>
+formatted_string operator+(const formatted_string& lhs, const R&& rhs)
+{
+    formatted_string ret = lhs;
+    ret += rhs;
+    return ret;
+}
 
-int tagged_string_tag_length(const string& s);
-int printed_width(const string& s);
+template<typename R>
+formatted_string&& operator+(formatted_string&& lhs, const R&& rhs)
+{
+    lhs += rhs;
+    return move(lhs);
+}
+
+inline formatted_string operator+(const formatted_string& lhs, const char* rhs)
+{
+    formatted_string ret = lhs;
+    ret += rhs;
+    return ret;
+}
+
+inline formatted_string&& operator+(formatted_string&& lhs, const char* rhs)
+{
+    lhs += rhs;
+    return move(lhs);
+}
+
+int count_linebreaks(const formatted_string& fs);
 
 void display_tagged_block(const string& s);

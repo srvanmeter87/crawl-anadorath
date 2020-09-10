@@ -3,10 +3,13 @@
 #include <set>
 #include <memory> // unique_ptr
 
+#include "cloud.h"
 #include "coord.h"
 #include "fprop.h"
 #include "map-cell.h"
+#include "mapmark.h"
 #include "monster.h"
+#include "shopping.h"
 #include "trap-def.h"
 
 typedef FixedArray<short, GXM, GYM> grid_heightmap;
@@ -107,7 +110,6 @@ struct crawl_environment
     int forest_awoken_until;
     int density;
     int absdepth0;
-    vector<pair<coord_def, int> > sunlight;
 
     // Remaining fields not marshalled:
 

@@ -14,7 +14,6 @@
 #include "dungeon.h"
 #include "god-companions.h" // hepliaklqana_ancestor
 #include "god-passive.h"
-#include "items.h"
 #include "libutil.h"
 #include "mapmark.h"
 #include "map-knowledge.h"
@@ -58,7 +57,7 @@ static const char *daction_names[] =
 #endif
     "reapply passive mapping",
     "remove Jiyva altars",
-    "Pikel's slaves go good-neutral",
+    "Pikel's minions go poof",
     "corpses rot",
 #if TAG_MAJOR_VERSION == 34
     "Tomb loses -cTele",
@@ -88,12 +87,6 @@ bool mons_matches_daction(const monster* mon, daction_type act)
 
     switch (act)
     {
-    case DACT_ALLY_UNHOLY_EVIL:
-        return mon->wont_attack() && mon->evil();
-    case DACT_ALLY_UNCLEAN_CHAOTIC:
-        return mon->wont_attack() && (mon->how_unclean() || mon->how_chaotic());
-    case DACT_ALLY_SPELLCASTER:
-        return mon->wont_attack() && mon->is_actual_spellcaster();
     case DACT_ALLY_YRED_SLAVE:
         // Changed: we don't force enslavement of those merely marked.
         return is_yred_undead_slave(*mon);
@@ -116,11 +109,10 @@ bool mons_matches_daction(const monster* mon, daction_type act)
         return mon->wont_attack() && mons_is_god_gift(*mon, GOD_HEPLIAKLQANA);
 
     // Not a stored counter:
-    case DACT_PIKEL_SLAVES:
-        return mon->type == MONS_SLAVE
+    case DACT_PIKEL_MINIONS:
+        return mon->type == MONS_LEMURE
                && testbits(mon->flags, MF_BAND_MEMBER)
-               && mon->props.exists("pikel_band")
-               && mon->mname != "freed slave";
+               && mon->props.exists("pikel_band");
 
     case DACT_OLD_ENSLAVED_SOULS_POOF:
         return mons_enslaved_soul(*mon);
@@ -199,9 +191,6 @@ void apply_daction_to_mons(monster* mon, daction_type act, bool local,
                 monster_die(*mon, KILL_DISMISSED, NON_MONSTER);
                 break;
             }
-        case DACT_ALLY_UNHOLY_EVIL:
-        case DACT_ALLY_UNCLEAN_CHAOTIC:
-        case DACT_ALLY_SPELLCASTER:
         case DACT_ALLY_BEOGH:
         case DACT_ALLY_SLIME:
         case DACT_ALLY_PLANT:
@@ -261,16 +250,16 @@ void apply_daction_to_mons(monster* mon, daction_type act, bool local,
             mon->flags &= ~MF_ATT_CHANGE_ATTEMPT;
             break;
 
-        case DACT_PIKEL_SLAVES:
+        case DACT_PIKEL_MINIONS:
         {
-            // monster changes attitude
-            bool hostile = you.get_mutation_level(MUT_NO_LOVE);
-            mon->attitude = hostile ? ATT_HOSTILE : ATT_GOOD_NEUTRAL;
-            mons_att_changed(mon);
-            mon->flags |= MF_NAME_REPLACE | MF_NAME_DESCRIPTOR
-                              | MF_NAME_NOCORPSE;
-            mon->mname = "freed slave";
-            mon->behaviour = hostile ? BEH_SEEK : BEH_WANDER;
+            simple_monster_message(*mon, " departs this earthly plane.");
+            if (!in_transit)
+            {
+                check_place_cloud(CLOUD_BLACK_SMOKE, mon->pos(),
+                                                random_range(3, 5), nullptr);
+            }
+            // The monster disappears.
+            monster_die(*mon, KILL_DISMISSED, NON_MONSTER);
             break;
         }
         case DACT_KIRKE_HOGS:
@@ -306,9 +295,6 @@ static void _apply_daction(daction_type act)
 
     switch (act)
     {
-    case DACT_ALLY_UNHOLY_EVIL:
-    case DACT_ALLY_UNCLEAN_CHAOTIC:
-    case DACT_ALLY_SPELLCASTER:
     case DACT_ALLY_YRED_SLAVE:
     case DACT_ALLY_BEOGH:
     case DACT_ALLY_HEPLIAKLQANA:
@@ -319,7 +305,7 @@ static void _apply_daction(daction_type act)
     case DACT_ELEMENTAL_NEW_ATTEMPT:
     case DACT_OLD_ENSLAVED_SOULS_POOF:
     case DACT_SLIME_NEW_ATTEMPT:
-    case DACT_PIKEL_SLAVES:
+    case DACT_PIKEL_MINIONS:
     case DACT_KIRKE_HOGS:
     case DACT_BRIBE_TIMEOUT:
     case DACT_SET_BRIBES:
@@ -384,6 +370,9 @@ static void _apply_daction(daction_type act)
     case DACT_HOLY_PETS_GO_NEUTRAL:
     case DACT_ALLY_MAKHLEB:
     case DACT_ALLY_TROG:
+    case DACT_ALLY_UNHOLY_EVIL:
+    case DACT_ALLY_UNCLEAN_CHAOTIC:
+    case DACT_ALLY_SPELLCASTER:
 #endif
     case NUM_DACTION_COUNTERS:
     case NUM_DACTIONS:

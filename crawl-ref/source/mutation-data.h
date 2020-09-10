@@ -73,6 +73,7 @@ static const mutation_def mut_data[] =
   {"You feel less resistant to poisons.", "", ""},
 },
 
+#if TAG_MAJOR_VERSION == 34
 { MUT_CARNIVOROUS, 0, 1, mutflag::good, false,
   "carnivore",
 
@@ -88,10 +89,11 @@ static const mutation_def mut_data[] =
 
   {"You are a herbivore.", "", ""},
 
-  {"You hunger for vegetation.", "", ""},
+  {"", "", ""},
 
-  {"You feel able to eat a more balanced diet."},
+  {""},
 },
+#endif
 
 { MUT_HEAT_RESISTANCE, 4, 3, mutflag::good, true,
   "fire resistance",
@@ -218,6 +220,7 @@ static const mutation_def mut_data[] =
   {"You begin to regenerate regardless of the presence of monsters.", "", ""},
 },
 
+#if TAG_MAJOR_VERSION == 34
 { MUT_FAST_METABOLISM, 0, 3, mutflag::bad, false,
   "fast metabolism",
 
@@ -249,6 +252,7 @@ static const mutation_def mut_data[] =
    "You feel a little hungry.",
    ""},
 },
+#endif
 
 { MUT_WEAK, 8, 2, mutflag::bad | mutflag::xom, false,
   "weak",
@@ -884,6 +888,22 @@ static const mutation_def mut_data[] =
   {"", "", ""},
 },
 
+{ MUT_ROLL, 0, 1, mutflag::good, true,
+  "roll",
+
+  {"You can roll at foes to attack.", "", ""},
+  {"", "", ""},
+  {"", "", ""},
+},
+
+{ MUT_ARMOURED_TAIL, 0, 1, mutflag::good, true,
+  "armoured tail",
+
+  {"You have a long armoured tail.", "", ""},
+  {"", "", ""},
+  {"", "", ""},
+},
+
 
 { MUT_SHAGGY_FUR, 2, 3, mutflag::good, true,
   "shaggy fur",
@@ -1419,6 +1439,22 @@ static const mutation_def mut_data[] =
    "Your yellow scales recede somewhat."},
 },
 
+{ MUT_SHARP_SCALES, 0, 3, mutflag::good, true,
+  "sharp scales",
+
+  {"You are partially covered in razor-sharp scales. (AC +1, Slay +1)",
+   "You are mostly covered in razor-sharp scales. (AC +2, Slay +2)",
+   "You are completely covered in razor-sharp scales. (AC +3, Slay +3)"},
+
+  {"Sharp scales grow over part of your body.",
+   "Sharp scales spread over more of your body.",
+   "Sharp scales cover your body completely."},
+
+  {"Your sharp scales disappear.",
+   "Your sharp scales recede somewhat.",
+   "Your sharp scales recede somewhat."},
+},
+
 { MUT_STURDY_FRAME, 2, 3, mutflag::good, true,
   "sturdy frame",
 
@@ -1449,6 +1485,22 @@ static const mutation_def mut_data[] =
   {"You feel your blood become entirely quiescent.",
    "You feel your blood thin.",
    "You feel your blood thin."},
+},
+
+{ MUT_BIG_BRAIN, 0, 3, mutflag::good, false,
+  "big brain",
+
+  {"You have an unusually large brain. (Int +2)",
+   "You have an extremely huge brain. (Int +4)",
+   "You have an absolutely massive brain. (Int +6, Wiz)"},
+
+  {"Your brain expands.",
+   "Your brain expands.",
+   "Your brain expands to incredible size."},
+
+  {"Your brain returns to normal size.",
+   "Your brain shrinks.",
+   "Your brain shrinks."},
 },
 
 { MUT_CAMOUFLAGE, 1, 3, mutflag::good, true,
@@ -1685,13 +1737,15 @@ static const mutation_def mut_data[] =
   {"You can once more study and cast Air magic.", "", ""},
 },
 
+#if TAG_MAJOR_VERSION == 34
 { MUT_NO_CHARM_MAGIC, 0, 1, mutflag::bad, false,
   "no charms magic",
 
-  {"You cannot study or cast Charms magic.", "", ""},
+  {"You cannot study or cast removed Charms magic.", "", ""},
   {"You can no longer study or cast Charms magic.", "", ""},
   {"You can once more study and cast Charms magic.", "", ""},
 },
+#endif
 
 { MUT_NO_CONJURATION_MAGIC, 0, 1, mutflag::bad, false,
   "no conjurations magic",
@@ -1833,8 +1887,8 @@ static const mutation_def mut_data[] =
   "MP-powered wands",
 
   {"You expend magic power (3 MP) to strengthen your wands.", "", ""},
-  {"You feel your magical essence link to your wands.", "", ""},
-  {"Your magical essence is no longer linked to your wands.", "", ""},
+  {"You feel your magical essence link to the dungeon's wands.", "", ""},
+  {"Your magical essence no longer links to wands of the dungeon.", "", ""},
 },
 
 { MUT_UNSKILLED, 0, 3, mutflag::bad, false,

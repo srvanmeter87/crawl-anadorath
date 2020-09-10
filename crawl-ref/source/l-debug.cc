@@ -17,6 +17,7 @@
 #include "los.h"
 #include "message.h"
 #include "mon-act.h"
+#include "mon-cast.h"
 #include "mon-death.h"
 #include "mon-poly.h"
 #include "ng-setup.h"
@@ -25,6 +26,7 @@
 #include "state.h"
 #include "stringutil.h"
 #include "tileview.h"
+#include "unwind.h"
 #include "view.h"
 #include "wiz-dgn.h"
 
@@ -69,14 +71,12 @@ LUAFN(debug_goto_place)
     return 0;
 }
 
-LUAFN(debug_dungeon_setup)
-{
-    initial_dungeon_setup();
-    return 0;
-}
+LUAWRAP(debug_dungeon_setup, initial_dungeon_setup())
 
 LUAFN(debug_enter_dungeon)
 {
+    UNUSED(ls);
+
     init_level_connectivity();
 
     you.where_are_you = BRANCH_DUNGEON;
@@ -91,6 +91,7 @@ LUAWRAP(debug_up_stairs, up_stairs(DNGN_STONE_STAIRS_UP_I))
 
 LUAFN(debug_flush_map_memory)
 {
+    UNUSED(ls);
     dgn_flush_map_memory();
     init_level_connectivity();
     return 0;
@@ -98,29 +99,27 @@ LUAFN(debug_flush_map_memory)
 
 LUAFN(debug_generate_level)
 {
-    no_messages mx;
+    msg::suppress mx;
     env.map_knowledge.init(map_cell());
     los_changed();
     tile_init_default_flavour();
     tile_clear_flavour();
     tile_new_level(true);
     builder(lua_isboolean(ls, 1)? lua_toboolean(ls, 1) : true);
+    update_portal_entrances();
     return 0;
 }
 
 LUAFN(debug_reveal_mimics)
 {
+    UNUSED(ls);
     for (rectangle_iterator ri(1); ri; ++ri)
         if (mimic_at(*ri))
             discover_mimic(*ri);
     return 0;
 }
 
-LUAFN(debug_los_changed)
-{
-    los_changed();
-    return 0;
-}
+LUAWRAP(debug_los_changed, los_changed())
 
 LUAFN(debug_dump_map)
 {
@@ -141,6 +140,7 @@ LUAFN(debug_vault_names)
 
 LUAFN(_debug_test_explore)
 {
+    UNUSED(ls);
 #ifdef WIZARD
     debug_test_explore();
 #endif
@@ -186,6 +186,8 @@ LUAFN(debug_bouncy_beam)
 // If menv[] is full, dismiss all monsters not near the player.
 LUAFN(debug_cull_monsters)
 {
+    UNUSED(ls);
+
     // At least one empty space in menv
     for (const auto &mons : menv_real)
         if (mons.type == MONS_NO_MONSTER)
@@ -208,6 +210,8 @@ LUAFN(debug_cull_monsters)
 
 LUAFN(debug_dismiss_adjacent)
 {
+    UNUSED(ls);
+
     for (adjacent_iterator ai(you.pos()); ai; ++ai)
     {
         monster* mon = monster_at(*ai);
@@ -224,6 +228,8 @@ LUAFN(debug_dismiss_adjacent)
 
 LUAFN(debug_dismiss_monsters)
 {
+    UNUSED(ls);
+
     for (monster_iterator mi; mi; ++mi)
     {
         if (mi)
@@ -272,18 +278,21 @@ static FixedBitVector<NUM_MONSTERS> saved_uniques;
 
 LUAFN(debug_save_uniques)
 {
+    UNUSED(ls);
     saved_uniques = you.unique_creatures;
     return 0;
 }
 
 LUAFN(debug_reset_uniques)
 {
+    UNUSED(ls);
     you.unique_creatures.reset();
     return 0;
 }
 
 LUAFN(debug_randomize_uniques)
 {
+    UNUSED(ls);
     you.unique_creatures.reset();
     for (monster_type mt = MONS_0; mt < NUM_MONSTERS; ++mt)
     {
@@ -336,14 +345,11 @@ LUAFN(debug_check_uniques)
 LUAFN(debug_viewwindow)
 {
     viewwindow(lua_toboolean(ls, 1));
+    update_screen();
     return 0;
 }
 
-LUAFN(debug_seen_monsters_react)
-{
-    seen_monsters_react();
-    return 0;
-}
+LUAWRAP(debug_seen_monsters_react, seen_monsters_react())
 
 static const char* disablements[] =
 {
@@ -351,7 +357,6 @@ static const char* disablements[] =
     "mon_act",
     "mon_regen",
     "player_regen",
-    "hunger",
     "death",
     "delay",
     "confirmations",
@@ -413,7 +418,7 @@ LUAFN(debug_reset_rng)
         unsigned int seed = (unsigned int) luaL_safe_checkint(ls, 1);
         Options.seed = (uint64_t) seed;
     }
-    reset_rng();
+    rng::reset();
     const string ret = make_stringf("%" PRIu64, Options.seed);
     lua_pushstring(ls, ret.c_str());
     return 1;
@@ -423,10 +428,99 @@ LUAFN(debug_get_rng_state)
 {
     string r = make_stringf("seed: %" PRIu64 ", generator states: ",
         Options.seed);
-    vector<uint64_t> states = get_rng_states();
+    vector<uint64_t> states = rng::get_states();
     for (auto i : states)
         r += make_stringf("%" PRIu64 " ", i);
     lua_pushstring(ls, r.c_str());
+    return 1;
+}
+
+LUAFN(debug_check_moncasts)
+{
+    COORDS(c1, 1, 2);
+    COORDS(c2, 3, 4);
+
+    monster *m1 = monster_at(c1);
+    monster *m2 = monster_at(c2);
+    ASSERT(m1);
+
+    // it would be nice if this followed from the casting code or at least
+    // could be validated in some way?
+    const unordered_set<int> no_monster_impl =
+    {
+        SPELL_APPORTATION,
+        SPELL_CONJURE_FLAME,
+        SPELL_INNER_FLAME,
+        SPELL_FULMINANT_PRISM,
+        SPELL_DAZZLING_FLASH,
+        SPELL_ISKENDERUNS_MYSTIC_BLAST,
+        SPELL_ANIMATE_SKELETON,
+        SPELL_BORGNJORS_REVIVIFICATION,
+        SPELL_SUBLIMATION_OF_BLOOD,
+        SPELL_SPIDER_FORM,
+        SPELL_BLADE_HANDS,
+        SPELL_STATUE_FORM,
+        SPELL_ICE_FORM,
+        SPELL_DRAGON_FORM,
+        SPELL_NECROMUTATION,
+        SPELL_DEATH_CHANNEL,
+        SPELL_CONFUSING_TOUCH,
+        SPELL_CALL_CANINE_FAMILIAR,
+        SPELL_DISPERSAL,
+        SPELL_INTOXICATE,
+        SPELL_EXCRUCIATING_WOUNDS,
+        SPELL_BEASTLY_APPENDAGE,
+        SPELL_DISJUNCTION,
+        SPELL_WEREBLOOD,
+        SPELL_DISCORD,
+        SPELL_CHAIN_OF_CHAOS,
+        SPELL_SUMMON_FOREST,
+        SPELL_SUMMON_LIGHTNING_SPIRE,
+        SPELL_SUMMON_GUARDIAN_GOLEM,
+        SPELL_DRAGON_CALL,
+        SPELL_HYDRA_FORM,
+        SPELL_IRRADIATE,
+        SPELL_IGNITION,
+        SPELL_SONIC_WAVE,
+        SPELL_STARBURST,
+        SPELL_FOXFIRE,
+        SPELL_HAILSTORM,
+        SPELL_NOXIOUS_BOG,
+        SPELL_FROZEN_RAMPARTS,
+        SPELL_ABSOLUTE_ZERO,
+        SPELL_DISPEL_UNDEAD,
+        SPELL_TUKIMAS_DANCE,
+        SPELL_AGONY,
+        SPELL_PASSWALL,
+        SPELL_GOLUBRIAS_PASSAGE,
+        SPELL_THUNDERBOLT,
+        SPELL_SEARING_RAY,
+        SPELL_DEBUGGING_RAY,
+        SPELL_VIOLENT_UNRAVELLING,
+        SPELL_INFESTATION,
+        SPELL_BECKONING,
+        SPELL_RANDOM_EFFECTS,
+        SPELL_POISONOUS_VAPOURS,
+        SPELL_BORGNJORS_VILE_CLUTCH,
+    };
+
+    for (int s = SPELL_FIRST_SPELL; s < NUM_SPELLS; s++)
+    {
+        spell_type spell = static_cast<spell_type>(s);
+        if (no_monster_impl.count(s) || spell_removed(spell))
+            continue;
+        // we need to reset the foe each time: some spells (e.g. lesser
+        // and greater healing) could change it.
+        if (m2)
+            m1->foe = m2->mindex();
+        else
+            m1->foe = MHITNOT;
+        const mon_spell_slot slot(spell, 255, MON_SPELL_NO_FLAGS);
+        unwind_var<monster_spells> override(m1->spells, { slot });
+        dprf("Forcing %s to cast %s", m1->name(DESC_THE, true).c_str(),
+                                                spell_title(spell));
+        handle_mon_spell(m1);
+    }
     return 1;
 }
 
@@ -460,5 +554,6 @@ const struct luaL_reg debug_dlib[] =
 { "cpp_assert", debug_cpp_assert },
 { "reset_rng", debug_reset_rng },
 { "get_rng_state", debug_get_rng_state },
+{ "check_moncasts", debug_check_moncasts },
 { nullptr, nullptr }
 };

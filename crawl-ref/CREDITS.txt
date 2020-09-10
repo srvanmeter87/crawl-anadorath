@@ -31,19 +31,22 @@ The Dungeon Crawl Stone Soup team would like to thank:
 
 * The administrators of public crawl servers, both present:
     John Boyle (crawl.berotato.org)
+    Jan Anders Bremer (underhound.eu)
     Rax E. Dillon (crawl.akrasiac.org)
     Wongi Hong (webzook.net / kr.dobrazupa.org)
     Alex Jurkiewicz (crawl.project357.org)
-    Neil Moore (crawl.s-z.org)
     Marc H. Thoben (crawl.develz.org)
     dplusplus (lazy-life.ddo.jp)
     floraline (crawl.kelbi.org)
+    Namanix (crawl.xtahua.com)
   and past:
     Jan Anders Bremer (crawl.lantea.net)
-    Aleksi Miikkael Luukkonen (crawl.lantea.net)
     joosa (rl.heh.fi)
-    sd1989 (kr.dobrazupa.org)
+    Medar, Zkyp (crawl.xtahua.com)
+    Aleksi Miikkael Luukkonen (crawl.lantea.net)
+    Neil Moore (crawl.s-z.org)
     phunktion (crawl.somatika.net)
+    sd1989 (kr.dobrazupa.org)
     ZiBuDo (crawl.jorgrun.rocks)
 
 * The members of various usability testing teams from the department of
@@ -71,6 +74,9 @@ The Dungeon Crawl Stone Soup team would like to thank:
 
 * Members of the Dungeon Crawl community who have contributed to Dungeon
   Crawl Stone Soup:
+    Eugene Abramchuk
+    achuah
+    AdamPG
     Brent Adams
     Mike Adams
     Aj Adamson
@@ -78,6 +84,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Alcon
     Brandon Allbery
     Warwick Allison
+    aMcNicky
     AndSDev
     Austin Appleby
     araganzar
@@ -103,6 +110,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     bones
     Peter Borgmann
     Matthew Boeh
+    Clare Boothby
     Mike Boutin
     John Boyle
     Josh Braden
@@ -117,14 +125,18 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Cedor
     Cerol
     Rahul Chandra
+    Joe Childers
     Thom Chiovoloni
     Anthony Chuah
     Henry Cipolla
+    CollinJ
     Nicholas Connelly
     Tom Conrad
     Vitor 'Baconkid' Costa
     Aaron Curtis
     Simon Curtis
+    cut1less
+    David Damerell
     Paul Dejean
     Denzi
     Lothar Dierkes
@@ -141,6 +153,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Micha Elsner
     Carl-Oscar Erneholm
     Erich Erstu
+    Higor Eurípedes
     Christopher Evenstar
     Floodkiller
     floraline
@@ -151,10 +164,12 @@ The Dungeon Crawl Stone Soup team would like to thank:
     GenericPseudonym
     Ge0ff
     Joshua Gelbard
+    Peter Gerlagh
     Benoît Giannangeli
     Ben Goetter
     Aaron Golden
     Ed Gonzalez
+    Goratrix
     Rob Grant
     John Greenberg
     GreyKnight
@@ -165,6 +180,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Tomas Krag Hansen
     Taylor Hedberg
     Anders Heggestøyl
+    hellmonk
     Alex Henry
     R. Dan Henry
     Max 'Ploomutoo' Hon-Anderson
@@ -188,6 +204,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Kornel Kisielewicz
     Vesa Kivimäki
     Daniel Klein
+    klorpa
     Jon Knapp
     Quinten Konyn
     Ilkka Koskela
@@ -204,6 +221,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Jordan Lewis
     Sami Liedes
     Dom 'Bodrick' Light
+    Lightli
     Mark Lodato
     Matthew Ludivico
     Rob Lund
@@ -213,18 +231,20 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Lain I. W. Madreisz
     Johannes Maier
     Markus Maier
-    MainiacJoe
     Arien Malec
     Paul Maloney
     Pablo Mansanet
     Wille Mäntylä
+    István Markó
     Gabriel Marks
     Jean Martel
     James 'Eronarn' Meickle
     Jacob Meigs
     mgdelmonte
     mikee
+    Nathan Mills
     Andrew Minton
+    Byrel Mitchell
     Yer Mivvaggah
     Shawn M Moore
     Muffindrake
@@ -235,6 +255,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Naruni
     neofelis
     nicolae
+    nirrattner
     Jonathon Nooner
     NormalPerson7
     Michael Nowack
@@ -268,7 +289,9 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Terence Reeves
     Tobias Rehbein
     Remsleep
+    Chris Rendle-Short
     Ryan Riegel
+    riverfiend
     RjY
     rmcneive
     Andy Roche
@@ -276,6 +299,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Will Rogers
     Nate Rook
     David Rose
+    runrin
     Risto Saarelma
     Sebastian Salman
     Sandman25
@@ -289,6 +313,7 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Aditya Shevade
     Alexandra Shields
     Robert Shimmin
+    Shummie
     Sigurd
     Edgar Simo
     Alex Smith
@@ -303,8 +328,10 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Jan 'heftig' Steffens
     Stenella
     Timothy Stiles
+    John Stilley
     Johan Strandell
     Ben Striegel
+    Cebolla Sunbeam
     Derrick Sund
     Pavel 'Curio' Svinarchuk
     Tanner Swett
@@ -315,17 +342,22 @@ The Dungeon Crawl Stone Soup team would like to thank:
     Jared 'Twinge' Tinney
     Matt Titus
     Tommy
+    Sean VanMeter
     Mikko Vepsäläinen
+    vla22
     WanderingBlade
+    Richard Wardin
     waylon531
     Steven Wheeler
     Thomas Willem
     Evan Williams
     Jeremey Wilson
+    wjchen
     ximxim
     Yelve Yakut
     Edward Z. Yang
     Yermak
+    Andrew G. York
     Rob Young
     Zannick
     Zooko
@@ -341,7 +373,7 @@ The Dungeon Crawl Stone Soup development team is:
     Corin Buchanan-Howland
     James Bulgin
     Robert Burnham
-    Chris Campbell
+    Kate Campbell
     Matthew Cline
     Florian Diebold
     Rax E. Dillon

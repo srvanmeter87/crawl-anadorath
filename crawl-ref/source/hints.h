@@ -86,7 +86,9 @@ enum hints_event_type
     HINT_GOD_DISPLEASED,
     HINT_EXCOMMUNICATE,
     HINT_SPELL_MISCAST,
+#if TAG_MAJOR_VERSION == 34
     HINT_SPELL_HUNGER,
+#endif
     HINT_GLOWING,
     HINT_YOU_RESIST,
     // status changes
@@ -161,7 +163,6 @@ void print_hint(string key, const string& arg1 = "", const string& arg2 = "");
 void hints_death_screen();
 void hints_finished();
 
-void hints_dissection_reminder();
 void hints_healing_check();
 
 void taken_new_item(object_class_type item_type);
@@ -181,7 +182,6 @@ string hints_memorise_info();
 // Additional information for tutorial players.
 void check_item_hint(const item_def &item, unsigned int num_old_talents);
 string hints_describe_item(const item_def &item);
-void hints_inscription_info(string prompt);
 bool hints_pos_interesting(int x, int y);
 string hints_describe_pos(int x, int y);
 bool hints_monster_interesting(const monster* mons);

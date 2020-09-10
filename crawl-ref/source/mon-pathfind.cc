@@ -45,21 +45,16 @@ int mons_tracking_range(const monster* mon)
         break;
     }
 
-    if (range)
-    {
-        if (mon->can_cling_to_walls())
-            range += 4;
-        else if (mons_is_native_in_branch(*mon))
-            range += 3;
-        else if (mons_class_flag(mon->type, M_BLOOD_SCENT))
-            range++;
-    }
+    if (mons_is_native_in_branch(*mon))
+        range += 3;
 
     if (player_under_penance(GOD_ASHENZARI))
         range *= 5;
 
     if (mons_foe_is_marked(*mon) || mon->has_ench(ENCH_HAUNTING))
         range *= 5;
+
+    ASSERT(range);
 
     return range;
 }
@@ -433,10 +428,12 @@ bool monster_pathfind::traversable(const coord_def& p)
 // its preferred habit and capability of flight or opening doors.
 bool monster_pathfind::mons_traversable(const coord_def& p)
 {
-    return mons_can_traverse(*mons, p, traverse_in_sight)
-            || mons->can_cling_to_walls()
-               && cell_is_clingable(pos)
-               && cell_can_cling_to(pos, p);
+    if (cell_is_runed(p))
+        return false;
+    if (!mons->is_habitable(p))
+        return false;
+
+    return mons_can_traverse(*mons, p, traverse_in_sight);
 }
 
 int monster_pathfind::travel_cost(coord_def npos)

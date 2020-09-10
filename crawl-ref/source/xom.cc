@@ -46,7 +46,6 @@
 #include "nearby-danger.h"
 #include "notes.h"
 #include "output.h"
-#include "player-equip.h"
 #include "player-stats.h"
 #include "potion.h"
 #include "prompt.h"
@@ -54,7 +53,6 @@
 #include "shout.h"
 #include "spl-clouds.h"
 #include "spl-goditem.h"
-#include "spl-miscast.h"
 #include "spl-monench.h"
 #include "spl-transloc.h"
 #include "stairs.h"
@@ -67,7 +65,6 @@
 #include "transform.h"
 #include "traps.h"
 #include "travel.h"
-#include "unwind.h"
 #include "viewchar.h"
 #include "view.h"
 
@@ -94,7 +91,6 @@ static bool _action_is_bad(xom_event_type action)
 // selected.
 static const vector<spell_type> _xom_random_spells =
 {
-    SPELL_SUMMON_BUTTERFLIES,
     SPELL_SUMMON_SMALL_MAMMAL,
     SPELL_CALL_CANINE_FAMILIAR,
     SPELL_OLGREBS_TOXIC_RADIANCE,
@@ -102,7 +98,6 @@ static const vector<spell_type> _xom_random_spells =
     SPELL_LEDAS_LIQUEFACTION,
     SPELL_CAUSE_FEAR,
     SPELL_INTOXICATE,
-    SPELL_RING_OF_FLAMES,
     SPELL_SHADOW_CREATURES,
     SPELL_SUMMON_MANA_VIPER,
     SPELL_STATUE_FORM,
@@ -675,14 +670,14 @@ static void _xom_acquirement(int /*sever*/)
     const object_class_type types[] =
     {
         OBJ_WEAPONS, OBJ_ARMOUR, OBJ_JEWELLERY,  OBJ_BOOKS,
-        OBJ_STAVES,  OBJ_WANDS,  OBJ_MISCELLANY, OBJ_FOOD,  OBJ_GOLD,
+        OBJ_STAVES,  OBJ_WANDS,  OBJ_MISCELLANY, OBJ_GOLD,
         OBJ_MISSILES
     };
     const object_class_type force_class = RANDOM_ELEMENT(types);
 
-    int item_index = NON_ITEM;
-    if (!acquirement(force_class, GOD_XOM, false, &item_index)
-        || item_index == NON_ITEM)
+    const int item_index = acquirement_create_item(force_class, GOD_XOM,
+            false, you.pos());
+    if (item_index == NON_ITEM)
     {
         god_speaks(GOD_XOM, "\"No, never mind.\"");
         return;
@@ -967,7 +962,7 @@ static void _xom_do_potion(int /*sever*/)
                                      10, POT_MAGIC,
                                      10, POT_HASTE,
                                      10, POT_MIGHT,
-                                     10, POT_AGILITY,
+                                     10, POT_STABBING,
                                      10, POT_BRILLIANCE,
                                      10, POT_INVISIBILITY,
                                      5,  POT_BERSERK_RAGE,
@@ -989,7 +984,7 @@ static void _xom_do_potion(int /*sever*/)
 
 static void _confuse_monster(monster* mons, int sever)
 {
-    if (mons->check_clarity(false))
+    if (mons->check_clarity())
         return;
     if (mons->holiness() & (MH_NONLIVING | MH_PLANT))
         return;
@@ -1300,7 +1295,7 @@ static bool _hostile_snake(monster& mon)
 //  * HD influences the enchantment and type of the weapon.
 //  * Weapon is not guaranteed to be useful.
 //  * Weapon will never be branded.
-static void _xom_snakes_to_sticks(int sever)
+static void _xom_snakes_to_sticks(int /*sever*/)
 {
     bool action = false;
     for (monster_near_iterator mi(you.pos(), LOS_NO_TRANS); mi; ++mi)
@@ -1576,6 +1571,27 @@ static void _xom_place_altars()
     }
 }
 
+static void _xom_summon_butterflies()
+{
+    bool success = false;
+    const int how_many = random_range(10, 20);
+
+    for (int i = 0; i < how_many; ++i)
+    {
+        mgen_data mg(MONS_BUTTERFLY, BEH_FRIENDLY, you.pos(), MHITYOU,
+                     MG_FORCE_BEH);
+        mg.set_summoned(&you, 3, MON_SUMM_AID, GOD_XOM);
+        if (create_monster(mg))
+            success = true;
+    }
+
+    if (success)
+    {
+        take_note(Note(NOTE_XOM_EFFECT, you.piety, -1,
+                       "scenery: summon butterflies"), true);
+        god_speaks(GOD_XOM, _get_xom_speech("scenery").c_str());
+    }
+}
 /// Mess with nearby terrain features, more-or-less harmlessly.
 static void _xom_change_scenery(int /*sever*/)
 {
@@ -1583,7 +1599,10 @@ static void _xom_change_scenery(int /*sever*/)
 
     if (candidates.empty())
     {
-        _xom_place_altars();
+        if (coinflip())
+            _xom_place_altars();
+        else
+            _xom_summon_butterflies();
         return;
     }
 
@@ -1905,7 +1924,7 @@ static void _xom_pseudo_miscast(int /*sever*/)
         && !feat_is_open_door(feat) && feat != DNGN_ABANDONED_SHOP)
     {
         const string feat_name = feature_description_at(you.pos(), false,
-                                                        DESC_THE, false);
+                                                        DESC_THE);
 
         if (you.airborne())
         {
@@ -2112,140 +2131,9 @@ static void _xom_pseudo_miscast(int /*sever*/)
         mpr(messages[random2(messages.size())]);
 }
 
-static void _get_hand_type(string &hand, bool &can_plural)
-{
-    hand       = "";
-    can_plural = true;
-
-    vector<string> hand_vec;
-    vector<bool>   plural_vec;
-    bool           plural;
-
-    hand_vec.push_back(you.hand_name(false, &plural));
-    plural_vec.push_back(plural);
-
-    if (you.species != SP_NAGA || form_changed_physiology())
-    {
-        if (item_def* item = you.slot_item(EQ_BOOTS))
-        {
-            hand_vec.emplace_back(item->name(DESC_BASENAME, false, false, false));
-            plural = false; // "pair of boots" is singular
-        }
-        else
-            hand_vec.push_back(you.foot_name(false, &plural));
-        plural_vec.push_back(plural);
-    }
-
-    if (you.form == transformation::spider)
-    {
-        hand_vec.emplace_back("mandible");
-        plural_vec.push_back(true);
-    }
-    else if (you.species != SP_MUMMY && you.species != SP_OCTOPODE
-             && !you.get_mutation_level(MUT_BEAK)
-          || form_changed_physiology())
-    {
-        hand_vec.emplace_back("nose");
-        plural_vec.push_back(false);
-    }
-
-    if (you.form == transformation::bat
-        || you.species != SP_MUMMY && you.species != SP_OCTOPODE
-           && !form_changed_physiology())
-    {
-        hand_vec.emplace_back("ear");
-        plural_vec.push_back(true);
-    }
-
-    if (!form_changed_physiology()
-        && you.species != SP_FELID && you.species != SP_OCTOPODE)
-    {
-        hand_vec.emplace_back("elbow");
-        plural_vec.push_back(true);
-    }
-
-    ASSERT(hand_vec.size() == plural_vec.size());
-    ASSERT(!hand_vec.empty());
-
-    const unsigned int choice = random2(hand_vec.size());
-
-    hand       = hand_vec[choice];
-    can_plural = plural_vec[choice];
-}
-
-static void _xom_miscast(const int max_level, const bool nasty)
-{
-    ASSERT_RANGE(max_level, 0, 4);
-
-    const char* speeches[4] =
-    {
-        XOM_SPEECH("zero miscast effect"),
-        XOM_SPEECH("minor miscast effect"),
-        XOM_SPEECH("medium miscast effect"),
-        XOM_SPEECH("major miscast effect"),
-    };
-
-    const char* causes[4] =
-    {
-        "the mischief of Xom",
-        "the capriciousness of Xom",
-        "the capriciousness of Xom",
-        "the severe capriciousness of Xom"
-    };
-
-    const char* speech_str = speeches[max_level];
-    const char* cause_str  = causes[max_level];
-
-    const int level = (nasty ? 1 + random2(max_level)
-                             : random2(max_level + 1));
-
-    // Take a note.
-    const char* levels[4] = { "harmless", "mild", "medium", "severe" };
-    const auto school = spschools_type::exponent(random2(SPSCHOOL_LAST_EXPONENT + 1));
-    string desc = make_stringf("%s %s miscast", levels[level],
-                               spelltype_short_name(school));
-#ifdef NOTE_DEBUG_XOM
-    if (nasty)
-        desc += " (Xom was nasty)";
-#endif
-    take_note(Note(NOTE_XOM_EFFECT, you.piety, -1, desc), true);
-
-    string hand_str;
-    bool   can_plural;
-
-    _get_hand_type(hand_str, can_plural);
-
-    // If Xom's not being nasty, then prevent spell miscasts from
-    // killing the player.
-    const int lethality_margin  = nasty ? 0 : random_range(1, 4);
-
-    god_speaks(GOD_XOM, _get_xom_speech(speech_str).c_str());
-
-    MiscastEffect(&you, nullptr, {miscast_source::god, GOD_XOM},
-                  (spschool)school, level, cause_str, nothing_happens::DEFAULT,
-                  lethality_margin, hand_str, can_plural);
-}
-
 static bool _miscast_is_nasty(int sever)
 {
     return sever >= 5 && _xom_feels_nasty();
-}
-
-static void _xom_harmless_miscast(int sever)
-{
-    _xom_miscast(0, _miscast_is_nasty(sever));
-}
-static void _xom_minor_miscast(int sever)
-{
-    _xom_miscast(1, _miscast_is_nasty(sever));
-}
-static void _xom_major_miscast(int sever)
-{
-    _xom_miscast(2, _miscast_is_nasty(sever));
-}
-static void _xom_critical_miscast(int sever)
-{
-    _xom_miscast(3, _miscast_is_nasty(sever));
 }
 
 static void _xom_chaos_upgrade(int /*sever*/)
@@ -2441,7 +2329,7 @@ bool move_stair(coord_def stair_pos, bool away, bool allow_under)
 
     ASSERT(stair_pos != ray.pos());
 
-    string stair_str = feature_description_at(stair_pos, false, DESC_THE, false);
+    string stair_str = feature_description_at(stair_pos, false, DESC_THE);
 
     mprf("%s slides %s you!", stair_str.c_str(),
          away ? "away from" : "towards");
@@ -2465,6 +2353,7 @@ bool move_stair(coord_def stair_pos, bool away, bool allow_under)
 
     // Clear out "missile trails"
     viewwindow();
+    update_screen();
 
     if (!swap_features(stair_pos, ray.pos(), false, false))
     {
@@ -2647,7 +2536,7 @@ static void _xom_summon_hostiles(int sever)
         // Limit number of demons by experience level.
         if (!you.penance[GOD_XOM])
         {
-            const int maxdemons = (you.experience_level / 2);
+            const int maxdemons = ((you.experience_level / 2) + 1);
             if (numdemons > maxdemons)
                 numdemons = maxdemons;
         }
@@ -3070,13 +2959,7 @@ static xom_event_type _xom_choose_bad_action(int sever, int tension)
     const bool nasty = _miscast_is_nasty(sever);
 
     if (!nasty && x_chance_in_y(3, sever))
-    {
-        return one_chance_in(3) ? XOM_BAD_MISCAST_PSEUDO
-                                : XOM_BAD_MISCAST_HARMLESS;
-    }
-
-    if (!nasty && x_chance_in_y(4, sever))
-        return XOM_BAD_MISCAST_MINOR;
+        return XOM_BAD_MISCAST_PSEUDO;
 
     // Sometimes do noise out of combat.
     if ((tension > 0 || coinflip()) && x_chance_in_y(6, sever))
@@ -3100,8 +2983,6 @@ static xom_event_type _xom_choose_bad_action(int sever, int tension)
         return XOM_BAD_SWAP_MONSTERS;
     }
 
-    if (x_chance_in_y(12, sever))
-        return XOM_BAD_MISCAST_MAJOR;
     if (x_chance_in_y(14, sever) && mon_nearby(_choose_chaos_upgrade))
         return XOM_BAD_CHAOS_UPGRADE;
     if (x_chance_in_y(15, sever) && !player_in_branch(BRANCH_ABYSS)
@@ -3137,8 +3018,6 @@ static xom_event_type _xom_choose_bad_action(int sever, int tension)
     }
     if (x_chance_in_y(19, sever))
         return XOM_BAD_SUMMON_HOSTILES;
-    if (x_chance_in_y(20, sever))
-        return XOM_BAD_MISCAST_CRITICAL;
 
     if (x_chance_in_y(21, sever))
     {
@@ -3149,7 +3028,8 @@ static xom_event_type _xom_choose_bad_action(int sever, int tension)
             if (player_prot_life() < 3)
                 return XOM_BAD_DRAINING;
             // else choose something else
-        } else if (!player_res_torment(false))
+        }
+        else if (!player_res_torment(false))
             return XOM_BAD_TORMENT;
         // else choose something else
     }
@@ -3414,8 +3294,7 @@ void xom_death_message(const kill_method_type killed_by)
     // All others just get ignored by Xom.
 }
 
-static int _death_is_worth_saving(const kill_method_type killed_by,
-                                  const char *aux)
+static int _death_is_worth_saving(const kill_method_type killed_by)
 {
     switch (killed_by)
     {
@@ -3429,6 +3308,7 @@ static int _death_is_worth_saving(const kill_method_type killed_by,
     case KILLED_BY_WATER:
     case KILLED_BY_DRAINING:
     case KILLED_BY_STARVATION:
+    case KILLED_BY_ZOT:
     case KILLED_BY_ROTTING:
 
     // Don't protect the player from these.
@@ -3462,10 +3342,9 @@ static string _get_death_type_keyword(const kill_method_type killed_by)
  * and an additional chance based on tension that he will refuse to
  * save you.
  * @param death_type  The type of death that occurred.
- * @param aux         Additional string describing this death.
  * @return            True if Xom saves your life, false otherwise.
  */
-bool xom_saves_your_life(const kill_method_type death_type, const char *aux)
+bool xom_saves_your_life(const kill_method_type death_type)
 {
     if (!you_worship(GOD_XOM) || _xom_feels_nasty())
         return false;
@@ -3478,7 +3357,7 @@ bool xom_saves_your_life(const kill_method_type death_type, const char *aux)
     if (!one_chance_in(20))
         return false;
 
-    if (!_death_is_worth_saving(death_type, aux))
+    if (!_death_is_worth_saving(death_type))
         return false;
 
     // In addition, the chance depends on the current tension and Xom's mood.
@@ -3570,7 +3449,7 @@ static void _xom_good_teleport(int /*sever*/)
  * teleportation to a few random areas, stopping if either
  * an area is dangerous to you or randomly.
  */
-static void _xom_bad_teleport(int sever)
+static void _xom_bad_teleport(int /*sever*/)
 {
     god_speaks(GOD_XOM,
                _get_xom_speech("teleportation journey").c_str());
@@ -3659,12 +3538,6 @@ static const map<xom_event_type, xom_event> xom_events = {
     { XOM_GOOD_CLEAVING, { "cleaving", _xom_cleaving }},
 
     { XOM_BAD_MISCAST_PSEUDO, { "pseudo-miscast", _xom_pseudo_miscast, 10}},
-    { XOM_BAD_MISCAST_HARMLESS, { "harmless miscast",
-                                    _xom_harmless_miscast, 10}},
-    { XOM_BAD_MISCAST_MINOR, { "minor miscast", _xom_minor_miscast, 10}},
-    { XOM_BAD_MISCAST_MAJOR, { "major miscast", _xom_major_miscast, 20}},
-    { XOM_BAD_MISCAST_CRITICAL, { "critical miscast",
-                                    _xom_critical_miscast, 45}},
     { XOM_BAD_NOISE, { "noise", _xom_noise, 10 }},
     { XOM_BAD_ENCHANT_MONSTER, { "bad enchant monster",
                                  _xom_bad_enchant_monster, 10}},
@@ -3740,7 +3613,8 @@ void validate_xom_events()
                 fails += make_stringf("'%s' badness %d outside 10-50 range.\n",
                                       event->name, event->badness_10x);
             }
-        } else if (event->badness_10x)
+        }
+        else if (event->badness_10x)
         {
             fails += make_stringf("'%s' is not bad, but has badness!\n",
                                   event->name);

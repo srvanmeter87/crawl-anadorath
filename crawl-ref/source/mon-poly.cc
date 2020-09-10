@@ -13,7 +13,6 @@
 #include "describe.h"
 #include "dgn-overview.h"
 #include "dungeon.h"
-#include "exclude.h"
 #include "fineff.h"
 #include "god-conduct.h"
 #include "hints.h"
@@ -33,7 +32,6 @@
 #include "stringutil.h"
 #include "terrain.h"
 #include "traps.h"
-#include "view.h"
 #include "xom.h"
 
 bool feature_mimic_at(const coord_def &c)
@@ -103,13 +101,6 @@ void monster_drop_things(monster* mons,
 
 static bool _valid_morph(monster* mons, monster_type new_mclass)
 {
-    const dungeon_feature_type current_tile = grd(mons->pos());
-
-    monster_type old_mclass = mons->type;
-    if (mons_class_is_zombified(old_mclass))
-        old_mclass = mons->base_monster;
-    // don't force spectral shapeshifters to become natural|undead mons only
-
     // Shapeshifters cannot polymorph into glowing shapeshifters or
     // vice versa.
     if ((new_mclass == MONS_GLOWING_SHAPESHIFTER
@@ -130,7 +121,7 @@ static bool _valid_morph(monster* mons, monster_type new_mclass)
     }
 
     // Various inappropriate polymorph targets.
-    if ( !(mons_class_holiness(new_mclass) & mons_class_holiness(old_mclass))
+    if ( !(mons_class_holiness(new_mclass) & mons_class_holiness(mons->type))
         // normally holiness just needs to overlap, but we don't want
         // shapeshifters to become demons
         || mons->is_shapeshifter() && !(mons_class_holiness(new_mclass) & MH_NATURAL)
@@ -145,7 +136,7 @@ static bool _valid_morph(monster* mons, monster_type new_mclass)
 
         // 'morph targets are _always_ "base" classes, not derived ones.
         || new_mclass != mons_species(new_mclass)
-        || new_mclass == mons_species(old_mclass)
+        || new_mclass == mons_species(mons->type)
         // They act as separate polymorph classes on their own.
         || mons_class_is_zombified(new_mclass)
 
@@ -167,7 +158,7 @@ static bool _valid_morph(monster* mons, monster_type new_mclass)
     }
 
     // Determine if the monster is happy on current tile.
-    return monster_habitable_grid(new_mclass, current_tile);
+    return monster_habitable_grid(new_mclass, grd(mons->pos()));
 }
 
 static bool _is_poly_power_unsuitable(poly_power_type power,
@@ -236,7 +227,7 @@ void change_monster_type(monster* mons, monster_type targetc)
     }
 
     // Inform listeners that the original monster is gone.
-    fire_monster_death_event(mons, KILL_MISC, NON_MONSTER, true);
+    fire_monster_death_event(mons, KILL_MISC, true);
 
     // the actual polymorphing:
     auto flags =
@@ -287,17 +278,7 @@ void change_monster_type(monster* mons, monster_type targetc)
             name = name.substr(0, the_pos);
     }
 
-    const monster_type real_targetc =
-        (mons->has_ench(ENCH_GLOWING_SHAPESHIFTER)) ? MONS_GLOWING_SHAPESHIFTER :
-        (mons->has_ench(ENCH_SHAPESHIFTER))         ? MONS_SHAPESHIFTER
-                                                    : targetc;
-
-    const god_type god =
-        player_will_anger_monster(real_targetc) ? GOD_NO_GOD : mons->god;
-
-    if (god == GOD_NO_GOD)
-        flags &= ~MF_GOD_GIFT;
-
+    const god_type old_god        = mons->god;
     const int  old_hp             = mons->hit_points;
     const int  old_hp_max         = mons->max_hit_points;
     const bool old_mon_caught     = mons->caught();
@@ -356,7 +337,8 @@ void change_monster_type(monster* mons, monster_type targetc)
     mons->props.erase("speech_prefix");
 
     // Make sure we have a god if we've been polymorphed into a priest.
-    mons->god = (mons->is_priest() && god == GOD_NO_GOD) ? GOD_NAMELESS : god;
+    mons->god = (mons->is_priest() && old_god == GOD_NO_GOD) ? GOD_NAMELESS
+                                                             : old_god;
 
     mons->add_ench(abj);
     mons->add_ench(fabj);
@@ -415,8 +397,6 @@ void change_monster_type(monster* mons, monster_type targetc)
     // evaporating and reforming justifies this behaviour.
     mons->stop_constricting_all();
     mons->stop_being_constricted();
-
-    mons->check_clinging(false);
 }
 
 // If targetc == RANDOM_MONSTER, then relpower indicates the desired
@@ -424,8 +404,7 @@ void change_monster_type(monster* mons, monster_type targetc)
 // Relaxation still takes effect when needed, no matter what relpower
 // says.
 bool monster_polymorph(monster* mons, monster_type targetc,
-                       poly_power_type power,
-                       bool force_beh)
+                       poly_power_type power)
 {
     // Don't attempt to polymorph a monster that is busy using the stairs.
     if (mons->flags & MF_TAKING_STAIRS)
@@ -549,9 +528,6 @@ bool monster_polymorph(monster* mons, monster_type targetc,
             mons->flags |= MF_SEEN;
     }
 
-    if (!force_beh)
-        player_angers_monster(mons);
-
     // Xom likes watching monsters being polymorphed.
     if (can_see)
     {
@@ -624,9 +600,6 @@ void slimify_monster(monster* mon)
 
 void seen_monster(monster* mons)
 {
-    // If the monster is in the auto_exclude list, automatically
-    // set an exclusion.
-    set_auto_exclude(mons);
     set_unique_annotation(mons);
 
     // id equipment (do this every time we see them, it may have changed)

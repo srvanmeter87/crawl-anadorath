@@ -29,13 +29,12 @@
 #include "religion.h"
 #include "spl-book.h"
 #include "spl-cast.h"
-#include "spl-zap.h"
 #include "stash.h"
 #include "stringutil.h"
 #include "terrain.h"
-#include "tiledef-dngn.h"
-#include "tiledef-icons.h"
-#include "tiledef-main.h"
+#include "rltiles/tiledef-dngn.h"
+#include "rltiles/tiledef-icons.h"
+#include "rltiles/tiledef-main.h"
 #include "tilefont.h"
 #include "tilepick.h"
 #include "tiles-build-specific.h"
@@ -79,14 +78,23 @@ DungeonRegion::~DungeonRegion()
 }
 
 void DungeonRegion::load_dungeon(const crawl_view_buffer &vbuf,
-                                 const coord_def &gc)
+                                 const coord_def &gc_at_vbuf_centre)
 {
     m_dirty = true;
 
-    m_cx_to_gx = gc.x - mx / 2;
-    m_cy_to_gy = gc.y - my / 2;
+    m_cx_to_gx = gc_at_vbuf_centre.x - mx / 2;
+    m_cy_to_gy = gc_at_vbuf_centre.y - my / 2;
 
     m_vbuf = vbuf;
+
+    for (int y = 0; y < m_vbuf.size().y; ++y)
+        for (int x = 0; x < m_vbuf.size().x; ++x)
+        {
+            coord_def gc(x + m_cx_to_gx, y + m_cy_to_gy);
+
+            if (map_bounds(gc))
+                pack_cell_overlays(coord_def(x, y), m_vbuf);
+        }
 
     place_cursor(CURSOR_TUTORIAL, m_cursor[CURSOR_TUTORIAL]);
 }
@@ -117,23 +125,7 @@ void DungeonRegion::pack_buffers()
     for (int y = 0; y < crawl_view.viewsz.y; ++y)
         for (int x = 0; x < crawl_view.viewsz.x; ++x)
         {
-            coord_def gc(x + m_cx_to_gx, y + m_cy_to_gy);
-
-            packed_cell tile_cell = packed_cell(vbuf_cell->tile);
-            if (map_bounds(gc))
-            {
-                tile_cell.flv = env.tile_flv(gc);
-                pack_cell_overlays(gc, &tile_cell);
-            }
-            else
-            {
-                tile_cell.flv.floor   = 0;
-                tile_cell.flv.wall    = 0;
-                tile_cell.flv.special = 0;
-                tile_cell.flv.feat    = 0;
-            }
-
-            m_buf_dngn.add(tile_cell, x, y);
+            m_buf_dngn.add(vbuf_cell->tile, x, y);
 
             const int fcol = vbuf_cell->flash_colour;
             if (fcol)
@@ -146,29 +138,6 @@ void DungeonRegion::pack_buffers()
     const bool mouse_curs_vis = you.see_cell(m_cursor[CURSOR_MOUSE]);
     pack_cursor(CURSOR_MOUSE, mouse_curs_vis ? TILEI_CURSOR : TILEI_CURSOR2);
     pack_cursor(CURSOR_MAP, TILEI_CURSOR);
-
-    if (m_cursor[CURSOR_TUTORIAL] != NO_CURSOR
-        && on_screen(m_cursor[CURSOR_TUTORIAL]))
-    {
-        m_buf_dngn.add_main_tile(TILEI_TUTORIAL_CURSOR,
-                                 m_cursor[CURSOR_TUTORIAL].x,
-                                 m_cursor[CURSOR_TUTORIAL].y);
-    }
-
-    for (const tile_overlay &overlay : m_overlays)
-    {
-        // overlays must be from the main image and must be in LOS.
-        if (!crawl_view.in_los_bounds_g(overlay.gc))
-            continue;
-
-        tileidx_t idx = overlay.idx;
-        if (idx >= TILE_MAIN_MAX)
-            continue;
-
-        const coord_def ep(overlay.gc.x - m_cx_to_gx,
-                           overlay.gc.y - m_cy_to_gy);
-        m_buf_dngn.add_main_tile(idx, ep.x, ep.y);
-    }
 }
 
 struct tag_def
@@ -254,10 +223,8 @@ void DungeonRegion::render()
             // center this coord, which is at the top left of gc's cell
             pc.x += dx / 2;
 
-            const coord_def min_pos(sx, sy);
-            const coord_def max_pos(ex, ey);
-            m_tag_font->render_string(pc.x, pc.y, def.text,
-                                      min_pos, max_pos, WHITE, false);
+            const auto text = formatted_string(def.text, WHITE);
+            m_tag_font->render_hover_string(pc.x, pc.y, text);
         }
 }
 
@@ -457,7 +424,7 @@ static bool _is_appropriate_evokable(const item_def& item,
 
     spell_type spell = spell_in_wand(static_cast<wand_type>(item.sub_type));
 
-    return _is_appropriate_spell(spell, target);
+    return is_valid_spell(spell) && _is_appropriate_spell(spell, target);
 }
 
 static bool _have_appropriate_evokable(const actor* target)
@@ -490,6 +457,7 @@ static item_def* _get_evokable_item(const actor* target)
 
     update_screen();
     redraw_screen();
+    update_screen();
 
     if (sel.empty())
         return nullptr;
@@ -670,7 +638,7 @@ static bool _handle_distant_monster(monster* mon, unsigned char mod)
     return false;
 }
 
-static bool _handle_zap_player(MouseEvent &event)
+static bool _handle_zap_player(wm_mouse_event &event)
 {
     const bool shift = (event.mod & TILES_MOD_SHIFT);
     const bool ctrl  = (event.mod & TILES_MOD_CTRL);
@@ -685,43 +653,7 @@ static bool _handle_zap_player(MouseEvent &event)
     return false;
 }
 
-void DungeonRegion::zoom(bool in)
-{
-    int sign = in ? 1 : -1;
-    int amt  = 4;
-    const int max_zoom = 64; // this needs to be a proportion, not a fixed amount!
-    const bool minimap_zoom = (sx>dx); // i.e. there's a border bigger than a tile (was dx<min_zoom+amt)
-
-    // if we try to zoom out too far, go to minimap instead
-    if (!in && minimap_zoom)
-        if (tiles.zoom_to_minimap())
-            return;
-
-    // if we zoomed in from min zoom, and the map's still up, switch off minimap instead
-    if (in && minimap_zoom)
-        if (tiles.zoom_from_minimap())
-            return;
-
-    // if we zoom out too much, stop
-    if (!in && minimap_zoom) //(dx + sign*amt < min_zoom)
-        return;
-    // if we zoom in too close, stop
-    if (dx + sign*amt > max_zoom)
-        return;
-
-    dx = dx + sign*amt;
-    dy = dy + sign*amt;
-
-    int old_wx = wx; int old_wy = wy;
-    recalculate();
-
-    place((old_wx-wx)/2+sx, (old_wy-wy)/2+sy, 0);
-
-    crawl_view.viewsz.x = mx;
-    crawl_view.viewsz.y = my;
-}
-
-int DungeonRegion::handle_mouse(MouseEvent &event)
+int DungeonRegion::handle_mouse(wm_mouse_event &event)
 {
     tiles.clear_text_tags(TAG_CELL_DESC);
 
@@ -729,13 +661,13 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         return 0;
 
 #ifdef TOUCH_UI
-    if (event.event == MouseEvent::WHEEL && (event.mod & TILES_MOD_CTRL))
-        zoom(event.button == MouseEvent::SCROLL_UP);
+    if (event.event == wm_mouse_event::WHEEL && (event.mod & TILES_MOD_CTRL))
+        zoom(event.button == wm_mouse_event::SCROLL_UP);
 #endif
 
     if (mouse_control::current_mode() == MOUSE_MODE_NORMAL
-        && event.event == MouseEvent::PRESS
-        && event.button == MouseEvent::LEFT)
+        && event.event == wm_mouse_event::PRESS
+        && event.button == wm_mouse_event::LEFT)
     {
         m_last_clicked_grid = m_cursor[CURSOR_MOUSE];
 
@@ -763,7 +695,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
     const coord_def gc(cx + m_cx_to_gx, cy + m_cy_to_gy);
     tiles.place_cursor(CURSOR_MOUSE, gc);
 
-    if (event.event == MouseEvent::MOVE)
+    if (event.event == wm_mouse_event::MOVE)
     {
         string desc = get_terse_square_desc(gc);
         // Suppress floor description
@@ -796,10 +728,10 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         || mouse_control::current_mode() == MOUSE_MODE_TARGET_PATH
         || mouse_control::current_mode() == MOUSE_MODE_TARGET_DIR)
     {
-        if (event.event == MouseEvent::MOVE)
+        if (event.event == wm_mouse_event::MOVE)
             return CK_MOUSE_MOVE;
-        else if (event.event == MouseEvent::PRESS
-                 && event.button == MouseEvent::LEFT && on_screen(gc))
+        else if (event.event == wm_mouse_event::PRESS
+                 && event.button == wm_mouse_event::LEFT && on_screen(gc))
         {
             m_last_clicked_grid = m_cursor[CURSOR_MOUSE];
             return CK_MOUSE_CLICK;
@@ -808,7 +740,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
         return 0;
     }
 
-    if (event.event != MouseEvent::PRESS)
+    if (event.event != wm_mouse_event::PRESS)
         return 0;
 
     m_last_clicked_grid = m_cursor[CURSOR_MOUSE];
@@ -817,7 +749,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
     {
         switch (event.button)
         {
-        case MouseEvent::LEFT:
+        case wm_mouse_event::LEFT:
         {
             if ((event.mod & (TILES_MOD_CTRL | TILES_MOD_ALT)))
             {
@@ -856,6 +788,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
                         pickup_menu(o);
                         flush_prev_message();
                         redraw_screen();
+                        update_screen();
                         return CK_MOUSE_CMD;
                     }
                     return command_to_key(CMD_PICKUP);
@@ -872,7 +805,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
                 return 0;
             }
         }
-        case MouseEvent::RIGHT:
+        case wm_mouse_event::RIGHT:
             if (!(event.mod & TILES_MOD_SHIFT))
                 return command_to_key(CMD_RESISTS_SCREEN); // Character overview.
             if (!you_worship(GOD_NO_GOD))
@@ -885,7 +818,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
 
     }
     // else not on player...
-    if (event.button == MouseEvent::RIGHT)
+    if (event.button == wm_mouse_event::RIGHT)
     {
         if (map_bounds(gc) && env.map_knowledge(gc).known())
         {
@@ -896,7 +829,7 @@ int DungeonRegion::handle_mouse(MouseEvent &event)
             return 0;
     }
 
-    if (event.button != MouseEvent::LEFT)
+    if (event.button != wm_mouse_event::LEFT)
         return 0;
 
     return tile_click_cell(gc, event.mod);
@@ -1005,7 +938,7 @@ bool DungeonRegion::update_tip_text(string &tip)
 #ifdef WIZARD
     if (you.wizard)
     {
-        if (ret)
+        if (!tip.empty())
             tip += "\n\n";
 
         if (you.see_cell(gc))
@@ -1019,7 +952,7 @@ bool DungeonRegion::update_tip_text(string &tip)
                 tip += make_stringf("HEIGHT(%d)\n", dgn_height_at(gc));
 
             tip += "\n";
-            tip += tile_debug_string(env.tile_fg(ep), env.tile_bg(ep), env.tile_cloud(ep), ' ');
+            tip += tile_debug_string(env.tile_fg(ep), env.tile_bg(ep), ' ');
         }
         else
         {
@@ -1029,20 +962,20 @@ bool DungeonRegion::update_tip_text(string &tip)
             tip += "\n";
         }
 
-        tip += tile_debug_string(env.tile_bk_fg(gc), env.tile_bk_bg(gc), env.tile_bk_bg(gc), 'B');
+        tip += tile_debug_string(env.tile_bk_fg(gc), env.tile_bk_bg(gc), 'B');
 
         if (!m_vbuf.empty())
         {
             const screen_cell_t *vbuf = m_vbuf;
             const coord_def vc(gc.x - m_cx_to_gx, gc.y - m_cy_to_gy);
             const screen_cell_t &cell = vbuf[crawl_view.viewsz.x * vc.y + vc.x];
-            tip += tile_debug_string(cell.tile.fg, cell.tile.bg, cell.tile.cloud, 'V');
+            tip += tile_debug_string(cell.tile.fg, cell.tile.bg, 'V');
         }
 
         tip += make_stringf("\nFLV: floor: %d (%s) (%d)"
                             "\n     wall:  %d (%s) (%d)"
                             "\n     feat:  %d (%s) (%d)"
-                            "\n  special:  %d\n",
+                            "\n  special:  %d",
                             env.tile_flv(gc).floor,
                             tile_dngn_name(env.tile_flv(gc).floor),
                             env.tile_flv(gc).floor_idx,
@@ -1143,6 +1076,7 @@ bool tile_dungeon_tip(const coord_def &gc, string &tip)
                 _add_tip(tip, "[Shift + L-Click] Fire (%)");
                 cmd.push_back(CMD_FIRE);
             }
+            dprf("about to check spell evokable on %s", target->name(DESC_THE).c_str());
 
             tip += _check_spell_evokable(target, cmd);
         }
@@ -1312,22 +1246,6 @@ void DungeonRegion::add_text_tag(text_tag_type type, const string &tag,
     t.gc  = gc;
 
     m_tags[type].push_back(t);
-}
-
-void DungeonRegion::add_overlay(const coord_def &gc, int idx)
-{
-    tile_overlay over;
-    over.gc  = gc;
-    over.idx = idx;
-
-    m_overlays.push_back(over);
-    m_dirty = true;
-}
-
-void DungeonRegion::clear_overlays()
-{
-    m_overlays.clear();
-    m_dirty = true;
 }
 
 #endif

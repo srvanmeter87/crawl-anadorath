@@ -101,6 +101,8 @@ bool slime_wall_neighbour(const coord_def& c);
 int count_adjacent_slime_walls(const coord_def &pos);
 void slime_wall_damage(actor* act, int delay);
 
+int count_adjacent_icy_walls(const coord_def &pos);
+
 void get_door_description(int door_size, const char** adjective,
                           const char** noun);
 void feat_splash_noise(dungeon_feature_type feat);
@@ -131,7 +133,7 @@ bool slide_feature_over(const coord_def &src,
 
 void fall_into_a_pool(dungeon_feature_type terrain);
 
-void                 init_feat_desc_cache();
+void init_feat_desc_cache();
 dungeon_feature_type feat_by_desc(string desc);
 const char* feat_type_name(dungeon_feature_type feat);
 
@@ -140,8 +142,6 @@ vector<string> dungeon_feature_matches(const string &name);
 const char *dungeon_feature_name(dungeon_feature_type rfeat);
 void destroy_wall(const coord_def& p);
 void set_terrain_changed(const coord_def c);
-bool cell_is_clingable(const coord_def pos);
-bool cell_can_cling_to(const coord_def& from, const coord_def to);
 bool cell_triggers_conduct(const coord_def pos);
 bool is_boring_terrain(dungeon_feature_type feat);
 
@@ -155,11 +155,13 @@ bool is_temp_terrain(coord_def pos);
 bool plant_forbidden_at(const coord_def &p, bool connectivity_only = false);
 
 vector<coord_def> get_push_spaces(const coord_def& pos, bool push_actor,
-                    const vector<coord_def>* excluded);
+                                  const vector<coord_def>* excluded);
 bool has_push_spaces(const coord_def& pos, bool push_actor,
-                    const vector<coord_def>* excluded);
+                     const vector<coord_def>* excluded);
 bool push_items_from(const coord_def& pos, const vector<coord_def>* excluded);
 coord_def push_actor_from(const coord_def& pos, const vector<coord_def>* excluded, bool random);
 
 void dgn_close_door(const coord_def &dest);
 void dgn_open_door(const coord_def &dest);
+
+void ice_wall_damage(monster &victim, int delay);

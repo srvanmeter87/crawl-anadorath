@@ -134,7 +134,12 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
             var $feat = $feat_tmpl.clone().removeClass("hidden").addClass("describe-feature-feat");
             $feat.find(".header > span").html(feat.title);
             if (feat.body != feat.title)
-                $feat.find(".body").html(feat.body);
+            {
+                var text = feat.body;
+                if (feat.quote)
+                     text += "\n\n" + feat.quote;
+                $feat.find(".body").html(text);
+            }
             else
                 $feat.find(".body").remove();
 
@@ -311,6 +316,8 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
 
         if (!desc.is_altar)
             $footer.find('.join-keyhelp').remove();
+        else
+            $footer.find('.join-keyhelp').append(desc.service_fee)
 
         $panes.eq(0).find(".desc").html(desc.description);
         $panes.eq(0).find(".god-favour td.title")
@@ -361,6 +368,9 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
 
 
         $popup.on("keydown keypress", function (event) {
+            var enter = event.which == 13, space = event.which == 32;
+            if (enter || space)
+                return;
             var s = scroller($panes.filter(".current")[0]);
             scroller_handle_key(s, event);
         });
@@ -706,15 +716,169 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
     {
         var $popup = $(".templates > .msgwin-get-line").clone();
         $popup.children(".header").html(util.formatted_string_to_html(msg.prompt));
-        $popup.children(".body")[0].textContent = msg.text;
         return $popup;
     }
-    function msgwin_get_line_update(msg)
+
+    function focus_button($button)
     {
-        var $popup = ui.top_popup();
-        if (!$popup.hasClass("msgwin-get-line"))
+        var $popup = $button.closest(".newgame-choice");
+        var menu_id = $button.closest("[menu_id]").attr("menu_id");
+        $popup.find(".button.selected").removeClass("selected");
+        $button.addClass("selected");
+        var $scr = $button.closest(".simplebar-scroll-content");
+        if ($scr.length === 1)
+        {
+            var br = $button[0].getBoundingClientRect();
+            var gr = $scr.parent()[0].getBoundingClientRect();
+            var delta = br.top < gr.top ? br.top - gr.top :
+                    br.bottom > gr.bottom ? br.bottom - gr.bottom : 0;
+            $scr[0].scrollTop += delta;
+        }
+
+        var $descriptions = $popup.find(".descriptions");
+        paneset_cycle($descriptions, $button.attr("data-description-index"));
+        comm.send_message("outer_menu_focus", {
+            hotkey: ui.utf8_from_key_value($button.attr("data-hotkey")),
+            menu_id: menu_id,
+        });
+    }
+
+    function newgame_choice(msg)
+    {
+        var $popup = $(".templates > .newgame-choice").clone();
+        if (msg.doll)
+        {
+            var $canvas = $("<canvas>");
+            var $title = $("<span>");
+            var $prompt = $("<div class=header>");
+            $popup.children(".header").append($canvas).append($title).after($prompt);
+            $title.html(util.formatted_string_to_html(msg.title));
+            $prompt.html(util.formatted_string_to_html(msg.prompt));
+            var renderer = new cr.DungeonCellRenderer();
+            util.init_canvas($canvas[0], renderer.cell_width, renderer.cell_height);
+            renderer.init($canvas[0]);
+            $.each(msg.doll, function (i, doll_part) {
+                renderer.draw_player(doll_part[0], 0, 0, 0, 0, doll_part[1]);
+            });
+        }
+        else
+            $popup.children(".header").html(util.formatted_string_to_html(msg.title));
+        var renderer = new cr.DungeonCellRenderer();
+        var $descriptions = $popup.find(".descriptions");
+
+        function build_item_grid(data, $container, fat)
+        {
+            $container.attr("menu_id", data.menu_id);
+            $.each(data.buttons, function (i, button) {
+                var $button = $("<div class=button>");
+                if ((button.tile || []).length > 0 || fat)
+                {
+                    var $canvas = $("<canvas class='glyph-mode-hidden'>");
+                    util.init_canvas($canvas[0], renderer.cell_width, renderer.cell_height);
+                    renderer.init($canvas[0]);
+
+                    $.each(button.tile || [], function (_, tile) {
+                        renderer.draw_from_texture(tile.t, 0, 0, tile.tex, 0, 0, tile.ymax, false);
+                    });
+                    $button.append($canvas);
+                }
+                $.each(button.labels || [button.label], function (i, label) {
+                    var $lbl = $(util.formatted_string_to_html(label)).css("flex-grow", "1");
+                    $button.append($lbl);
+                });
+                $button.attr("style", "grid-row:"+(button.y+1)+"; grid-column:"+(button.x+1)+";");
+                $descriptions.append("<span class='pane'> " + button.description + "</span>");
+                $button.attr("data-description-index", $descriptions.children().length - 1);
+                $button.attr("data-hotkey", ui.key_value_from_utf8(button.hotkey));
+                $button.addClass("hlc-" + button.highlight_colour);
+                $container.append($button);
+
+                $button.on('hover', function () { focus_button($(this)) });
+            });
+            $.each(data.labels, function (i, button) {
+                var $button = $("<div class=label>");
+                $button.append(util.formatted_string_to_html(button.label));
+                $button.attr("style", "grid-row:"+(button.y+1)+"; grid-column:"+(button.x+1)+";");
+                $container.append($button);
+            });
+        }
+
+        var $main = $popup.find(".main-items");
+        build_item_grid(msg["main-items"], $main, true);
+        build_item_grid(msg["sub-items"], $popup.find(".sub-items"));
+        scroller($main.parent()[0]);
+
+        return $popup;
+    }
+
+    function newgame_choice_update(msg)
+    {
+        if (!client.is_watching() && msg.from_client)
             return;
-        $popup.children(".body")[0].textContent = msg.text;
+        var $popup = ui.top_popup();
+        if (!$popup || !$popup.hasClass("newgame-choice"))
+            return;
+        var hotkey = ui.key_value_from_utf8(msg.button_focus);
+        focus_button($popup.find("[data-hotkey='"+hotkey+"']"));
+    }
+
+    function newgame_random_combo(msg)
+    {
+        var $popup = $(".templates > .describe-generic").clone();
+        $popup.find(".header > span").html(util.formatted_string_to_html(msg.prompt));
+        $popup.find(".body").html("Do you want to play this combination? [Y/n/q]");
+
+        var $canvas = $popup.find(".header > canvas");
+        var renderer = new cr.DungeonCellRenderer();
+        util.init_canvas($canvas[0], renderer.cell_width, renderer.cell_height);
+        renderer.init($canvas[0]);
+        $.each(msg.doll, function (i, doll_part) {
+            renderer.draw_player(doll_part[0], 0, 0, 0, 0, doll_part[1]);
+        });
+
+        return $popup;
+    }
+
+    function game_over(desc)
+    {
+        var $popup = $(".templates > .game-over").clone();
+        $popup.find(".header > span").html(desc.title);
+        $popup.children(".body").html(fmt_body_txt(util.formatted_string_to_html(desc.body)));
+        var s = scroller($popup.children(".body")[0]);
+        $popup.on("keydown keypress", function (event) {
+            scroller_handle_key(s, event);
+        });
+
+        var canvas = $popup.find(".header > canvas");
+        var renderer = new cr.DungeonCellRenderer();
+        util.init_canvas(canvas[0], renderer.cell_width, renderer.cell_height);
+        renderer.init(canvas[0]);
+        renderer.draw_from_texture(desc.tile.t, 0, 0, desc.tile.tex, 0, 0, desc.tile.ymax, false);
+
+        return $popup;
+    }
+
+    function seed_selection(desc)
+    {
+        var $popup = $(".templates > .seed-selection").clone();
+        $popup.find(".header").html(desc.title);
+        $popup.find(".body-text").html(desc.body);
+        $popup.find(".footer").html(desc.footer);
+        if (!desc.show_pregen_toggle)
+            $popup.find(".pregen-toggle").remove();
+        scroller($popup.find(".body")[0]);
+
+        var $input = $popup.find("input[type=text]");
+        var input_val = $input.val();
+        $input.on("input change", function (event) {
+            var valid_seed = $input.val().match(/^\d*$/);
+            if (valid_seed)
+                input_val = $input.val();
+            else
+                $input.val(input_val);
+        });
+
+        return $popup;
     }
 
     var ui_handlers = {
@@ -729,7 +893,11 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
         "version" : version,
         "formatted-scroller" : formatted_scroller,
         "progress-bar" : progress_bar,
+        "seed-selection" : seed_selection,
         "msgwin-get-line" : msgwin_get_line,
+        "newgame-choice": newgame_choice,
+        "newgame-random-combo": newgame_random_combo,
+        "game-over" : game_over,
     };
 
     function register_ui_handlers(dict)
@@ -741,7 +909,7 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
     {
         var handler = ui_handlers[msg.type];
         var popup = handler ? handler(msg) : $("<div>Unhandled UI type "+msg.type+"</div>");
-        ui.show_popup(popup, msg["ui-centred"]);
+        ui.show_popup(popup, msg["ui-centred"], msg.generation_id);
     }
 
     function recv_ui_pop(msg)
@@ -764,8 +932,8 @@ function ($, comm, client, ui, enums, cr, util, scroller, main, gui, player) {
             "describe-god" : describe_god_update,
             "describe-monster" : describe_monster_update,
             "formatted-scroller" : formatted_scroller_update,
-            "msgwin-get-line" : msgwin_get_line_update,
             "progress-bar" : progress_bar_update,
+            "newgame-choice" : newgame_choice_update,
         };
         var handler = ui_handlers[msg.type];
         if (handler)

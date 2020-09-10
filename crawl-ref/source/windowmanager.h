@@ -47,7 +47,7 @@ struct wm_keyboard_event
     wm_keysym keysym;
 };
 
-struct MouseEvent
+struct wm_mouse_event
 {
     enum mouse_event_type
     {
@@ -113,7 +113,7 @@ struct wm_event
     unsigned char type;
     wm_active_event active;
     wm_keyboard_event key;
-    MouseEvent mouse_event;
+    wm_mouse_event mouse_event;
     wm_resize_event resize;
     wm_expose_event expose;
     wm_quit_event quit;
@@ -160,14 +160,13 @@ public:
     // System time functions
     virtual unsigned int set_timer(unsigned int interval,
                                    wm_timer_callback callback) = 0;
-    virtual void remove_timer(unsigned int timer_id) = 0;
+    virtual void remove_timer(unsigned int& timer_id) = 0;
     virtual unsigned int get_ticks() const = 0;
     virtual void delay(unsigned int ms) = 0;
 
     // Event functions
-    virtual int raise_custom_event() = 0;
     virtual int wait_event(wm_event *event, int timeout) = 0;
-    virtual unsigned int get_event_count(wm_event_type type) = 0;
+    virtual bool next_event_is(wm_event_type type) = 0;
     virtual void show_keyboard() = 0;
 
     // Display functions

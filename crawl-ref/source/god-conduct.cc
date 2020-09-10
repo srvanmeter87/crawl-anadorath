@@ -2,10 +2,10 @@
 
 #include "god-conduct.h"
 
-#include "fight.h"
+#include "areas.h"
+#include "fprop.h"
 #include "god-abil.h" // ru sac key
 #include "god-item.h" // is_*_spell
-#include "god-wrath.h"
 #include "libutil.h"
 #include "message.h"
 #include "monster.h"
@@ -26,6 +26,8 @@ god_conduct_trigger::god_conduct_trigger(
     conduct_type c, int pg, bool kn, const monster* vict)
   : conduct(c), pgain(pg), known(kn), victim(nullptr)
 {
+    did_sanctuary = false;
+
     if (vict)
     {
         victim.reset(new monster);
@@ -36,6 +38,15 @@ god_conduct_trigger::god_conduct_trigger(
 void god_conduct_trigger::set(conduct_type c, int pg, bool kn,
                               const monster* vict)
 {
+    // This conduct only needs to be set once per instance; subsequent calls
+    // would just uselessly update the victim pointer.
+    if (c == DID_ATTACK_IN_SANCTUARY)
+    {
+        if (did_sanctuary)
+            return;
+
+        did_sanctuary = true;
+    }
     conduct = c;
     pgain = pg;
     known = kn;
@@ -49,7 +60,10 @@ void god_conduct_trigger::set(conduct_type c, int pg, bool kn,
 
 god_conduct_trigger::~god_conduct_trigger()
 {
-    if (conduct != NUM_CONDUCTS)
+    // For order of events, let remove_sanctuary() apply the conduct.
+    if (conduct == DID_ATTACK_IN_SANCTUARY)
+        remove_sanctuary(true);
+    else if (conduct != NUM_CONDUCTS)
         did_god_conduct(conduct, pgain, known, victim.get());
 }
 
@@ -57,17 +71,16 @@ static const char *conducts[] =
 {
     "",
     "Evil", "Holy", "Attack Holy", "Attack Neutral", "Attack Friend",
-    "Friend Died", "Kill Living", "Kill Undead", "Kill Demon",
-    "Kill Natural Evil", "Kill Unclean", "Kill Chaotic", "Kill Wizard",
-    "Kill Priest", "Kill Holy", "Kill Fast", "Banishment", "Spell Memorise",
-    "Spell Cast", "Spell Practise", "Cannibalism", "Eat Souled Being",
-    "Deliberate Mutation", "Cause Glowing", "Use Unclean", "Use Chaos",
-    "Desecrate Orcish Remains", "Kill Slime", "Kill Plant", "Was Hasty",
-    "Corpse Violation", "Carrion Rot", "Souled Friend Died",
-    "Attack In Sanctuary", "Kill Artificial", "Exploration",
-    "Desecrate Holy Remains", "Seen Monster", "Sacrificed Love", "Channel",
-    "Hurt Foe", "Antimagic", "Fire", "Kill Fiery", "Ice", "Kill Icy",
-    "Earth", "Kill Earthy", "Air", "Kill Airy",
+    "Kill Living", "Kill Undead", "Kill Demon", "Kill Natural Evil",
+    "Kill Unclean", "Kill Chaotic", "Kill Wizard", "Kill Priest", "Kill Holy",
+    "Kill Fast", "Banishment", "Spell Memorise", "Spell Cast",
+    "Spell Practise", "Cannibalism", "Deliberate Mutation",
+    "Cause Glowing", "Use Unclean", "Use Chaos", "Desecrate Orcish Remains",
+    "Kill Slime", "Kill Plant", "Was Hasty", "Attack In Sanctuary",
+    "Kill Artificial", "Exploration", "Seen Monster",
+    "Sacrificed Love", "Channel", "Hurt Foe", "Use Wizardly Item",
+    "Antimagic", "Fire", "Kill Fiery", "Ice", "Kill Icy", "Earth",
+    "Kill Earthy", "Air", "Kill Airy",
 };
 COMPILE_CHECK(ARRAYSZ(conducts) == NUM_CONDUCTS);
 
@@ -215,12 +228,6 @@ static const dislike_response RUDE_CANNIBALISM_RESPONSE = {
     5, 3, nullptr, " expects more respect for your departed relatives."
 };
 
-/// Zin and Ely's responses to desecrating holy remains.
-static const dislike_response GOOD_DESECRATE_HOLY_RESPONSE = {
-    "you desecrate holy remains", true,
-    1, 1, nullptr, " expects more respect for holy creatures!"
-};
-
 /// Zin and Ely's responses to evil actions. TODO: parameterize & merge w/TSO
 static const dislike_response GOOD_EVIL_RESPONSE = {
     "you use evil magic or items", true,
@@ -259,20 +266,6 @@ static dislike_response _on_attack_friend(const char* desc)
     };
 }
 
-/// Fedhas's response to a friend(ly plant) dying.
-static dislike_response _on_fedhas_friend_death(const char* desc)
-{
-    return
-    {
-        desc, false,
-        1, 0, nullptr, nullptr, [] (const monster* victim) -> bool {
-            // ballistomycetes are penalized separately.
-            return victim && fedhas_protects(*victim)
-            && victim->mons_species() != MONS_BALLISTOMYCETE;
-        }
-    };
-}
-
 typedef map<conduct_type, dislike_response> peeve_map;
 
 /// a per-god map of conducts to that god's angry reaction to those conducts.
@@ -285,7 +278,6 @@ static peeve_map divine_peeves[] =
         { DID_CANNIBALISM, RUDE_CANNIBALISM_RESPONSE },
         { DID_ATTACK_HOLY, GOOD_ATTACK_HOLY_RESPONSE },
         { DID_KILL_HOLY, GOOD_KILL_HOLY_RESPONSE },
-        { DID_DESECRATE_HOLY_REMAINS, GOOD_DESECRATE_HOLY_RESPONSE },
         { DID_EVIL, GOOD_EVIL_RESPONSE },
         { DID_ATTACK_FRIEND, _on_attack_friend("you attack allies") },
         { DID_ATTACK_NEUTRAL, {
@@ -309,10 +301,6 @@ static peeve_map divine_peeves[] =
             "you deliberately mutate or transform yourself", true,
             1, 0, " forgives your inadvertent chaotic act, just this once."
         } },
-        { DID_DESECRATE_SOULED_BEING, {
-            "you butcher sentient beings", true,
-            5, 3
-        } },
         { DID_CAUSE_GLOWING, { nullptr, false, 1 } },
     },
     // GOD_SHINING_ONE,
@@ -323,10 +311,6 @@ static peeve_map divine_peeves[] =
             1, 2, nullptr, nullptr, _attacking_holy_matters
         } },
         { DID_KILL_HOLY, GOOD_KILL_HOLY_RESPONSE },
-        { DID_DESECRATE_HOLY_REMAINS, {
-            "you desecrate holy remains", true,
-            1, 2, nullptr, " expects more respect for holy creatures!"
-        } },
         { DID_EVIL, {
             "you use evil magic or items", true,
             1, 2, " forgives your inadvertent evil act, just this once."
@@ -369,6 +353,10 @@ static peeve_map divine_peeves[] =
             "you train magic skills", true,
             1, 0, nullptr, " doesn't appreciate your training magic!"
         } },
+        { DID_WIZARDLY_ITEM, {
+            "you use magical staves or pain-branded weapons", true,
+            1, 0, nullptr, " doesn't appreciate your use of wizardly items!"
+        } },
     },
     // GOD_NEMELEX_XOBEH,
     peeve_map(),
@@ -377,7 +365,6 @@ static peeve_map divine_peeves[] =
         { DID_CANNIBALISM, RUDE_CANNIBALISM_RESPONSE },
         { DID_ATTACK_HOLY, GOOD_ATTACK_HOLY_RESPONSE },
         { DID_KILL_HOLY, GOOD_KILL_HOLY_RESPONSE },
-        { DID_DESECRATE_HOLY_REMAINS, GOOD_DESECRATE_HOLY_RESPONSE },
         { DID_EVIL, GOOD_EVIL_RESPONSE },
         { DID_ATTACK_NEUTRAL, GOOD_ATTACK_NEUTRAL_RESPONSE },
         { DID_ATTACK_FRIEND, _on_attack_friend("you attack allies") },
@@ -419,18 +406,11 @@ static peeve_map divine_peeves[] =
     },
     // GOD_FEDHAS,
     {
-        { DID_CORPSE_VIOLATION, {
-            "you use necromancy on corpses, chunks or skeletons", true,
-            1, 1, " forgives your inadvertent necromancy, just this once."
-        } },
         { DID_KILL_PLANT, {
             "you destroy plants", false,
             1, 0
         } },
         { DID_ATTACK_FRIEND, _on_attack_friend(nullptr) },
-
-        { DID_FRIEND_DIED, _on_fedhas_friend_death("allied flora die") },
-        { DID_SOULED_FRIEND_DIED, _on_fedhas_friend_death(nullptr) },
     },
     // GOD_CHEIBRIADOS,
     {
@@ -607,7 +587,7 @@ struct like_response
         if (message)
             simple_god_message(message);
 
-        // this is all very strange, but replicates legacy behavior.
+        // this is all very strange, but replicates legacy behaviour.
         // See the comment on piety_bonus above.
         int denom = piety_denom_bonus + level;
         if (xl_denom)
@@ -719,7 +699,7 @@ static like_response okawaru_kill(const char* desc)
 static const like_response EXPLORE_RESPONSE = {
     "you explore the world", false,
     0, 0, 0, nullptr,
-    [] (int &piety, int &denom, const monster* /*victim*/)
+    [] (int &piety, int &/*denom*/, const monster* /*victim*/)
     {
         // piety = denom = level at the start of the function
         piety = 14;
@@ -772,8 +752,8 @@ static like_map divine_likes[] =
         { DID_KILL_UNDEAD, KILL_UNDEAD_RESPONSE },
         { DID_KILL_DEMON, KILL_DEMON_RESPONSE },
         { DID_KILL_HOLY, _on_kill("you kill holy beings", MH_HOLY, false,
-                                  [](int &piety, int &denom,
-                                     const monster* victim)
+                                  [](int &piety, int &/*denom*/,
+                                     const monster* /*victim*/)
             {
                 piety *= 2;
                 simple_god_message(" appreciates your killing of a holy being.");
@@ -839,7 +819,7 @@ static like_map divine_likes[] =
         { DID_EXPLORATION, {
             "you explore the world", false,
             0, 0, 0, nullptr,
-            [] (int &piety, int &denom, const monster* /*victim*/)
+            [] (int &piety, int &/*denom*/, const monster* /*victim*/)
             {
                 // piety = denom = level at the start of the function
                 piety = 20;
@@ -874,9 +854,11 @@ static like_map divine_likes[] =
     like_map(),
     // GOD_FEDHAS,
     {
-        { DID_ROT_CARRION, {
-            "corpses rot away", false, 0, 0, 0, " appreciates ongoing decay."
-        } },
+        { DID_KILL_LIVING, KILL_LIVING_RESPONSE },
+        { DID_KILL_UNDEAD, KILL_UNDEAD_RESPONSE },
+        { DID_KILL_DEMON, KILL_DEMON_RESPONSE },
+        { DID_KILL_HOLY, KILL_HOLY_RESPONSE },
+        { DID_KILL_NONLIVING, KILL_NONLIVING_RESPONSE },
     },
     // GOD_CHEIBRIADOS,
     {
@@ -955,7 +937,7 @@ static like_map divine_likes[] =
     {
         { DID_KILL_LIVING, _on_kill("you kill living beings", MH_NATURAL, false,
                                   [](int &piety, int &denom,
-                                     const monster* victim)
+                                     const monster* /*victim*/)
             {
                 piety *= 4;
                 denom *= 3;
@@ -972,7 +954,7 @@ static like_map divine_likes[] =
         { DID_HURT_FOE, {
             "you hurt your foes; however, effects that cause damage over "
             "time do not interest Uskayaw", true, 1, 1, 0, nullptr,
-            [] (int &piety, int &denom, const monster* /*victim*/)
+            [] (int &/*piety*/, int &denom, const monster* /*victim*/)
             {
                 denom = 1;
             }
@@ -1115,6 +1097,10 @@ void set_attack_conducts(god_conduct_trigger conduct[3], const monster &mon,
     else if (mon.neutral())
         conduct[0].set(DID_ATTACK_NEUTRAL, 5, known, &mon);
 
+    // Penance value is handled by remove_sanctuary().
+    if (is_sanctuary(mon.pos()) || is_sanctuary(you.pos()))
+        conduct[1].set(DID_ATTACK_IN_SANCTUARY, -1, known, &mon);
+
     if (mon.is_holy() && !mon.is_illusion())
     {
         conduct[2].set(DID_ATTACK_HOLY, mon.get_experience_level(), known,
@@ -1218,6 +1204,7 @@ void did_hurt_conduct(conduct_type thing_done,
                       const monster &victim,
                       int damage_done)
 {
+    UNUSED(thing_done);
     // Currently only used by Uskayaw; initially planned to use god conduct
     // logic more heavily, but the god seems to need something different.
 
@@ -1266,12 +1253,6 @@ bool god_punishes_spell(spell_type spell, god_type god)
     // not is_hasty_spell: see spl-cast.cc:_spellcasting_god_conduct
     if (map_find(divine_peeves[god], DID_HASTY) && spell == SPELL_SWIFTNESS)
         return true;
-
-    if (map_find(divine_peeves[god], DID_CORPSE_VIOLATION)
-        && is_corpse_violating_spell(spell))
-    {
-        return true;
-    }
 
     return false;
 }

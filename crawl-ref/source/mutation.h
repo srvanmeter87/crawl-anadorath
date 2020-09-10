@@ -29,6 +29,8 @@ enum mutation_permanence_class
     MUTCLASS_INNATE
 };
 
+vector<mutation_type> get_removed_mutations();
+
 void init_mut_index();
 
 bool is_body_facet(mutation_type mut);
@@ -73,7 +75,6 @@ bool temp_mutation_wanes();
 
 void check_demonic_guardian();
 void check_monster_detect();
-equipment_type beastly_slot(int mut);
 bool physiology_mutation_conflict(mutation_type mutat);
 int augmentation_amount();
 void reset_powered_by_death_duration();

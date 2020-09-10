@@ -17,7 +17,6 @@
 #include "english.h"
 #include "env.h"
 #include "fight.h"
-#include "food.h"
 #include "god-abil.h" // RU_SAC_XP_LEVELS
 #include "god-conduct.h"
 #include "god-item.h"
@@ -92,8 +91,8 @@ bool player::move_to_pos(const coord_def &c, bool clear_net, bool /*force*/)
 }
 
 void player::apply_location_effects(const coord_def &oldpos,
-                                    killer_type killer,
-                                    int killernum)
+                                    killer_type /*killer*/,
+                                    int /*killernum*/)
 {
     moveto_location_effects(env.grid(oldpos));
 }
@@ -169,10 +168,8 @@ bool player::can_pass_through_feat(dungeon_feature_type grid) const
 
 bool player::is_habitable_feat(dungeon_feature_type actual_grid) const
 {
-    if (!can_pass_through_feat(actual_grid))
-        return false;
-
-    return !is_feat_dangerous(actual_grid);
+    return can_pass_through_feat(actual_grid)
+           && !is_feat_dangerous(actual_grid);
 }
 
 size_type player::body_size(size_part_type psize, bool base) const
@@ -435,14 +432,6 @@ item_def *player::shield() const
     return slot_item(EQ_SHIELD, false);
 }
 
-void player::make_hungry(int hunger_increase, bool silent)
-{
-    if (hunger_increase > 0)
-        ::make_hungry(hunger_increase, silent);
-    else if (hunger_increase < 0)
-        ::lessen_hunger(-hunger_increase, silent);
-}
-
 string player::name(description_level_type dt, bool, bool) const
 {
     switch (dt)
@@ -636,7 +625,8 @@ bool player::fumbles_attack()
     bool did_fumble = false;
 
     // Fumbling in shallow water.
-    if (floundering() || liquefied_ground())
+    if (floundering()
+        || liquefied_ground() && you.duration[DUR_LIQUEFYING] == 0)
     {
         if (x_chance_in_y(3, 8))
         {
@@ -736,15 +726,11 @@ bool player::go_berserk(bool intentional, bool potion)
 
     mpr("You feel mighty!");
 
-    int berserk_duration = (20 + random2avg(19,2)) / 2;
-
+    const int berserk_duration = (20 + random2avg(19,2)) / 2;
     you.increase_duration(DUR_BERSERK, berserk_duration);
 
-    //Apply Berserk's +50% Current/Max HP
+    // Apply Berserk's +50% Current/Max HP.
     calc_hp(true, false);
-
-    if (!you.duration[DUR_MIGHT])
-        notify_stat_change(STAT_STR, 5, true);
 
     you.berserk_penalty = 0;
 
@@ -802,11 +788,6 @@ bool player::can_go_berserk(bool intentional, bool potion, bool quiet,
 bool player::berserk() const
 {
     return duration[DUR_BERSERK];
-}
-
-bool player::can_cling_to_walls() const
-{
-    return false;
 }
 
 bool player::antimagic_susceptible() const

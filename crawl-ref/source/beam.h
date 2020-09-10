@@ -119,7 +119,7 @@ struct bolt
     vector<coord_def> path_taken = {}; // Path beam took.
 
     // INTERNAL use - should not usually be set outside of beam.cc
-    int  extra_range_used = false;
+    int  extra_range_used = 0;
     bool is_tracer = false;       // is this a tracer?
     bool is_targeting = false;    // . . . in particular, a targeting tracer?
     bool aimed_at_feet = false;   // this was aimed at self!
@@ -190,7 +190,7 @@ public:
     bool nice_to(const monster_info& mi) const;
     bool has_saving_throw() const;
 
-    void draw(const coord_def& p);
+    void draw(const coord_def& p, bool force_refresh=true);
     void drop_object();
 
     // Various explosion-related stuff.
@@ -232,8 +232,7 @@ private:
     void emit_message(const char* msg);
 
     int apply_AC(const actor* victim, int hurted);
-    bool determine_damage(monster* mon, int& preac, int& postac, int& final,
-                          vector<string> &messages);
+    bool determine_damage(monster* mon, int& preac, int& postac, int& final);
 
     // Functions which handle actually affecting things. They all
     // operate on the beam's current position (i.e., whatever pos()
@@ -245,6 +244,7 @@ public:
 private:
     void affect_wall();
     void digging_wall_effect();
+    void growth_wall_effect();
     void burn_wall_effect();
     void affect_ground();
     void affect_place_clouds();
@@ -262,9 +262,9 @@ private:
     void handle_stop_attack_prompt(monster* mon);
     bool attempt_block(monster* mon);
     void update_hurt_or_helped(monster* mon);
-    mon_resist_type try_enchant_monster(monster* mon, int &res_margin);
     void enchantment_affect_monster(monster* mon);
 public:
+    mon_resist_type try_enchant_monster(monster* mon, int &res_margin);
     mon_resist_type apply_enchantment_to_monster(monster* mon);
     void apply_beam_conducts();
 private:
@@ -306,9 +306,8 @@ bool enchant_actor_with_flavour(actor* victim, const actor *atk,
 bool enchant_monster_invisible(monster* mon, const string &how);
 
 bool ench_flavour_affects_monster(beam_type flavour, const monster* mon,
-                                                  bool intrinsic_only = false);
-spret mass_enchantment(enchant_type wh_enchant, int pow,
-                            bool fail = false);
+                                  bool intrinsic_only = false);
+spret mass_enchantment(enchant_type wh_enchant, int pow, bool fail = false);
 int ench_power_stepdown(int pow);
 
 bool poison_monster(monster* mons, const actor* who, int levels = 1,
@@ -320,15 +319,13 @@ bool curare_actor(actor* source, actor* target, int levels, string name,
                   string source_name);
 int silver_damages_victim(actor* victim, int damage, string &dmg_msg);
 void fire_tracer(const monster* mons, bolt &pbolt,
-                  bool explode_only = false, bool explosion_hole = false);
-bool imb_can_splash(coord_def origin, coord_def center,
-                    vector<coord_def> path_taken, coord_def target);
+                 bool explode_only = false, bool explosion_hole = false);
 spret zapping(zap_type ztype, int power, bolt &pbolt,
-                   bool needs_tracer = false, const char* msg = nullptr,
-                   bool fail = false);
+              bool needs_tracer = false, const char* msg = nullptr,
+              bool fail = false);
 bool player_tracer(zap_type ztype, int power, bolt &pbolt, int range = 0);
 
-void create_feat_splash(coord_def center, int radius, int nattempts);
+vector<coord_def> create_feat_splash(coord_def center, int radius, int num, int dur);
 
 void init_zap_index();
 void clear_zap_info_on_exit();
@@ -343,5 +340,7 @@ int explosion_noise(int rad);
 bool shoot_through_monster(const bolt& beam, const monster* victim);
 
 int omnireflect_chance_denom(int SH);
+
+void glaciate_freeze(monster* mon, killer_type englaciator, int kindex);
 
 bolt setup_targetting_beam(const monster &mons);

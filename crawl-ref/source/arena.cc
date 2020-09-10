@@ -14,7 +14,6 @@
 #include "command.h"
 #include "dungeon.h"
 #include "end.h"
-#include "food.h"
 #include "initfile.h"
 #include "item-name.h"
 #include "item-status-flag-type.h"
@@ -25,7 +24,6 @@
 #include "maps.h"
 #include "menu.h"
 #include "message.h"
-#include "misc.h"
 #include "mgen-data.h"
 #include "mon-death.h"
 #include "mon-pick.h"
@@ -49,70 +47,73 @@ using namespace ui;
 
 #define ARENA_VERBOSE
 
-// wrap a message tee around a file ptr, which can be null.
-// for a more general purpose application you'd want this to handle opening
-// and closing the file too, but that would require some restructuring of the
-// arena.
-class arena_message_tee : message_tee
+namespace msg
 {
-public:
-    arena_message_tee(FILE **_file) : message_tee(), file(_file) { }
-
-    ~arena_message_tee()
+    // wrap a message tee around a file ptr, which can be null.
+    // for a more general purpose application you'd want this to handle opening
+    // and closing the file too, but that would require some restructuring of the
+    // arena.
+    class arena_tee : tee
     {
-        if (*file)
-            fflush(*file);
-    }
+    public:
+        arena_tee(FILE **_file) : tee(), file(_file) { }
 
-    void append(const string &s, msg_channel_type ch = MSGCH_PLAIN)
-    {
-        if (Options.arena_dump_msgs && *file)
+        ~arena_tee()
         {
-            if (!s.size())
-                return;
-            string prefix;
-            switch (ch)
-            {
-                case MSGCH_DIAGNOSTICS:
-                    prefix = "DIAG: ";
-                    if (Options.arena_dump_msgs_all)
-                        break;
-                    return;
-
-                // Ignore messages generated while the user examines
-                // the arnea.
-                case MSGCH_PROMPT:
-                case MSGCH_MONSTER_TARGET:
-                case MSGCH_FLOOR_ITEMS:
-                case MSGCH_EXAMINE:
-                case MSGCH_EXAMINE_FILTER:
-                    return;
-
-                // If a monster-damage message ends with '!' it's a
-                // death message, otherwise it's an examination message
-                // and should be skipped.
-                case MSGCH_MONSTER_DAMAGE:
-                    if (s[s.size() - 1] != '!')
-                        return;
-                    break;
-
-                case MSGCH_ERROR: prefix = "ERROR: "; break;
-                case MSGCH_WARN: prefix = "WARN: "; break;
-                case MSGCH_SOUND: prefix = "SOUND: "; break;
-
-                case MSGCH_TALK_VISUAL:
-                case MSGCH_TALK: prefix = "TALK: "; break;
-                default: break;
-            }
-            formatted_string fs = formatted_string::parse_string(s);
-            fprintf(*file, "%s%s", prefix.c_str(), fs.tostring().c_str());
-            fflush(*file);
+            if (*file)
+                fflush(*file);
         }
-    }
 
-private:
-    FILE **file;
-};
+        void append(const string &s, msg_channel_type ch = MSGCH_PLAIN)
+        {
+            if (Options.arena_dump_msgs && *file)
+            {
+                if (!s.size())
+                    return;
+                string prefix;
+                switch (ch)
+                {
+                    case MSGCH_DIAGNOSTICS:
+                        prefix = "DIAG: ";
+                        if (Options.arena_dump_msgs_all)
+                            break;
+                        return;
+
+                    // Ignore messages generated while the user examines
+                    // the arnea.
+                    case MSGCH_PROMPT:
+                    case MSGCH_MONSTER_TARGET:
+                    case MSGCH_FLOOR_ITEMS:
+                    case MSGCH_EXAMINE:
+                    case MSGCH_EXAMINE_FILTER:
+                        return;
+
+                    // If a monster-damage message ends with '!' it's a
+                    // death message, otherwise it's an examination message
+                    // and should be skipped.
+                    case MSGCH_MONSTER_DAMAGE:
+                        if (s[s.size() - 1] != '!')
+                            return;
+                        break;
+
+                    case MSGCH_ERROR: prefix = "ERROR: "; break;
+                    case MSGCH_WARN: prefix = "WARN: "; break;
+                    case MSGCH_SOUND: prefix = "SOUND: "; break;
+
+                    case MSGCH_TALK_VISUAL:
+                    case MSGCH_TALK: prefix = "TALK: "; break;
+                    default: break;
+                }
+                formatted_string fs = formatted_string::parse_string(s);
+                fprintf(*file, "%s%s", prefix.c_str(), fs.tostring().c_str());
+                fflush(*file);
+            }
+        }
+
+    private:
+        FILE **file;
+    };
+}
 
 extern void world_reacts();
 
@@ -141,14 +142,11 @@ static void _results_popup(string msg, bool error=false)
     auto prompt_ui = make_shared<Text>(
             formatted_string::parse_string(msg));
     bool done = false;
-    prompt_ui->on(Widget::slots.event, [&](wm_event ev) {
-        if (ev.type == WME_KEYDOWN)
-        {
-            if (ev.key.keysym.sym == CONTROL('P'))
-                replay_messages();
-            else
-                done = true;
-        }
+    prompt_ui->on_hotkey_event([&](const KeyEvent& ev) {
+        if (ev.key() == CONTROL('P'))
+            replay_messages();
+        else
+            done = true;
         return done;
     });
 
@@ -616,6 +614,12 @@ namespace arena
         for (int i = 0; i < NUM_STATS; ++i)
             you.base_stats[i] = 20;
 
+        // XXX: now that you.species is valid, do a layout.
+        // This is necessary to ensure that the stat window is positioned.
+#ifdef USE_TILE
+        tiles.resize();
+#endif
+
         show_fight_banner();
     }
 
@@ -628,7 +632,7 @@ namespace arena
     /// @throws arena_error if the specification was invalid.
     static void setup_fight()
     {
-        //no_messages mx;
+        //msg::suppress mx;
         parse_monster_spec();
         setup_level();
 
@@ -744,9 +748,12 @@ namespace arena
             if (mon->type == MONS_TEST_SPAWNER)
                 continue;
 
-            MiscastEffect(*mon, *mon, {miscast_source::wizard},
-                          spschool::random, random_range(1, 3), "arena miscast",
-                          nothing_happens::NEVER);
+            if (!mon->alive())
+                continue;
+
+            miscast_effect(**mon, *mon, {miscast_source::wizard},
+                           spschool::random, random_range(1, 9),
+                           random_range(1, 100), "arena miscast");
         }
     }
 
@@ -854,6 +861,7 @@ namespace arena
     static void do_fight()
     {
         viewwindow();
+        update_screen();
         clear_messages(true);
 
         {
@@ -869,19 +877,26 @@ namespace arena
                     count_foes();
 
                 you.time_taken = 10;
-                // Make sure we don't starve.
-                you.hunger = HUNGER_MAXIMUM;
                 //report_foes();
                 world_reacts();
                 do_miscasts();
                 do_respawn(faction_a);
                 do_respawn(faction_b);
                 balance_spawners();
-                ui_delay(Options.view_delay);
+                ui::delay(Options.view_delay);
                 clear_messages();
                 ASSERT(you.pet_target == MHITNOT);
             }
             viewwindow();
+            update_screen();
+        }
+
+        if (contest_cancelled)
+        {
+            mpr("Canceled contest at user request");
+            ui::delay(Options.view_delay);
+            clear_messages();
+            return;
         }
 
         if (contest_cancelled)
@@ -985,6 +1000,7 @@ namespace arena
         // Set various options from the arena spec's tags
         parse_monster_spec(); // may throw an arena_error
 
+        crawl_view.init_geometry();
         expand_mlist(5);
 
         for (monster_type i = MONS_0; i < NUM_MONSTERS; ++i)
@@ -1044,12 +1060,13 @@ namespace arena
             virtual void _allocate_region() override {
                 show_fight_banner();
                 viewwindow();
+                update_screen();
                 display_message_window();
             };
-            virtual bool on_event(const wm_event& ev) override {
-                if (ev.type != WME_KEYDOWN)
+            virtual bool on_event(const Event& ev) override {
+                if (ev.type() != Event::Type::KeyDown)
                     return false;
-                handle_keypress(ev.key.keysym.sym);
+                handle_keypress(static_cast<const KeyEvent&>(ev).key());
                 ASSERT(crawl_state.game_is_arena());
                 ASSERT(!crawl_state.arena_suspended);
                 return true;
@@ -1074,11 +1091,11 @@ namespace arena
             do_fight();
 
             if (trials_done < total_trials)
-                ui_delay(Options.view_delay * 5);
+                ui::delay(Options.view_delay * 5);
         }
         while (!contest_cancelled && trials_done < total_trials);
 
-        ui_delay(Options.view_delay * 5);
+        ui::delay(Options.view_delay * 5);
 
         if (total_trials > 0)
         {
@@ -1150,6 +1167,8 @@ bool arena_veto_random_monster(monster_type type)
 bool arena_veto_place_monster(const mgen_data &mg, bool first_band_member,
                               const coord_def& pos)
 {
+    UNUSED(pos);
+
     // If the first band member makes it past the summon throttle cut,
     // let all of the rest of its band in too regardless of the summon
     // throttle.
@@ -1476,53 +1495,31 @@ static void _choose_arena_teams(newgame_def& choice,
     arena::skipped_arena_ui = false;
     clear_message_store();
 
-    char buf[80];
-    resumable_line_reader reader(buf, sizeof(buf));
-    bool done = false;
-    bool cancel = false;
-    auto prompt_ui = make_shared<Text>();
+    auto vbox = make_shared<Box>(ui::Widget::VERT);
+    vbox->add_child(make_shared<Text>("Enter your choice of teams:\n "));
+    vbox->set_cross_alignment(Widget::Align::STRETCH);
+    auto teams_input = make_shared<ui::TextEntry>();
+    teams_input->set_sync_id("teams");
+    teams_input->set_text(default_arena_teams);
+    vbox->add_child(teams_input);
+    formatted_string prompt;
+    prompt.cprintf("\nExamples:\n");
+    prompt.cprintf("  Sigmund v Jessica\n");
+    prompt.cprintf("  99 orc v the Royal Jelly\n");
+    prompt.cprintf("  20-headed hydra v 10 kobold ; scimitar ego:flaming");
+    vbox->add_child(make_shared<Text>(move(prompt)));
 
-    prompt_ui->on(Widget::slots.event, [&](wm_event ev)  {
-        if (ev.type != WME_KEYDOWN)
-            return false;
-        int key = ev.key.keysym.sym;
-        if (key == CONTROL('P'))
-            {
-                replay_messages();
-                return false;
-            }
-        key = reader.putkey(key);
-        if (key == -1)
-            return true;
-        cancel = !!key;
-        return done = true;
+    auto popup = make_shared<ui::Popup>(move(vbox));
+
+    bool done = false, cancel = false;
+    popup->on_hotkey_event([&](const KeyEvent& ev) {
+        return done = (ev.key() == CK_ENTER);
+    });
+    popup->on_keydown_event([&](const KeyEvent& ev) {
+        return done = cancel = key_is_escape(ev.key());
     });
 
-    auto popup = make_shared<ui::Popup>(prompt_ui);
-    ui::push_layout(move(popup));
-    while (!done && !crawl_state.seen_hups)
-    {
-        string hlbuf = formatted_string(buf).to_colour_string();
-        if (hlbuf.find(" v ") != string::npos)
-            hlbuf = "<w>" + replace_all(hlbuf, " v ", "</w> v <w>") + "</w>";
-
-        formatted_string prompt;
-        prompt.cprintf("Enter your choice of teams:\n\n  ");
-        prompt += formatted_string::parse_string(hlbuf);
-
-        prompt.cprintf("\n\n");
-        if (!default_arena_teams.empty())
-            prompt.cprintf("Enter - %s\n", default_arena_teams.c_str());
-        prompt.cprintf("\n");
-        prompt.cprintf("Examples:\n");
-        prompt.cprintf("  Sigmund v Jessica\n");
-        prompt.cprintf("  99 orc v the Royal Jelly\n");
-        prompt.cprintf("  20-headed hydra v 10 kobold ; scimitar ego:flaming");
-        prompt_ui->set_text(prompt);
-
-        ui::pump_events();
-    }
-    ui::pop_layout();
+    ui::run_layout(move(popup), done, teams_input);
 
     if (cancel || crawl_state.seen_hups)
     {
@@ -1530,7 +1527,7 @@ static void _choose_arena_teams(newgame_def& choice,
         game_ended(crawl_state.bypassed_startup_menu
                     ? game_exit::death : game_exit::abort);
     }
-    choice.arena_teams = buf;
+    choice.arena_teams = teams_input->get_text();
     if (choice.arena_teams.empty())
         choice.arena_teams = default_arena_teams;
 }
@@ -1543,10 +1540,10 @@ NORETURN void run_arena(const newgame_def& choice, const string &default_arena_t
     string last_teams = default_arena_teams;
     if (arena::file != nullptr)
         end(0, false, "Results file already open");
-    // would be more elegant if arena_message_tee handled file open/close, but
+    // would be more elegant if arena_tee handled file open/close, but
     // that would need a bunch of refactoring of how the file is handled here.
     arena::file = fopen("arena.result", "w");
-    arena_message_tee log(&arena::file);
+    msg::arena_tee log(&arena::file);
 
     do
     {

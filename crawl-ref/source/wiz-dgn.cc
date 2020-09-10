@@ -16,11 +16,9 @@
 #include "dgn-overview.h"
 #include "dungeon.h"
 #include "files.h"
-#include "items.h"
 #include "libutil.h"
 #include "maps.h"
 #include "message.h"
-#include "misc.h"
 #include "place.h"
 #include "prompt.h"
 #include "religion.h"
@@ -148,9 +146,10 @@ static void _wizard_go_to_level(const level_pos &pos)
     new_level();
     seen_monsters_react();
     viewwindow();
+    update_screen();
 
     // Tell stash-tracker and travel that we've changed levels.
-    trackers_init_new_level(true);
+    trackers_init_new_level();
 }
 
 void wizard_interlevel_travel()
@@ -360,8 +359,13 @@ void wizard_map_level()
     {
         update_item_at(*ri, false, true);
         show_update_at(*ri, LAYER_ITEMS);
+
 #ifdef USE_TILE
         tiles.update_minimap(*ri);
+        tile_draw_map_cell(*ri, true);
+#endif
+#ifdef USE_TILE_WEB
+        tiles.mark_for_redraw(*ri);
 #endif
     }
 }
@@ -588,6 +592,8 @@ static void debug_load_map_by_name(string name, bool primary)
     {
         unwind_var<string_set> um(you.uniq_map_names, string_set());
         unwind_var<string_set> umt(you.uniq_map_tags, string_set());
+        unwind_var<string_set> um_a(you.uniq_map_names_abyss, string_set());
+        unwind_var<string_set> umt_a(you.uniq_map_tags_abyss, string_set());
         unwind_var<string_set> lum(env.level_uniq_maps, string_set());
         unwind_var<string_set> lumt(env.level_uniq_map_tags, string_set());
         if (dgn_place_map(toplace, false, false, where))
@@ -641,6 +647,7 @@ static void _debug_kill_traps()
 static int _debug_time_explore()
 {
     viewwindow();
+    update_screen();
     start_explore(false);
 
     unwind_var<int> es(Options.explore_stop, 0);
@@ -782,14 +789,17 @@ void wizard_recreate_level()
     new_level();
     seen_monsters_react();
     viewwindow();
+    update_screen();
 
-    trackers_init_new_level(true);
+    trackers_init_new_level();
 }
 
 void wizard_clear_used_vaults()
 {
     you.uniq_map_tags.clear();
     you.uniq_map_names.clear();
+    you.uniq_map_tags_abyss.clear();
+    you.uniq_map_names_abyss.clear();
     env.level_uniq_maps.clear();
     env.level_uniq_map_tags.clear();
     mpr("All vaults are now eligible for [re]use.");

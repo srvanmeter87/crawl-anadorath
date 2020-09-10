@@ -64,32 +64,34 @@ ranged_attack::ranged_attack(actor *attk, actor *defn, item_def *proj,
         wpn_skill = SK_THROWING;
 }
 
+// Duplicates describe.cc:_apply_defender_effects().
 int ranged_attack::calc_to_hit(bool random)
 {
-    orig_to_hit = attack::calc_to_hit(random);
-
-    if (orig_to_hit == AUTOMATIC_HIT)
+    int mhit = attack::calc_to_hit(random);
+    if (mhit == AUTOMATIC_HIT)
         return AUTOMATIC_HIT;
+
+    return mhit;
+}
+
+int ranged_attack::post_roll_to_hit_modifiers(int mhit, bool random)
+{
+    int modifiers = attack::post_roll_to_hit_modifiers(mhit, random);
 
     if (teleport)
     {
-        orig_to_hit +=
+        modifiers +=
             (attacker->is_player())
-            ? maybe_random2(you.attribute[ATTR_PORTAL_PROJECTILE] / 4, random)
-            : 3 * attacker->as_monster()->get_hit_dice();
+            ? maybe_random_div(you.attribute[ATTR_PORTAL_PROJECTILE],
+                               PPROJ_TO_HIT_DIV, random)
+            : attacker->as_monster()->get_hit_dice() * 3 / 2;
     }
 
-    int hit = orig_to_hit;
-    const int defl = defender->missile_deflection();
-    if (defl)
-    {
-        if (random)
-            hit = random2(hit / defl);
-        else
-            hit = (hit - 1) / (2 * defl);
-    }
+    // Duplicates describe.cc::_to_hit_pct().
+    if (defender && defender->missile_repulsion())
+        modifiers -= (mhit + 1) / 2;
 
-    return hit;
+    return modifiers;
 }
 
 bool ranged_attack::attack()
@@ -114,15 +116,6 @@ bool ranged_attack::attack()
     {
         set_attack_conducts(conducts, *defender->as_monster(),
                             you.can_see(*defender));
-    }
-
-    if (env.sanctuary_time > 0 && attack_occurred
-        && (is_sanctuary(attacker->pos()) || is_sanctuary(defender->pos()))
-        && (attacker->is_player()
-            // XXX: Can friendly monsters actually violate sanctuary?
-            || attacker->as_monster()->friendly() && !attacker->confused()))
-    {
-        remove_sanctuary(true);
     }
 
     if (shield_blocked)
@@ -228,25 +221,16 @@ bool ranged_attack::handle_phase_dodged()
     const int orig_ev_margin =
         test_hit(orig_to_hit, ev, !attacker->is_player());
 
-    if (defender->missile_deflection() && orig_ev_margin >= 0)
+    if (defender->missile_repulsion() && orig_ev_margin >= 0)
     {
         if (needs_message && defender_visible)
         {
-            if (defender->missile_deflection() >= 2)
-            {
-                mprf("%s %s %s!",
-                     defender->name(DESC_THE).c_str(),
-                     defender->conj_verb("deflect").c_str(),
-                     projectile->name(DESC_THE).c_str());
-            }
-            else
-                mprf("%s is repelled.", projectile->name(DESC_THE).c_str());
-
-            defender->ablate_deflection();
+            mprf("%s is repelled.", projectile->name(DESC_THE).c_str());
+            defender->ablate_repulsion();
         }
 
         if (defender->is_player())
-            count_action(CACT_DODGE, DODGE_DEFLECT);
+            count_action(CACT_DODGE, DODGE_REPEL);
 
         return true;
     }
@@ -285,7 +269,7 @@ bool ranged_attack::handle_phase_hit()
         if (defender->is_player())
             player_caught_in_net();
         else
-            monster_caught_in_net(defender->as_monster(), attacker);
+            monster_caught_in_net(defender->as_monster());
     }
     else
     {
@@ -371,7 +355,7 @@ int ranged_attack::calc_mon_to_hit_base()
     return 18 + attacker->get_hit_dice() * hd_mult / 6;
 }
 
-int ranged_attack::apply_damage_modifiers(int damage, int damage_max)
+int ranged_attack::apply_damage_modifiers(int damage)
 {
     ASSERT(attacker->is_monster());
     if (attacker->as_monster()->is_archer())
@@ -384,6 +368,9 @@ int ranged_attack::apply_damage_modifiers(int damage, int damage_max)
 
 bool ranged_attack::ignores_shield(bool verbose)
 {
+    if (defender->is_player() && player_omnireflects())
+        return false;
+
     if (is_penetrating_attack(*attacker, weapon, *projectile))
     {
         if (verbose)
@@ -723,10 +710,6 @@ bool ranged_attack::apply_missile_brand()
         mpr(special_damage_message);
 
         special_damage_message.clear();
-        // Don't do message-only miscasts along with a special
-        // damage message.
-        if (miscast_level == 0)
-            miscast_level = -1;
     }
 
     if (special_damage > 0)

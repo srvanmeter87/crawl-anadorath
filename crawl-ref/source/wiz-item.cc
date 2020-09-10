@@ -29,7 +29,6 @@
 #include "makeitem.h"
 #include "mapdef.h"
 #include "message.h"
-#include "misc.h"
 #include "mon-death.h"
 #include "options.h"
 #include "orb-type.h"
@@ -184,7 +183,7 @@ void wizard_create_spec_object()
                 =  max(1, min(27, prompt_for_int("How many heads? ", false)));
         }
 
-        if (!place_monster_corpse(dummy, false, true))
+        if (!place_monster_corpse(dummy, true))
         {
             mpr("Failed to create corpse.");
             return;
@@ -508,7 +507,7 @@ static bool _make_book_randart(item_def &book)
     do
     {
         mprf(MSGCH_PROMPT, "Make book fixed [t]heme or fixed [l]evel? ");
-        type = toalower(getchk());
+        type = toalower(getch_ck());
     }
     while (type != 't' && type != 'l');
 
@@ -536,7 +535,14 @@ void wizard_value_item()
         mprf("Value: %d", real_value);
 }
 
-void wizard_create_all_artefacts()
+/**
+ * Generate every unrand (including removed ones).
+ *
+ * @param override_unique if true, will generate unrands that have alread
+ * placed in the game. If false, will generate fallback randarts for any
+ * unrands that have already placed.
+ */
+void wizard_create_all_artefacts(bool override_unique)
 {
     you.octopus_king_rings = 0x00;
     int octorings = 8;
@@ -551,18 +557,50 @@ void wizard_create_all_artefacts()
         if (entry->base_type == OBJ_UNASSIGNED)
             continue;
 
-        int islot = get_mitm_slot();
-        if (islot == NON_ITEM)
-            break;
+        int islot;
 
-        item_def& item = mitm[islot];
-        make_item_unrandart(item, index);
-        item.quantity = 1;
+        if (override_unique)
+        {
+            // force create: use make_item_unrandart to override a bunch of the
+            // usual checks on getting randarts.
+            islot = get_mitm_slot();
+            if (islot == NON_ITEM)
+                break;
+
+            item_def &tmp_item = mitm[islot];
+            make_item_unrandart(tmp_item, index);
+            tmp_item.quantity = 1;
+        }
+        else
+        {
+            // mimic the way unrands are created normally, and respect
+            // uniqueness. If an unrand has already generated, this will place
+            // a relevant fallback randart instead. Useful for testing fallback
+            // properties, since various error conditions will print.
+            islot = items(true, entry->base_type, 0, 0, -index, -1);
+            if (islot == NON_ITEM)
+            {
+                mprf(MSGCH_ERROR, "Failed to generate item for '%s'",
+                    entry->name);
+                continue;
+            }
+        }
+        item_def &item = mitm[islot];
         set_ident_flags(item, ISFLAG_IDENT_MASK);
 
-        msg::streams(MSGCH_DIAGNOSTICS) << "Made " << item.name(DESC_A)
-                                        << " (" << debug_art_val_str(item)
-                                        << ")" << endl;
+        if (!is_artefact(item))
+        {
+            // for now, staves are ok...
+            mprf(item.base_type == OBJ_STAVES ? MSGCH_DIAGNOSTICS : MSGCH_ERROR,
+                "Made non-artefact '%s' when trying to make '%s'",
+                item.name(DESC_A).c_str(), entry->name);
+        }
+        else
+        {
+            msg::streams(MSGCH_DIAGNOSTICS) << "Made " << item.name(DESC_A)
+                                            << " (" << debug_art_val_str(item)
+                                            << ")" << endl;
+        }
         move_item_to_grid(&islot, you.pos());
 
         // Make all eight.
@@ -718,6 +756,14 @@ static void _forget_item(item_def &item)
     unset_ident_flags(item, ISFLAG_IDENT_MASK);
     item.flags &= ~(ISFLAG_SEEN | ISFLAG_HANDLED | ISFLAG_THROWN
                     | ISFLAG_DROPPED | ISFLAG_NOTED_ID | ISFLAG_NOTED_GET);
+    if (is_artefact(item) && item.props.exists(KNOWN_PROPS_KEY))
+    {
+        ASSERT(item.props.exists(KNOWN_PROPS_KEY));
+        CrawlVector &known = item.props[KNOWN_PROPS_KEY].get_vector();
+        ASSERT(known.size() == ART_PROPERTIES);
+        for (vec_size i = 0; i < ART_PROPERTIES; i++)
+            known[i] = static_cast<bool>(false);
+    }
 }
 
 void wizard_unidentify_pack()
@@ -830,7 +876,7 @@ static void _debug_acquirement_stats(FILE *ostat)
 
     clear_messages();
     mpr("[a] Weapons [b] Armours   [c] Jewellery [d] Books");
-    mpr("[e] Staves  [f] Evocables [g] Food");
+    mpr("[e] Staves  [f] Evocables");
     mprf(MSGCH_PROMPT, "What kind of item would you like to get acquirement stats on? ");
 
     object_class_type type;
@@ -843,7 +889,6 @@ static void _debug_acquirement_stats(FILE *ostat)
     case 'd': type = OBJ_BOOKS;      break;
     case 'e': type = OBJ_STAVES;     break;
     case 'f': type = OBJ_MISCELLANY; break;
-    case 'g': type = OBJ_FOOD;       break;
     default:
         canned_msg(MSG_OK);
         return;
@@ -875,16 +920,15 @@ static void _debug_acquirement_stats(FILE *ostat)
     {
         if (kbhit())
         {
-            getchk();
+            getch_ck();
             mpr("Stopping early due to keyboard input.");
             break;
         }
 
-        int item_index = NON_ITEM;
+        const int item_index = acquirement_create_item(type, AQ_WIZMODE, true,
+                you.pos());
 
-        if (!acquirement(type, AQ_WIZMODE, true, &item_index, true)
-            || item_index == NON_ITEM
-            || !mitm[item_index].defined())
+        if (item_index == NON_ITEM || !mitm[item_index].defined())
         {
             mpr("Acquirement failed, stopping early.");
             break;
@@ -959,8 +1003,7 @@ static void _debug_acquirement_stats(FILE *ostat)
             type == OBJ_BOOKS      ? "books" :
             type == OBJ_STAVES     ? "staves" :
             type == OBJ_WANDS      ? "wands" :
-            type == OBJ_MISCELLANY ? "misc. items" :
-            type == OBJ_FOOD       ? "food"
+            type == OBJ_MISCELLANY ? "misc. items"
                                    : "buggy items");
 
     // Print player species/profession.
@@ -1106,6 +1149,7 @@ static void _debug_acquirement_stats(FILE *ostat)
 #endif
             "penetration",
             "reaping",
+            "spectral",
             "INVALID",
             "acid",
 #if TAG_MAJOR_VERSION > 34
@@ -1152,9 +1196,7 @@ static void _debug_acquirement_stats(FILE *ostat)
             "resistance",
             "positive energy",
             "archmagi",
-#if TAG_MAJOR_VERSION == 34
             "preservation",
-#endif
             "reflection",
             "spirit shield",
             "archery",
@@ -1162,7 +1204,11 @@ static void _debug_acquirement_stats(FILE *ostat)
             "jumping",
 #endif
             "repulsion",
+#if TAG_MAJOR_VERSION == 34
             "cloud immunity",
+#endif
+            "harm",
+            "rampaging",
         };
 
         const int non_art = acq_calls - num_arts;
@@ -1188,7 +1234,7 @@ static void _debug_acquirement_stats(FILE *ostat)
             {
                 "none",
                 "conjuration",
-                "enchantment",
+                "hexes",
                 "fire magic",
                 "ice magic",
                 "transmutation",
@@ -1199,7 +1245,8 @@ static void _debug_acquirement_stats(FILE *ostat)
                 "earth magic",
                 "air magic",
             };
-            COMPILE_CHECK(ARRAYSZ(names) == SPSCHOOL_LAST_EXPONENT + 1);
+            // + 2 because we have the exponent bits plus "none"
+            COMPILE_CHECK(ARRAYSZ(names) == SPSCHOOL_LAST_EXPONENT + 2);
 
             for (int i = 0; i <= SPSCHOOL_LAST_EXPONENT; ++i)
             {
@@ -1347,7 +1394,7 @@ static void _debug_rap_stats(FILE *ostat)
     {
         if (kbhit())
         {
-            getchk();
+            getch_ck();
             mpr("Stopping early due to keyboard input.");
             break;
         }
@@ -1416,6 +1463,7 @@ static void _debug_rap_stats(FILE *ostat)
                 / (float) MAX_TRIES;
             mprf("%4.1f%% done.", curr_percent / 10.0);
             viewwindow();
+            update_screen();
         }
 
     }
@@ -1509,6 +1557,7 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_FRAGILE",
         "ARTP_SHIELDING",
         "ARTP_HARM",
+        "ARTP_RAMPAGING",
     };
     COMPILE_CHECK(ARRAYSZ(rap_names) == ARTP_NUM_PROPERTIES);
 
@@ -1613,7 +1662,7 @@ void wizard_identify_all_items()
         object_class_type i = (object_class_type)ii;
         if (!item_type_has_ids(i))
             continue;
-        for (int j = 0; j < get_max_subtype(i); j++)
+        for (const auto j : all_item_subtypes(i))
             set_ident_type(i, j, true);
     }
 }
@@ -1632,7 +1681,7 @@ void wizard_unidentify_all_items()
         object_class_type i = (object_class_type)ii;
         if (!item_type_has_ids(i))
             continue;
-        for (int j = 0; j < get_max_subtype(i); j++)
+        for (const auto j : all_item_subtypes(i))
             set_ident_type(i, j, false);
     }
 }

@@ -719,7 +719,7 @@ void macro_save()
  * Reads as many keypresses as are available (waiting for at least one),
  * and returns them as a single keyseq.
  */
-static keyseq _getch_mul(int (*rgetch)() = nullptr)
+static keyseq _getch_mul()
 {
     keyseq keys;
     int    a;
@@ -733,14 +733,11 @@ static keyseq _getch_mul(int (*rgetch)() = nullptr)
         crawl_state.cancel_cmd_again();
     }
 
-    if (!rgetch)
-        rgetch = m_getch;
-
     // The a == 0 test is legacy code that I don't dare to remove. I
     // have a vague recollection of it being a kludge for conio support.
     do
     {
-        a = rgetch();
+        a = getch_ck();
         if (a != CK_NO_KEY)
             keys.push_back(a);
     }
@@ -753,12 +750,7 @@ static keyseq _getch_mul(int (*rgetch)() = nullptr)
  * Replacement for getch(). Returns keys from the key buffer if available.
  * If not, adds some content to the buffer, and returns some of it.
  */
-int getchm(int (*rgetch)())
-{
-    return getchm(KMC_DEFAULT, rgetch);
-}
-
-int getchm(KeymapContext mc, int (*rgetch)())
+int getchm(KeymapContext mc)
 {
     int a;
 
@@ -767,7 +759,7 @@ int getchm(KeymapContext mc, int (*rgetch)())
         return a;
 
     // Read some keys...
-    keyseq keys = _getch_mul(rgetch);
+    keyseq keys = _getch_mul();
     macro_buf_add_with_keymap(keys, mc);
     return macro_buf_get();
 }
@@ -804,16 +796,32 @@ int getch_with_command_macros()
 
     if (Buffer.empty())
     {
-        // Read some keys...
         keyseq keys = _getch_mul();
-        // ... and add them into the buffer (apply keymaps)
-        macro_buf_add_long(keys);
+        macro_buf_add_with_keymap(keys, KMC_DEFAULT);
     }
 
     // Apply longest matching macro at front of buffer:
     macro_buf_apply_command_macro();
 
     return macro_buf_get();
+}
+
+static string _buffer_to_string()
+{
+    string s;
+    for (const int k : Buffer)
+    {
+        if (k > 0 && k <= numeric_limits<unsigned char>::max())
+        {
+            char c = static_cast<unsigned char>(k);
+            if (c == '[' || c == ']')
+                s += "\\";
+            s += c;
+        }
+        else
+            s += make_stringf("[%d]", k);
+    }
+    return s;
 }
 
 /*
@@ -845,11 +853,16 @@ void flush_input_buffer(int reason)
         || reason == FLUSH_REPLAY_SETUP_FAILURE
         || reason == FLUSH_REPEAT_SETUP_DONE)
     {
-        if (crawl_state.nonempty_buffer_flush_errors)
+        if (crawl_state.nonempty_buffer_flush_errors && !Buffer.empty())
         {
             if (you.wizard) // crash -- intended for tests
+            {
+                mprf(MSGCH_ERROR,
+                    "Flushing non-empty key buffer (Buffer is '%s')",
+                    _buffer_to_string().c_str());
                 ASSERT(Buffer.empty());
-            else if (!Buffer.empty())
+            }
+            else
                 mprf(MSGCH_ERROR, "Flushing non-empty key buffer");
         }
         while (!Buffer.empty())
@@ -886,7 +899,7 @@ static void _input_action_raw(const string &macro_type, keyseq* action)
         cgotoxy(x, y);
         cprintf("%s", vtostr(*action).c_str());
 
-        int input = m_getch();
+        int input = getch_ck();
 
         switch (input)
         {
@@ -940,7 +953,7 @@ void macro_add_query()
     mprf(MSGCH_PROMPT, "(m)acro, (M)acro raw, keymap "
                        "[(k) default, (x) level-map, (t)argeting, "
                        "(c)onfirm, m(e)nu], (s)ave? ");
-    input = m_getch();
+    input = getch_ck();
     int low = toalower(input);
 
     if (low == 'k')
@@ -1007,7 +1020,7 @@ void macro_add_query()
         mprf(MSGCH_WARN, "Current Action: %s", action_str.c_str());
         mprf(MSGCH_PROMPT, "Do you wish to (r)edefine, (c)lear, or (a)bort? ");
 
-        input = m_getch();
+        input = getch_ck();
 
         input = toalower(input);
         if (input == 'c')
@@ -1056,6 +1069,7 @@ void macro_add_query()
 
     crawl_state.unsaved_macros = true;
     redraw_screen();
+    update_screen();
 }
 
 /*
@@ -1207,6 +1221,7 @@ void macro_init()
 
 void macro_userfn(const char *keys, const char *regname)
 {
+    UNUSED(keys, regname);
     // TODO: Implement.
     // Converting 'keys' to a key sequence is the difficulty. Doing it portably
     // requires a mapping of key names to whatever getch() spits back, unlikely
@@ -1343,10 +1358,10 @@ string command_to_name(command_type cmd)
 
 command_type key_to_command(int key, KeymapContext context)
 {
-    if (-key > CMD_NO_CMD && -key < CMD_MIN_SYNTHETIC)
+    if (CMD_NO_CMD < -key && -key < CMD_MIN_SYNTHETIC)
     {
-        const command_type  cmd         = (command_type) -key;
-        const KeymapContext cmd_context = context_for_command(cmd);
+        const auto cmd = static_cast<command_type>(-key);
+        const auto cmd_context = context_for_command(cmd);
 
         if (cmd == CMD_NO_CMD)
             return CMD_NO_CMD;

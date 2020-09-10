@@ -1,6 +1,6 @@
 #pragma once
 
-#include "tiledef-player.h"
+#include "rltiles/tiledef-player.h"
 
 enum tile_player_flags
 {
@@ -8,4 +8,4 @@ enum tile_player_flags
 };
 
 static_assert(static_cast<int>(TILEP_SHOW_EQUIP) > static_cast<int>(TILEP_PLAYER_MAX),
-        "TILEP_SHOW_EQUIP must be distinct from all player tile enums");
+              "TILEP_SHOW_EQUIP must be distinct from all player tile enums");

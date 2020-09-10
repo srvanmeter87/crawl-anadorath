@@ -12,7 +12,6 @@
 
 #include "abyss.h"
 #include "dbg-util.h"
-#include "food.h"
 #include "god-abil.h"
 #include "god-wrath.h"
 #include "item-use.h"
@@ -22,8 +21,8 @@
 #include "message.h"
 #include "misc.h" // frombool
 #include "mutation.h"
-#include "ng-setup.h"
 #include "output.h"
+#include "playable.h"
 #include "player-stats.h"
 #include "prompt.h"
 #include "religion.h"
@@ -34,40 +33,32 @@
 #include "state.h"
 #include "status.h"
 #include "stringutil.h"
+#include "timed-effects.h" // decr_zot_clock
 #include "transform.h"
 #include "unicode.h"
-#include "unwind.h"
 #include "view.h"
 #include "xom.h"
 
 #ifdef WIZARD
 
-job_type find_job_from_string(const string &job)
+job_type find_job_from_string(const string &str)
 {
-    string spec = lowercase_string(job);
+    const string spec = lowercase_string(str);
 
-    job_type j = JOB_UNKNOWN;
+    job_type partial_match = JOB_UNKNOWN;
 
-    for (int i = 0; i < NUM_JOBS; ++i)
+    for (const auto job : playable_jobs())
     {
-        const job_type ji = static_cast<job_type>(i);
-        const string name = lowercase_string(get_job_name(ji));
+        const auto name = lowercase_string(get_job_name(job));
+        const auto pos = name.find(spec);
 
-        string::size_type pos = name.find(spec);
-        if (pos != string::npos)
-        {
-            if (pos == 0)
-            {
-                // We prefer prefixes over partial matches.
-                j = ji;
-                break;
-            }
-            else
-                j = ji;
-        }
+        if (pos == 0)
+            return job;  // We prefer prefixes over partial matches.
+        else if (pos != string::npos)
+            partial_match = job;
     }
 
-    return j;
+    return partial_match;
 }
 
 static xom_event_type _find_xom_event_from_string(const string &event_name)
@@ -103,6 +94,7 @@ void wizard_suppress()
     you.wizard = false;
     you.suppress_wizard = true;
     redraw_screen();
+    update_screen();
 }
 
 void wizard_change_job_to(job_type job)
@@ -194,7 +186,7 @@ void wizard_memorise_spec_spell()
     }
 
     if (get_spell_flags(static_cast<spell_type>(spell)) & spflag::monster)
-        mpr("Spell is monster-only - unpredictable behavior may result.");
+        mpr("Spell is monster-only - unpredictable behaviour may result.");
     if (!learn_spell(static_cast<spell_type>(spell), true))
         crawl_state.cancel_cmd_repeat();
 }
@@ -221,6 +213,7 @@ void wizard_heal(bool super_heal)
         delete_all_temp_mutations("Super heal");
         you.stat_loss.init(0);
         you.attribute[ATTR_STAT_LOSS_XP] = 0;
+        decr_zot_clock();
         you.redraw_stats = true;
     }
     else
@@ -233,48 +226,12 @@ void wizard_heal(bool super_heal)
     you.duration[DUR_EXHAUSTED] = 0;
     set_hp(you.hp_max);
     set_mp(you.max_magic_points);
-    set_hunger(HUNGER_VERY_FULL + 100, true);
     you.redraw_hit_points = true;
     you.redraw_armour_class = true;
     you.redraw_evasion = true;
 
     for (int stat = 0; stat < NUM_STATS; stat++)
         you.duration[stat_zero_duration(static_cast<stat_type> (stat))] = 0;
-}
-
-void wizard_set_hunger_state()
-{
-    string hunger_prompt = "Set hunger state to ";
-    if (you.species != SP_VAMPIRE && you.species != SP_GHOUL)
-        hunger_prompt += "f(A)inting, ";
-    hunger_prompt += "s(T)arving, (N)ear starving, (H)ungry";
-    if (you.species == SP_GHOUL)
-        hunger_prompt += " or (S)atiated";
-    else
-        hunger_prompt += ", (S)atiated, (F)ull or (E)ngorged";
-    hunger_prompt += "? ";
-
-    mprf(MSGCH_PROMPT, "%s", hunger_prompt.c_str());
-
-    const int c = toalower(getchk());
-
-    // Values taken from food.cc.
-    switch (c)
-    {
-    case 'a': you.hunger = HUNGER_FAINTING / 2; break;
-    case 't': you.hunger = (HUNGER_STARVING + HUNGER_FAINTING) / 2; break;
-    case 'n': you.hunger = 1100;  break;
-    case 'h': you.hunger = 2300;  break;
-    case 's': you.hunger = 4900;  break;
-    case 'f': you.hunger = 7900;  break;
-    case 'e': you.hunger = HUNGER_MAXIMUM; break;
-    default:  canned_msg(MSG_OK); break;
-    }
-
-    food_change();
-
-    if (you.species == SP_GHOUL && you.hunger_state >= HS_SATIATED)
-        mpr("Ghouls can never be full or above!");
 }
 
 void wizard_set_piety_to(int newpiety, bool force)
@@ -842,7 +799,7 @@ void wizard_set_xl(bool change_skills)
 
 void set_xl(const int newxl, const bool train, const bool silent)
 {
-    no_messages mx(silent);
+    msg::suppress mx(silent);
 
     if (newxl < you.experience_level)
         debug_downtick_xl(newxl);
@@ -873,6 +830,7 @@ void wizard_toggle_xray_vision()
     you.xray_vision = !you.xray_vision;
     mprf("X-ray vision %s.", you.xray_vision ? "enabled" : "disabled");
     viewwindow(true);
+    update_screen();
 }
 
 void wizard_freeze_time()

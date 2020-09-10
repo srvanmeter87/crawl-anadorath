@@ -35,10 +35,8 @@ const enchant_type dispellable_enchantments[] =
     ENCH_TOXIC_RADIANCE,
     ENCH_AGILE,
     ENCH_BLACK_MARK,
-    ENCH_SHROUD,
     ENCH_SAP_MAGIC,
     ENCH_REPEL_MISSILES,
-    ENCH_DEFLECT_MISSILES,
     ENCH_RESISTANCE,
     ENCH_HEXED,
     ENCH_PAIN_BOND,
@@ -87,3 +85,4 @@ void cleansing_flame(int pow, cleansing_flame_source caster, coord_def where,
                      actor *attacker = nullptr);
 
 spret cast_random_effects(int pow, bolt& beam, bool fail);
+void majin_bo_vampirism(monster &mon, int damage);

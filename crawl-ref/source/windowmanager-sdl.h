@@ -38,14 +38,13 @@ public:
     // System time functions
     virtual unsigned int set_timer(unsigned int interval,
                                    wm_timer_callback callback) override;
-    virtual void remove_timer(unsigned int timer_id) override;
+    virtual void remove_timer(unsigned int& timer_id) override;
     virtual unsigned int get_ticks() const override;
     virtual void delay(unsigned int ms) override;
 
     // Event functions
-    virtual int raise_custom_event() override;
     virtual int wait_event(wm_event *event, int timeout) override;
-    virtual unsigned int get_event_count(wm_event_type type) override;
+    virtual bool next_event_is(wm_event_type type) override;
     virtual void show_keyboard() override;
 
     // Display functions

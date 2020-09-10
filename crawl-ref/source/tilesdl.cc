@@ -21,9 +21,9 @@
 #include "output.h"
 #include "player.h"
 #include "state.h"
-#include "tiledef-dngn.h"
-#include "tiledef-gui.h"
-#include "tiledef-main.h"
+#include "rltiles/tiledef-dngn.h"
+#include "rltiles/tiledef-gui.h"
+#include "rltiles/tiledef-main.h"
 #include "tilefont.h"
 #include "tilereg-abl.h"
 #include "tilereg-cmd.h"
@@ -83,69 +83,24 @@ static int _screen_sizes[4][8] =
 #endif
 };
 
-HiDPIState display_density(1,1);
+HiDPIState display_density(1,1,1);
 
 TilesFramework tiles;
 
-
-HiDPIState::HiDPIState(int device_density, int logical_density) :
-        device(device_density), logical(logical_density)
-{
-}
-
-/**
- * Calculate the device pixels given the logical pixels; the two may be
- * different on high-DPI devices (such as retina displays).
- *
- * @param n a value in logical pixels
- * @return the result in device pixels. May be the same, if the device isn't
- *          high-DPI.
- */
-int HiDPIState::logical_to_device(int n) const
-{
-    return n * device / logical;
-}
-
-/**
- * Calculate logical pixels given device pixels; the two may be
- * different on high-DPI devices (such as retina displays).
- *
- * @param n a value in device pixels
- * @param round whether to round (or truncate); defaults to true. Rounding is
- *        safer, as truncating may lead to underestimating dimensions.
- * @return the result in logical pixels. May be the same, if the device isn't
- *          high-DPI.
- */
-int HiDPIState::device_to_logical(int n, bool round) const
-{
-    return (n * logical + (round ?  device - 1 : 0)) / device;
-}
-
-/*
- * Return a float multiplier such that device * multiplier = logical.
- * for high-dpi displays, will be fractional.
- */
-float HiDPIState::scale_to_logical() const
-{
-    return (float) logical / (float) device;
-}
-
-/*
- * Return a float multiplier such that logical * multiplier = device.
- */
-float HiDPIState::scale_to_device() const
-{
-    return (float) device / (float) logical;
-}
 
 /**
  * Update the DPI, e.g. after a window move.
  *
  * @return whether the ratio changed.
  */
-bool HiDPIState::update(int ndevice, int nlogical)
+bool HiDPIState::update(int ndevice, int nlogical, int ngame_scale)
 {
     HiDPIState old = *this;
+    game_scale = ngame_scale;
+    nlogical = apply_game_scale(nlogical);
+    // sanity check: should be impossible for this to happen without changing
+    // code.
+    ASSERT(nlogical != 0);
     if (nlogical == ndevice)
         logical = device = 1;
     else
@@ -160,16 +115,10 @@ bool HiDPIState::update(int ndevice, int nlogical)
 
 TilesFramework::TilesFramework() :
     m_windowsz(1024, 768),
-    m_viewsc(0, 0),
     m_fullscreen(false),
     m_need_redraw(false),
     m_active_layer(LAYER_CRT),
-    m_crt_font(-1),
-    m_msg_font(-1),
-    m_tip_font(-1),
-    m_lbl_font(-1),
     m_mouse(-1, -1),
-    m_last_tick_moved(0),
     m_last_tick_redraw(0)
 {
 }
@@ -181,8 +130,7 @@ TilesFramework::~TilesFramework()
 bool TilesFramework::fonts_initialized()
 {
     // TODO should in principle check the m_fonts vector as well
-    return !(m_crt_font == -1 || m_msg_font == -1
-                                    || m_tip_font == -1 || m_lbl_font == -1);
+    return m_crt_font && m_msg_font && m_stat_font && m_tip_font && m_lbl_font;
 }
 
 static void _init_consoles()
@@ -288,7 +236,7 @@ void TilesFramework::shutdown()
 
 void TilesFramework::draw_doll_edit()
 {
-    DollEditRegion reg(m_image, m_fonts[m_msg_font].font);
+    DollEditRegion reg(m_image, m_msg_font);
     reg.run();
 }
 
@@ -299,6 +247,7 @@ void TilesFramework::set_map_display(const bool display)
         m_region_tab->activate_tab(TAB_ITEM);
     do_layout(); // recalculate the viewport setup for zoom levels
     redraw_screen(false);
+    update_screen();
 }
 
 bool TilesFramework::get_map_display()
@@ -311,6 +260,7 @@ void TilesFramework::do_map_display()
     m_map_mode_enabled = true;
     do_layout(); // recalculate the viewport setup for zoom levels
     redraw_screen(false);
+    update_screen();
     m_region_tab->activate_tab(TAB_NAVIGATION);
 }
 
@@ -398,20 +348,18 @@ bool TilesFramework::initialise()
                               Options.tile_font_crt_size, true);
     m_msg_font    = load_font(Options.tile_font_msg_file.c_str(),
                               Options.tile_font_msg_size, true);
-    int stat_font = load_font(Options.tile_font_stat_file.c_str(),
+    m_stat_font   = load_font(Options.tile_font_stat_file.c_str(),
                               Options.tile_font_stat_size, true);
     m_tip_font    = load_font(Options.tile_font_tip_file.c_str(),
                               Options.tile_font_tip_size, true);
     m_lbl_font    = load_font(Options.tile_font_lbl_file.c_str(),
                               Options.tile_font_lbl_size, true);
 
-    if (!fonts_initialized() || stat_font == -1)
+    if (!fonts_initialized())
         return false;
 
-    if (tiles.is_using_small_layout())
-        m_init = TileRegionInit(m_image, m_fonts[m_crt_font].font, TILE_X, TILE_Y);
-    else
-        m_init = TileRegionInit(m_image, m_fonts[m_lbl_font].font, TILE_X, TILE_Y);
+    const auto font = tiles.is_using_small_layout() ? m_crt_font : m_lbl_font;
+    m_init = TileRegionInit(m_image, font, TILE_X, TILE_Y);
     m_region_tile = new DungeonRegion(m_init);
     m_region_tab  = new TabbedRegion(m_init);
     m_region_inv  = new InventoryRegion(m_init);
@@ -458,10 +406,9 @@ bool TilesFramework::initialise()
     m_region_tab->activate_tab(TAB_ITEM);
 #endif
 
-    m_region_msg  = new MessageRegion(m_fonts[m_msg_font].font);
-    m_region_stat = new StatRegion(m_fonts[stat_font].font);
-    m_fonts[stat_font].font->char_width();
-    m_region_crt  = new CRTRegion(m_fonts[m_crt_font].font);
+    m_region_msg  = new MessageRegion(m_msg_font);
+    m_region_stat = new StatRegion(m_stat_font);
+    m_region_crt  = new CRTRegion(m_crt_font);
 
     m_layers[LAYER_NORMAL].m_regions.push_back(m_region_tile);
     m_layers[LAYER_NORMAL].m_regions.push_back(m_region_msg);
@@ -484,14 +431,14 @@ void TilesFramework::reconfigure_fonts()
         finfo.font->configure_font();
 }
 
-int TilesFramework::load_font(const char *font_file, int font_size,
+FontWrapper* TilesFramework::load_font(const char *font_file, int font_size,
                               bool default_on_fail)
 {
     for (unsigned int i = 0; i < m_fonts.size(); i++)
     {
         font_info &finfo = m_fonts[i];
         if (finfo.name == font_file && finfo.size == font_size)
-            return i;
+            return finfo.font;
     }
 
     FontWrapper *font = FontWrapper::create();
@@ -509,7 +456,7 @@ int TilesFramework::load_font(const char *font_file, int font_size,
             return load_font(MONOSPACED_FONT, 12, false);
         }
         else
-            return -1;
+            return nullptr;
     }
 
     font_info finfo;
@@ -518,7 +465,7 @@ int TilesFramework::load_font(const char *font_file, int font_size,
     finfo.size = font_size;
     m_fonts.push_back(finfo);
 
-    return m_fonts.size() - 1;
+    return font;
 }
 void TilesFramework::load_dungeon(const crawl_view_buffer &vbuf,
                                   const coord_def &gc)
@@ -527,13 +474,14 @@ void TilesFramework::load_dungeon(const crawl_view_buffer &vbuf,
 
     m_region_tile->load_dungeon(vbuf, gc);
 
-    int ox = m_region_tile->mx/2;
-    int oy = m_region_tile->my/2;
-    coord_def win_start(gc.x - ox, gc.y - oy);
-    coord_def win_end(gc.x + ox + 1, gc.y + oy + 1);
-
     if (m_region_map)
+    {
+        int ox = m_region_tile->mx/2;
+        int oy = m_region_tile->my/2;
+        coord_def win_start(gc.x - ox, gc.y - oy);
+        coord_def win_end(gc.x + ox + 1, gc.y + oy + 1);
         m_region_map->set_window(win_start, win_end);
+    }
 }
 
 void TilesFramework::load_dungeon(const coord_def &cen)
@@ -569,8 +517,11 @@ void TilesFramework::resize()
 
 void TilesFramework::resize_event(int w, int h)
 {
-    m_windowsz.x = w;
-    m_windowsz.y = h;
+    m_windowsz.x = display_density.apply_game_scale(w);
+    m_windowsz.y = display_density.apply_game_scale(h);
+    // TODO: does order of this call matter? This is based on a previous
+    // version where it was called from outside this function.
+    ui::resize(m_windowsz.x, m_windowsz.y);
 
     update_dpi();
     calculate_default_options();
@@ -578,7 +529,7 @@ void TilesFramework::resize_event(int w, int h)
     wm->resize(m_windowsz);
 }
 
-int TilesFramework::handle_mouse(MouseEvent &event)
+int TilesFramework::handle_mouse(wm_mouse_event &event)
 {
     // Note: the mouse event goes to all regions in the active layer because
     // we want to be able to start some GUI event (e.g. far viewing) and
@@ -607,11 +558,11 @@ int TilesFramework::handle_mouse(MouseEvent &event)
     if ((mouse_control::current_mode() == MOUSE_MODE_MORE
          || mouse_control::current_mode() == MOUSE_MODE_PROMPT
          || mouse_control::current_mode() == MOUSE_MODE_YESNO)
-        && event.event == MouseEvent::PRESS)
+        && event.event == wm_mouse_event::PRESS)
     {
-        if (event.button == MouseEvent::LEFT)
+        if (event.button == wm_mouse_event::LEFT)
             return CK_MOUSE_CLICK;
-        else if (event.button == MouseEvent::RIGHT)
+        else if (event.button == wm_mouse_event::RIGHT)
             return CK_MOUSE_CMD;
     }
 
@@ -620,13 +571,10 @@ int TilesFramework::handle_mouse(MouseEvent &event)
 
 static unsigned int _timer_callback(unsigned int ticks, void *param)
 {
-    UNUSED(param);
+    UNUSED(ticks, param);
 
-    // force the event loop to break
-    wm->raise_custom_event();
 
-    unsigned int res = Options.tile_tooltip_ms;
-    return res;
+    return 0;
 }
 
 int TilesFramework::getch_ck()
@@ -643,8 +591,6 @@ int TilesFramework::getch_ck()
 
     const unsigned int ticks_per_screen_redraw = Options.tile_update_rate;
 
-    unsigned int res = Options.tile_tooltip_ms;
-    unsigned int timer_id = wm->set_timer(res, &_timer_callback);
 
     m_tooltip.clear();
     m_region_msg->alt_text().clear();
@@ -668,6 +614,12 @@ int TilesFramework::getch_ck()
                 tiles.clear_text_tags(TAG_CELL_DESC);
                 m_region_msg->alt_text().clear();
             }
+
+            // These WME_* events are also handled, at different times, by a
+            // similar bit of code in ui.cc. Roughly, this handling is used
+            // during the main game display, and the ui.cc loop is used in the
+            // main menu and when there are ui elements on top.
+            // TODO: consolidate as much as possible
 
             switch (event.type)
             {
@@ -715,31 +667,23 @@ int TilesFramework::getch_ck()
 
                 // If you hit a key, disable tooltips until the mouse
                 // is moved again.
-                m_last_tick_moved = UINT_MAX;
+                m_show_tooltip = false;
+                wm->remove_timer(m_tooltip_timer_id);
                 break;
 
             case WME_KEYUP:
-                m_last_tick_moved = UINT_MAX;
+                m_show_tooltip = false;
+                wm->remove_timer(m_tooltip_timer_id);
                 break;
 
             case WME_MOUSEMOTION:
                 {
                     // For consecutive mouse events, ignore all but the last,
                     // since these can come in faster than crawl can redraw.
-                    //
-                    // Note that get_event_count() is misleadingly named and only
-                    // peeks at the first event, and so will only return 0 or 1.
-                    unsigned int count = wm->get_event_count(WME_MOUSEMOTION);
-                    ASSERT(count >= 0);
-                    if (count > 0)
+                    if (wm->next_event_is(WME_MOUSEMOTION))
                         continue;
 
                     // Record mouse pos for tooltip timer
-                    if (m_mouse.x != (int)event.mouse_event.px
-                        || m_mouse.y != (int)event.mouse_event.py)
-                    {
-                        m_last_tick_moved = ticks;
-                    }
                     m_mouse.x = event.mouse_event.px;
                     m_mouse.y = event.mouse_event.py;
 
@@ -776,21 +720,16 @@ int TilesFramework::getch_ck()
                         prev_msg_alt_text = m_region_msg->alt_text();
                         set_need_redraw();
                     }
+
+                    wm->remove_timer(m_tooltip_timer_id);
+                    m_tooltip_timer_id = wm->set_timer(Options.tile_tooltip_ms, &_timer_callback);
+                    m_show_tooltip = false;
                 }
                break;
 
             case WME_MOUSEBUTTONUP:
-                {
-                    key = handle_mouse(event.mouse_event);
-                    m_last_tick_moved = UINT_MAX;
-                }
-                break;
-
             case WME_MOUSEBUTTONDOWN:
-                {
-                    key = handle_mouse(event.mouse_event);
-                    m_last_tick_moved = UINT_MAX;
-                }
+                key = handle_mouse(event.mouse_event);
                 break;
 
             case WME_QUIT:
@@ -798,9 +737,7 @@ int TilesFramework::getch_ck()
                 return ESCAPE;
 
             case WME_RESIZE:
-                m_windowsz.x = event.resize.w;
-                m_windowsz.y = event.resize.h;
-                resize();
+                resize_event(event.resize.w, event.resize.h);
                 set_need_redraw();
                 return CK_REDRAW;
 
@@ -820,17 +757,14 @@ int TilesFramework::getch_ck()
             case WME_CUSTOMEVENT:
             default:
                 // This is only used to refresh the tooltip.
+                m_show_tooltip = true;
                 break;
             }
         }
 
         if (!mouse_target_mode)
         {
-            const bool timeout = (ticks > m_last_tick_moved
-                                  && (ticks - m_last_tick_moved
-                                      > (unsigned int)Options.tile_tooltip_ms));
-
-            if (timeout)
+            if (m_show_tooltip)
             {
                 tiles.clear_text_tags(TAG_CELL_DESC);
                 if (Options.tile_tooltip_ms > 0 && m_tooltip.empty())
@@ -868,8 +802,6 @@ int TilesFramework::getch_ck()
     // We got some input, so we'll probably have to redraw something.
     set_need_redraw();
 
-    wm->remove_timer(timer_id);
-
     return key;
 }
 
@@ -895,18 +827,26 @@ static int round_up_to_multiple(int a, int b)
  */
 void TilesFramework::do_layout()
 {
-    // View size in pixels is (m_viewsc * crawl_view.viewsz)
+    /**
+     * XXX: don't layout unless we're in a game / arena
+     * this is to prevent layout code from accessing `you` while it's invalid.
+     */
+    if (!species_type_valid(you.species))
+    {
+        /* HACK: some code called while loading the game calls mprf(), so even
+         * if we're not ready to do an actual layout, we should still give the
+         * message region a size, to prevent a crash. */
+        m_region_msg->place(0, 0, 0);
+        m_region_msg->resize_to_fit(10000, 10000);
+        return;
+    }
+
+    // View size in pixels is ((dx, dy) * crawl_view.viewsz)
     const int scale = m_map_mode_enabled ? Options.tile_map_scale
                                          : Options.tile_viewport_scale;
-    m_viewsc.x = Options.tile_cell_pixels * scale / 100;
-    m_viewsc.y = Options.tile_cell_pixels * scale / 100;
+    m_region_tile->dx = Options.tile_cell_pixels * scale / 100;
+    m_region_tile->dy = Options.tile_cell_pixels * scale / 100;
 
-    crawl_view.viewsz.x = Options.view_max_width;
-    crawl_view.viewsz.y = Options.view_max_height;
-
-    // Initial sizes.
-    m_region_tile->dx = m_viewsc.x;
-    m_region_tile->dy = m_viewsc.y;
     int message_y_divider = 0;
     int sidebar_pw;
 
@@ -1030,15 +970,12 @@ void TilesFramework::do_layout()
     // Expand dungeon region to cover partial tiles, then offset to keep player centred
     int tile_iw = m_stat_x_divider;
     int tile_ih = message_y_divider;
-    int tile_ow = round_up_to_multiple(tile_iw, m_region_tile->dx*2);
-    int tile_oh = round_up_to_multiple(tile_ih, m_region_tile->dy*2);
+    int tile_ow = round_up_to_multiple(tile_iw, m_region_tile->dx*2) + m_region_tile->dx;
+    int tile_oh = round_up_to_multiple(tile_ih, m_region_tile->dy*2) + m_region_tile->dx;
     m_region_tile->resize_to_fit(tile_ow, tile_oh);
     m_region_tile->place(-(tile_ow - tile_iw)/2, -(tile_oh - tile_ih)/2, 0);
     m_region_tile->tile_iw = tile_iw;
     m_region_tile->tile_ih = tile_ih;
-
-    crawl_view.viewsz.x = m_region_tile->mx;
-    crawl_view.viewsz.y = m_region_tile->my;
 
     // Resize and place the message window.
     m_region_msg->set_overlay(message_overlay);
@@ -1055,9 +992,6 @@ void TilesFramework::do_layout()
         m_region_msg->place(0, tile_ih, 0);
     }
 
-    crawl_view.msgsz.x = m_region_msg->mx;
-    crawl_view.msgsz.y = m_region_msg->my;
-
     if (use_small_layout)
         m_stat_col = m_stat_x_divider;
     else
@@ -1071,6 +1005,12 @@ void TilesFramework::do_layout()
     m_region_crt->place(0, 0, 0);
     m_region_crt->resize_to_fit(m_windowsz.x, m_windowsz.y);
 
+    crawl_view.viewsz.x = m_region_tile->mx;
+    crawl_view.viewsz.y = m_region_tile->my;
+    crawl_view.msgsz.x = m_region_msg->mx;
+    crawl_view.msgsz.y = m_region_msg->my;
+    crawl_view.hudsz.x = m_region_stat->mx;
+    crawl_view.hudsz.y = m_region_stat->my;
     crawl_view.init_view();
 }
 
@@ -1099,9 +1039,7 @@ bool TilesFramework::is_using_small_layout()
 
 void TilesFramework::zoom_dungeon(bool in)
 {
-#ifdef TOUCH_UI
-    m_region_tile->zoom(in);
-#elif defined(USE_TILE_LOCAL)
+#if defined(USE_TILE_LOCAL)
     int &current_scale = m_map_mode_enabled ?  Options.tile_map_scale
                                             :  Options.tile_viewport_scale;
     // max zoom relative to to tile size that keeps LOS in view
@@ -1114,57 +1052,8 @@ void TilesFramework::zoom_dungeon(bool in)
     do_layout(); // recalculate the viewport setup
     dprf("Zooming to %d", current_scale);
     redraw_screen(false);
+    update_screen();
 #endif
-}
-
-bool TilesFramework::zoom_to_minimap()
-{
-    // don't zoom to the minimap if it's already on the screen
-    if (m_region_map || !tiles.is_using_small_layout())
-        return false;
-
-    m_region_map  = new MapRegion(m_map_pixels);
-    m_region_map->dx = m_region_map->dy = min((m_windowsz.x-2*map_margin)/GXM,(m_windowsz.y-2*map_margin)/GYM);
-    m_region_map->resize(GXM, GYM);
-    m_region_map->place(0, 0, map_margin);
-    // put the minimap at the beginning so that menus get drawn over it
-    m_layers[LAYER_NORMAL].m_regions.insert(m_layers[LAYER_NORMAL].m_regions.begin(),m_region_map);
-
-    // move the dregion out of the way
-    m_region_tile->place(m_region_tile->sx,m_windowsz.y,0);
-
-    set_need_redraw();
-
-    // force the minimap to be redrawn properly
-    //  - not sure why this is necessary :(
-    clear_map();
-
-    // force UI into map mode
-//    set_map_display(true);
-//    process_command(CMD_DISPLAY_MAP);
-    return true;
-}
-
-bool TilesFramework::zoom_from_minimap()
-{
-    // don't try to zap the overlaid minimap twice
-    if (!m_region_map || !tiles.is_using_small_layout())
-        return false;
-    delete m_region_map;
-    m_region_map = nullptr;
-
-    // remove minimap from layers again (was at top of vector)
-    m_layers[LAYER_NORMAL].m_regions.erase(m_layers[LAYER_NORMAL].m_regions.begin());
-
-    // take UI out of map mode again
-//    set_map_display(false);
-
-    // put the dregion back (not at 0,0 because we scaled it!)
-    // NB. this assumes that we can work out sy again based on the ratio of wx to wy :O
-    m_region_tile->place(m_region_tile->sx,m_region_tile->sx*m_region_tile->wy/m_region_tile->wx,0);
-
-    set_need_redraw();
-    return true;
 }
 
 void TilesFramework::deactivate_tab()
@@ -1178,9 +1067,11 @@ void TilesFramework::autosize_minimap()
     const int vert = (m_statcol_bottom - (m_region_map->sy ? m_region_map->sy
                                                            : m_statcol_top)
                      - map_margin * 2) / GYM;
-    m_region_map->dx = m_region_map->dy = min(horiz, vert);
+
+    int sz = min(horiz, vert);
     if (Options.tile_map_pixels)
-        m_region_map->dx = min(m_region_map->dx, Options.tile_map_pixels);
+        sz = min(sz, Options.tile_map_pixels);
+    m_region_map->dx = m_region_map->dy = sz;
 }
 
 void TilesFramework::place_minimap()
@@ -1324,14 +1215,10 @@ void TilesFramework::layout_statcol()
         // resize stats to be up to beginning of command tabs
         //  ... this works because the margin (ox) on m_region_tab contains the tabs themselves
         m_region_stat->resize_to_fit((m_windowsz.x - m_stat_x_divider) - m_region_tab->ox*m_region_tab->dx/32, m_statcol_bottom-m_statcol_top);
-        crawl_view.hudsz.y = m_region_stat->my;
-        crawl_view.hudsz.x = m_region_stat->mx;
     }
     else
     {
-        crawl_view.hudsz.x = m_region_stat->mx;
-        crawl_view.hudsz.y = min_stat_height;
-        m_region_stat->resize(m_region_stat->mx, crawl_view.hudsz.y);
+        m_region_stat->resize(m_region_stat->mx, min_stat_height);
 
         m_statcol_top = m_region_stat->ey;
 
@@ -1345,7 +1232,7 @@ void TilesFramework::layout_statcol()
         m_region_tab->place(m_stat_col, m_windowsz.y - m_region_tab->wy);
         m_statcol_bottom = m_region_tab->sy - m_tab_margin;
 
-        m_region_stat->resize(m_region_stat->mx, crawl_view.hudsz.y);
+        m_region_stat->resize(m_region_stat->mx, min_stat_height);
         m_statcol_top += m_region_stat->dy;
         bool resized_inventory = false;
 
@@ -1464,7 +1351,7 @@ void TilesFramework::redraw()
 #endif
     m_need_redraw = false;
 
-    glmanager->reset_view_for_redraw(m_viewsc.x, m_viewsc.y);
+    glmanager->reset_view_for_redraw();
 
     for (Region *region : m_layers[m_active_layer].m_regions)
         region->render();
@@ -1472,12 +1359,11 @@ void TilesFramework::redraw()
     // Draw tooltip
     if (Options.tile_tooltip_ms > 0 && !m_tooltip.empty())
     {
-        const coord_def min_pos(0, 0);
-        FontWrapper *font = m_fonts[m_tip_font].font;
-
-        font->render_string(m_mouse.x, m_mouse.y - 2, m_tooltip.c_str(),
-                            min_pos, m_windowsz, WHITE, false, 220, BLUE, 5,
-                            true);
+        const int buffer = 5;
+        const coord_def min_pos = coord_def() + buffer;
+        const coord_def max_pos = m_windowsz - buffer;
+        m_tip_font->render_tooltip(m_mouse.x, m_mouse.y,
+                formatted_string(m_tooltip), min_pos, max_pos);
     }
     wm->swap_buffers();
 
@@ -1488,12 +1374,18 @@ void TilesFramework::redraw()
     m_last_tick_redraw = wm->get_ticks();
 }
 
-void TilesFramework::render_current_regions()
+void TilesFramework::maybe_redraw_screen()
 {
     // need to call with show_updates=false, which is passed to viewwindow
     if (m_active_layer == LAYER_NORMAL && !crawl_state.game_is_arena())
+    {
         redraw_screen(false);
+        update_screen();
+    }
+}
 
+void TilesFramework::render_current_regions()
+{
     for (Region *region : m_layers[m_active_layer].m_regions)
         region->render();
 }
@@ -1567,7 +1459,7 @@ void TilesFramework::add_text_tag(text_tag_type type, const string &tag,
     m_region_tile->add_text_tag(type, tag, gc);
 }
 
-void TilesFramework::add_text_tag(text_tag_type type, const monster_info& mon)
+void TilesFramework::add_text_tag(text_tag_type /*type*/, const monster_info& mon)
 {
     // HACK. Large-tile monsters don't interact well with name tags.
     if (mons_class_flag(mon.type, M_TALL_TILE)
@@ -1592,16 +1484,6 @@ void TilesFramework::add_text_tag(text_tag_type type, const monster_info& mon)
 const coord_def &TilesFramework::get_cursor() const
 {
     return m_region_tile->get_cursor();
-}
-
-void TilesFramework::add_overlay(const coord_def &gc, tileidx_t idx)
-{
-    m_region_tile->add_overlay(gc, idx);
-}
-
-void TilesFramework::clear_overlays()
-{
-    m_region_tile->clear_overlays();
 }
 
 void TilesFramework::set_need_redraw(unsigned int min_tick_delay)

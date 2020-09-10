@@ -19,17 +19,17 @@
 #include "delay.h"
 #include "directn.h"
 #include "env.h"
-#include "food.h"
 #include "fprop.h"
+#include "god-passive.h"
 #include "monster.h"
 #include "mon-pathfind.h"
-#include "mon-place.h"
 #include "mon-tentacle.h"
 #include "player.h"
 #include "player-stats.h"
 #include "stringutil.h"
 #include "state.h"
 #include "terrain.h"
+#include "timed-effects.h" // decr_zot_clock
 #include "transform.h"
 #include "traps.h"
 #include "travel.h"
@@ -82,8 +82,7 @@ static bool _mons_has_path_to_player(const monster* mon, bool want_move = false)
     // direct path to you "safe" just because it would be too stupid to
     // track you that far out-of-sight. Use a factor of 2 for smarter
     // creatures as a safety margin.
-    if (range > 0)
-        mp.set_range(max(LOS_RADIUS, range * 2));
+    mp.set_range(max(LOS_RADIUS, range * 2));
 
     if (mp.init_pathfind(mon, you.pos(), true, false, true))
         return true;
@@ -94,13 +93,24 @@ static bool _mons_has_path_to_player(const monster* mon, bool want_move = false)
     return false;
 }
 
+static bool _mons_explodes(const monster *mon)
+{
+    return mon->type == MONS_BALLISTOMYCETE_SPORE
+           || mon->type == MONS_BALL_LIGHTNING
+           || mon->type == MONS_FULMINANT_PRISM;
+}
+
 bool mons_can_hurt_player(const monster* mon, const bool want_move)
 {
     // FIXME: This takes into account whether the player knows the map!
     //        It should, for the purposes of i_feel_safe. [rob]
     // It also always returns true for sleeping monsters, but that's okay
     // for its current purposes. (Travel interruptions and tension.)
-    if (_mons_has_path_to_player(mon, want_move))
+    //
+    // This also doesn't account for explosion radii, which is a false positive
+    // for a player waiting near (but not in range of) their own fulminant
+    // prism
+    if (_mons_has_path_to_player(mon, want_move) || _mons_explodes(mon))
         return true;
 
     // Even if the monster can not actually reach the player it might
@@ -114,13 +124,11 @@ bool mons_can_hurt_player(const monster* mon, const bool want_move)
     return false;
 }
 
-
-
 // Returns true if a monster can be considered safe regardless
 // of distance.
 static bool _mons_is_always_safe(const monster *mon)
 {
-    return mon->wont_attack()
+    return (mon->wont_attack() && !_mons_explodes(mon))
            || mon->type == MONS_BUTTERFLY
            || (mon->type == MONS_BALLISTOMYCETE
                && !mons_is_active_ballisto(*mon));
@@ -214,15 +222,6 @@ vector<monster* > get_nearby_monsters(bool want_move,
     return mons;
 }
 
-static bool _exposed_monsters_nearby(bool want_move)
-{
-    const int radius = want_move ? 2 : 1;
-    for (radius_iterator ri(you.pos(), radius, C_SQUARE, LOS_DEFAULT); ri; ++ri)
-        if (env.map_knowledge(*ri).flags & MAP_INVISIBLE_MONSTER)
-            return true;
-    return false;
-}
-
 bool i_feel_safe(bool announce, bool want_move, bool just_monsters,
                  bool check_dist, int range)
 {
@@ -286,9 +285,18 @@ bool i_feel_safe(bool announce, bool want_move, bool just_monsters,
     }
 
     // Monster check.
-    vector<monster* > visible =
-        get_nearby_monsters(want_move, !announce, true, true, true,
+    vector<monster* > monsters =
+        get_nearby_monsters(want_move, !announce, true, true, false,
                             check_dist, range);
+
+    vector<monster* > visible;
+    copy_if(monsters.begin(), monsters.end(), back_inserter(visible),
+            [](const monster *mon){ return mon->visible_to(&you); });
+
+    const bool sensed_monster = any_of(monsters.begin(), monsters.end(),
+            [](const monster *mon){
+                return env.map_knowledge(mon->pos()).flags & MAP_INVISIBLE_MONSTER;
+            });
 
     // Announce the presence of monsters (Eidolos).
     string msg;
@@ -299,7 +307,7 @@ bool i_feel_safe(bool announce, bool want_move, bool just_monsters,
     }
     else if (visible.size() > 1)
         msg = "There are monsters nearby!";
-    else if (_exposed_monsters_nearby(want_move))
+    else if (sensed_monster)
         msg = "There is a strange disturbance nearby!";
     else
         return true;
@@ -439,7 +447,6 @@ void revive()
 
     you.disease = 0;
     you.magic_contamination = 0;
-    set_hunger(HUNGER_DEFAULT, true);
     restore_stat(STAT_ALL, 0, true);
 
     clear_trapping_net();
@@ -455,15 +462,18 @@ void revive()
     you.attribute[ATTR_FLIGHT_UNCANCELLABLE] = 0;
     you.attribute[ATTR_XP_DRAIN] = 0;
     you.attribute[ATTR_SERPENTS_LASH] = 0;
-    you.attribute[ATTR_HEAVENLY_STORM] = 0;
-    you.attribute[ATTR_WALL_JUMP_READY] = 0;
+    decr_zot_clock();
     you.los_noise_level = 0;
     you.los_noise_last_turn = 0; // silence in death
+
     if (you.duration[DUR_SCRYING])
         you.xray_vision = false;
+    if (you.duration[DUR_HEAVENLY_STORM])
+        wu_jian_end_heavenly_storm();
 
+    // TODO: this doesn't seem to call any duration end effects?
     for (int dur = 0; dur < NUM_DURATIONS; dur++)
-        if (dur != DUR_GOURMAND && dur != DUR_PIETY_POOL)
+        if (dur != DUR_PIETY_POOL)
             you.duration[dur] = 0;
 
     update_vision_range(); // in case you had darkness cast before

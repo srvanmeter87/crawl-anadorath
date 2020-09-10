@@ -47,10 +47,6 @@ private:
 void cursorxy(int x, int y);
 static inline void cursorxy(const coord_def& p) { cursorxy(p.x, p.y); }
 
-// Read one key, flag it as a mouse event if appropriate, but apply no
-// other conversions. Defined in lib$OS.cc, not in cio.cc.
-int m_getch();
-
 // Converts a key to a direction key, converting keypad and other sequences
 // to vi key sequences (shifted/control key directions are also handled). Non
 // direction keys (hopefully) pass through unmangled.
@@ -58,6 +54,8 @@ int unmangle_direction_keys(int keyin, KeymapContext keymap = KMC_DEFAULT,
                             bool allow_fake_modifiers = true);
 
 void nowrap_eol_cprintf(PRINTF(0, ));
+void wrapcprintf(int wrapcol, const char *s, ...);
+void wrapcprintf(const char *s, ...);
 
 // Returns zero if user entered text and pressed Enter, otherwise returns the
 // key pressed that caused the exit, usually Escape.
@@ -224,19 +222,34 @@ class cursor_control
 {
 public:
     cursor_control(bool cursor_enabled)
-        : cstate(is_cursor_enabled()), smartcstate(is_smart_cursor_enabled())
+        : cstate(is_cursor_enabled())
     {
-        enable_smart_cursor(false);
         set_cursor_enabled(cursor_enabled);
     }
     ~cursor_control()
     {
         set_cursor_enabled(cstate);
-        enable_smart_cursor(smartcstate);
     }
 private:
     bool cstate;
-    bool smartcstate;
+};
+
+enum edit_mode
+{
+    EDIT_MODE_INSERT,
+    EDIT_MODE_OVERWRITE,
+};
+
+class draw_colour
+{
+public:
+    draw_colour(COLOURS fg, COLOURS bg);
+    ~draw_colour();
+    void set();
+    void reset();
+private:
+    COLOURS foreground;
+    COLOURS background;
 };
 
 enum edit_mode
@@ -357,7 +370,8 @@ protected:
     {
         return ch == CK_NO_KEY ? CK_NO_KEY : line_reader::process_key(ch);
     }
-    virtual void print_segment(int start_point=0, int overprint=0) override {};
+    virtual void print_segment(int, int) override {};
+    void cursorto(int) override {};
     int key;
 };
 

@@ -18,18 +18,15 @@
 #include "directn.h"
 #include "env.h"
 #include "files.h"
-#include "fprop.h"
-#include "god-abil.h"
 #include "god-passive.h" // passive_t::slow_abyss
 #include "hints.h"
 #include "hiscores.h"
 #include "item-name.h"
-#include "item-status-flag-type.h"
 #include "items.h"
 #include "level-state-type.h"
+#include "losglobal.h"
 #include "mapmark.h"
 #include "message.h"
-#include "misc.h"
 #include "mon-death.h"
 #include "movement.h"
 #include "notes.h"
@@ -40,7 +37,6 @@
 #include "spl-clouds.h"
 #include "spl-damage.h"
 #include "spl-other.h"
-#include "spl-transloc.h"
 #include "state.h"
 #include "stringutil.h"
 #include "terrain.h"
@@ -48,6 +44,7 @@
  #include "tilepick.h"
 #endif
 #include "tiles-build-specific.h"
+#include "timed-effects.h" // bezotted
 #include "traps.h"
 #include "travel.h"
 #include "view.h"
@@ -155,7 +152,7 @@ static bool _stair_moves_pre(dungeon_feature_type stair)
         return false;
 
     // Get feature name before sliding stair over.
-    string stair_str = feature_description_at(you.pos(), false, DESC_THE, false);
+    string stair_str = feature_description_at(you.pos(), false, DESC_THE);
 
     if (!slide_feature_over(you.pos()))
         return false;
@@ -222,14 +219,20 @@ static void _clear_prisms()
 
 void leaving_level_now(dungeon_feature_type stair_used)
 {
-    process_sunlights(true);
-
     if (stair_used == DNGN_EXIT_ZIGGURAT)
     {
         if (you.depth == 27)
             you.zigs_completed++;
         mark_milestone("zig.exit", make_stringf("left a ziggurat at level %d.",
                        you.depth));
+    }
+
+    if (stair_used == DNGN_EXIT_ABYSS)
+    {
+#ifdef DEBUG
+        auto &vault_list =  you.vault_list[level_id::current()];
+        vault_list.push_back("[exit]");
+#endif
     }
 
     dungeon_events.fire_position_event(DET_PLAYER_CLIMBS, you.pos());
@@ -313,7 +316,7 @@ static bool _check_stairs(const dungeon_feature_type ftype, bool going_up)
             if (ftype == DNGN_STONE_ARCH)
                 mpr("There is nothing on the other side of the stone arch.");
             else if (ftype == DNGN_ABANDONED_SHOP)
-                mpr("This shop appears to be closed.");
+                mpr("This shop has been abandoned, nothing of value remains.");
             else if (going_up)
                 mpr("You can't go up here!");
             else
@@ -375,7 +378,8 @@ static void _rune_effect(dungeon_feature_type ftype)
 
             mprf("You insert the %s rune into the lock.", rune_type_name(runes[2]));
 #ifdef USE_TILE_LOCAL
-            tiles.add_overlay(you.pos(), tileidx_zap(rune_colour(runes[2])));
+            view_add_tile_overlay(you.pos(), tileidx_zap(rune_colour(runes[2])));
+            viewwindow(false);
             update_screen();
 #else
             flash_view(UA_BRANCH_ENTRY, rune_colour(runes[2]));
@@ -386,6 +390,7 @@ static void _rune_effect(dungeon_feature_type ftype)
             mprf("You insert the %s rune into the lock.", rune_type_name(runes[1]));
             big_cloud(CLOUD_BLUE_SMOKE, &you, you.pos(), 20, 7 + random2(7));
             viewwindow();
+            update_screen();
             mpr("Heavy smoke blows from the lock!");
             // included in default force_more_message
         }
@@ -406,7 +411,7 @@ static void _gauntlet_effect()
     if (you.species == SP_FORMICID)
         return;
 
-    mprf(MSGCH_WARN, "The nature of this place prevents teleportation.");
+    mprf(MSGCH_WARN, "The nature of this place prevents you from teleporting.");
 
     if (you.has_mutation(MUT_TELEPORT, true)
         || you.wearing(EQ_RINGS, RING_TELEPORTATION, true)
@@ -483,7 +488,7 @@ static level_id _travel_destination(const dungeon_feature_type how,
             return dest;
         }
 
-        shaft_dest = you.shaft_dest(known_shaft);
+        shaft_dest = you.shaft_dest();
     }
     // How far down you fall via a shaft or hatch.
     const int shaft_depth = (shaft ? shaft_dest.depth - you.depth : 1);
@@ -621,6 +626,7 @@ void floor_transition(dungeon_feature_type how,
     you.stop_being_constricted();
     you.clear_beholders();
     you.clear_fearmongers();
+    dec_frozen_ramparts(you.duration[DUR_FROZEN_RAMPARTS]);
 
     if (!forced)
     {
@@ -732,6 +738,7 @@ void floor_transition(dungeon_feature_type how,
     case BRANCH_ABYSS:
         // There are no abyssal stairs that go up, so this whole case is only
         // when going down.
+        you.props.erase(ABYSS_SPAWNED_XP_EXIT_KEY);
         if (old_level.branch == BRANCH_ABYSS)
         {
             mprf(MSGCH_BANISHMENT, "You plunge deeper into the Abyss.");
@@ -752,7 +759,6 @@ void floor_transition(dungeon_feature_type how,
         }
 
         you.props[ABYSS_STAIR_XP_KEY] = EXIT_XP_COST;
-        you.props.erase(ABYSS_SPAWNED_XP_EXIT_KEY);
 
         // Re-entering the Abyss halves accumulated speed.
         you.abyss_speed /= 2;
@@ -784,6 +790,30 @@ void floor_transition(dungeon_feature_type how,
             else if (branch != BRANCH_ABYSS) // too many messages...
                 mprf("Welcome to %s!", branches[branch].longname);
         }
+        const bool was_bezotted = bezotted_in(old_level.branch);
+        if (bezotted())
+        {
+            if (was_bezotted)
+                mpr("Zot already knows this place too well. Flee this branch!");
+            else
+                mpr("Zot's attention fixes on you again. Flee this branch!");
+        }
+        else if (was_bezotted)
+        {
+            if (branch == BRANCH_ABYSS)
+                mpr("Zot has no power in the Abyss.");
+            else
+                mpr("You feel Zot lose track of you.");
+        }
+
+        if (branch == BRANCH_GAUNTLET)
+            _gauntlet_effect();
+
+        const set<branch_type> boring_branch_exits = {
+            BRANCH_TEMPLE,
+            BRANCH_BAZAAR,
+            BRANCH_TROVE
+        };
 
         if (branch == BRANCH_GAUNTLET)
             _gauntlet_effect();
@@ -816,8 +846,8 @@ void floor_transition(dungeon_feature_type how,
                 mpr(rune_msg);
         }
 
-        // Entered a regular (non-portal) branch from above.
-        if (!going_up && parent_branch(branch) == old_level.branch)
+        // Entered a branch from its parent.
+        if (parent_branch(branch) == old_level.branch)
             enter_branch(branch, old_level);
     }
 
@@ -846,7 +876,7 @@ void floor_transition(dungeon_feature_type how,
 
     moveto_location_effects(whence);
 
-    trackers_init_new_level(true);
+    trackers_init_new_level();
 
     if (update_travel_cache && !shaft)
         _update_travel_cache(old_level, stair_pos);
@@ -855,6 +885,7 @@ void floor_transition(dungeon_feature_type how,
     env.map_seen.set(you.pos());
 
     viewwindow();
+    update_screen();
 
     // There's probably a reason for this. I don't know it.
     if (going_up)
@@ -926,6 +957,8 @@ level_id stair_destination(dungeon_feature_type feat, const string &dst,
 #if TAG_MAJOR_VERSION == 34
     if (feat == DNGN_ESCAPE_HATCH_UP && player_in_branch(BRANCH_LABYRINTH))
         feat = DNGN_EXIT_LABYRINTH;
+#else
+    UNUSED(dst); // see below in the switch
 #endif
     if (branches[you.where_are_you].exit_stairs == feat
         && parent_branch(you.where_are_you) < NUM_BRANCHES
@@ -1065,18 +1098,6 @@ void down_stairs(dungeon_feature_type force_stair, bool force_known_shaft, bool 
     take_stairs(force_stair, false, force_known_shaft, update_travel_cache);
 }
 
-static bool _any_glowing_mold()
-{
-    for (rectangle_iterator ri(0); ri; ++ri)
-        if (glowing_mold(*ri))
-            return true;
-    for (monster_iterator mon_it; mon_it; ++mon_it)
-        if (mon_it->type == MONS_HYPERACTIVE_BALLISTOMYCETE)
-            return true;
-
-    return false;
-}
-
 static void _update_level_state()
 {
     env.level_state = 0;
@@ -1085,8 +1106,6 @@ static void _update_level_state()
     if (!golub.empty())
         env.level_state |= LSTATE_GOLUBRIA;
 
-    if (_any_glowing_mold())
-        env.level_state |= LSTATE_GLOW_MOLD;
     for (monster_iterator mon_it; mon_it; ++mon_it)
     {
         if (mons_allows_beogh(**mon_it))
@@ -1100,9 +1119,35 @@ static void _update_level_state()
                   + mon_it->get_ench(ENCH_AWAKEN_FOREST).duration;
         }
     }
+
+#if TAG_MAJOR_VERSION == 34
+    const bool have_ramparts = you.duration[DUR_FROZEN_RAMPARTS];
+    const auto &ramparts_pos = you.props[FROZEN_RAMPARTS_KEY].get_coord();
+#endif
     for (rectangle_iterator ri(0); ri; ++ri)
+    {
         if (grd(*ri) == DNGN_SLIMY_WALL)
             env.level_state |= LSTATE_SLIMY_WALL;
+
+        if (is_icecovered(*ri))
+#if TAG_MAJOR_VERSION == 34
+        {
+            // Buggy versions of Frozen Ramparts didn't properly clear
+            // FPROP_ICY from walls in some cases, so we detect invalid walls
+            // and remove the flag.
+            if (have_ramparts
+                && ramparts_pos.distance_from(*ri) <= 3
+                && cell_see_cell(*ri, ramparts_pos, LOS_NO_TRANS))
+            {
+#endif
+            env.level_state |= LSTATE_ICY_WALL;
+#if TAG_MAJOR_VERSION == 34
+            }
+            else
+                env.pgrid(*ri) &= ~FPROP_ICY;
+        }
+#endif
+    }
 
     env.orb_pos = coord_def();
     if (item_def* orb = find_floor_item(OBJ_ORBS, ORB_ZOT))

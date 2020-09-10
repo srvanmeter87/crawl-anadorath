@@ -84,8 +84,8 @@ static bool _do_build_level()
 
     watchdog();
 
-    no_messages mx;
-    if (kbhit() && key_is_escape(getchk()))
+    msg::suppress mx;
+    if (kbhit() && key_is_escape(getch_ck()))
     {
         mprf(MSGCH_WARN, "User requested cancel");
         return false;
@@ -263,6 +263,8 @@ bool mapstat_build_levels()
         dlua.callfn("dgn_clear_data", "");
         you.uniq_map_tags.clear();
         you.uniq_map_names.clear();
+        you.uniq_map_tags_abyss.clear();
+        you.uniq_map_names_abyss.clear();
         you.unique_creatures.reset();
         initialise_branch_depths();
         init_level_connectivity();
@@ -294,7 +296,7 @@ void mapstat_report_map_success(const string &map_name)
     success_count[map_name]++;
 }
 
-void mapstat_report_error(const map_def &map, const string &err)
+void mapstat_report_error(const map_def &/*map*/, const string &err)
 {
     last_error = err;
 }
@@ -303,6 +305,8 @@ static void _report_available_random_vaults(FILE *outf)
 {
     you.uniq_map_tags.clear();
     you.uniq_map_names.clear();
+    you.uniq_map_tags_abyss.clear();
+    you.uniq_map_names_abyss.clear();
 
     fprintf(outf, "\n\nRandom vaults available by dungeon level:\n");
     for (auto lvl : generated_levels)
@@ -314,7 +318,7 @@ static void _report_available_random_vaults(FILE *outf)
         clear_messages();
         mprf("Examining random maps at %s", lvl.describe().c_str());
         mapstat_report_random_maps(outf, lvl);
-        if (kbhit() && key_is_escape(getchk()))
+        if (kbhit() && key_is_escape(getch_ck()))
             break;
         fprintf(outf, "---------------------------------\n");
     }

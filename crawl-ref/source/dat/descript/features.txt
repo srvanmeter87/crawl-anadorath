@@ -167,6 +167,15 @@ through it; other creatures can wade through it slowly. Non-swimmers will
 occasionally fail to attack in melee when wading through shallow water,
 although large creatures are able to keep their balance and avoid fumbling.
 %%%%
+A toxic bog
+
+A filthy pool of poisonous, waist-deep sludge. Wading or swimming through the
+sludge will damage and poison any creature, even those resistant to poison.
+Those well-adapted to water can swim through it; other creatures can wade
+through it slowly. Non-swimmers will occasionally fail to attack in melee when
+wading through shallow water, although large creatures are able to keep their
+balance and avoid fumbling.
+%%%%
 The open sea
 
 An expanse of endless wind and waves, with not a lighthouse in sight. Anyone
@@ -242,15 +251,21 @@ A tree
 
 A large tree. While in most places the dim light of the dungeon is not bright
 enough to sustain large plants, there are spots where, with the grace of
-Fedhas, trees as big as those on the surface can grow underground. It is
-susceptible to bolts of lightning and to sufficiently intense sources of fire.
+Fedhas, trees as big as those on the surface can grow underground.
 %%%%
 An awoken tree
 
 A large tree that has been enchanted to grant it some limited motility,
 allowing it to lash out out at any adjacent enemies of the creature who awoke
-it. It is susceptible to bolts of lightning and to sufficiently intense sources
-of fire.
+it.
+%%%%
+An awoken autumnal tree
+
+<An awoken tree>
+%%%%
+An awoken dead tree
+
+<An awoken tree>
 %%%%
 An abandoned shop
 
@@ -652,9 +667,6 @@ A web
 
 A spider's web. The spider who left it must have been huge, as it seems to be
 made for trapping {{ return you.genus(true) }} rather than flies.
-
-Any creature caught in it will send out telltale vibrations, alerting and
-attracting spiders nearby.
 %%%%
 A Zot trap
 
@@ -704,7 +716,8 @@ A passage leading to a sewer. It is gradually rusting away.
 %%%%
 A portal to a secret trove of treasure
 
-A portal leading to a treasure trove.
+A portal leading to a treasure trove. This portal is unstable and will collapse
+after a single use.
 %%%%
 A dark tunnel
 
@@ -1027,4 +1040,16 @@ disjunction haloed
 This area is bathed in translocational energy, causing creatures to blink away
 from the originator of the energy with an increasing chance the closer they are
 to the caster.
+%%%%
+########################################################################
+### Other effects
+########################################################################
+ice covered
+
+This wall is covered in magical ice that freezes victims who wander nearby.
+This damage bypasses any armour the target may have, and will slow cold-blooded
+creatures. Each victim is only ever affected by one icy wall at a time.
+
+The creator of this icy covering and any of their allies can walk safely past
+this wall.
 %%%%

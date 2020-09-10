@@ -12,7 +12,6 @@
 #include "act-iter.h"
 #include "areas.h"
 #include "artefact.h"
-#include "art-enum.h"
 #include "branch.h"
 #include "database.h"
 #include "directn.h"
@@ -20,7 +19,6 @@
 #include "env.h"
 #include "exercise.h"
 #include "ghost.h"
-#include "god-abil.h"
 #include "hints.h"
 #include "item-status-flag-type.h"
 #include "jobs.h"
@@ -41,9 +39,7 @@
 static noise_grid _noise_grid;
 static void _actor_apply_noise(actor *act,
                                const coord_def &apparent_source,
-                               int noise_intensity_millis,
-                               const noise_t &noise,
-                               int noise_travel_distance);
+                               int noise_intensity_millis);
 
 /// By default, what databse lookup key corresponds to each shout type?
 static const map<shout_type, string> default_msg_keys = {
@@ -337,8 +333,10 @@ bool check_awaken(monster* mons, int stealth)
     return false;
 }
 
-void item_noise(const item_def &item, string msg, int loudness)
+void item_noise(const item_def &item, actor &act, string msg, int loudness)
 {
+    // TODO: messaging for cases where act != you. (This doesn't come up right
+    // now.)
     if (is_unrandom_artefact(item))
     {
         // "Your Singing Sword" sounds disrespectful
@@ -412,7 +410,7 @@ void item_noise(const item_def &item, string msg, int loudness)
     mprf(channel, "%s", msg.c_str());
 
     if (channel != MSGCH_TALK_VISUAL)
-        noisy(loudness, you.pos());
+        noisy(loudness, act.pos());
 }
 
 // TODO: Let artefacts besides weapons generate noise.
@@ -439,7 +437,7 @@ void noisy_equipment()
     if (msg.empty())
         msg = getSpeakString("noisy weapon");
 
-    item_noise(*weapon, msg, 20);
+    item_noise(*weapon, you, msg, 20);
 }
 
 // Berserking monsters cannot be ordered around.
@@ -465,8 +463,8 @@ static void _set_friendly_foes(bool allow_patrol = false)
             mi->behaviour = BEH_SEEK;
             mi->patrol_point = coord_def(0, 0);
         }
-        mi->foe = (allow_patrol && mi->is_patrolling() ? MHITNOT
-                                                         : you.pet_target);
+        mi->foe = (allow_patrol && mi->is_patrolling() ? int{MHITNOT}
+                                                       : you.pet_target);
     }
 }
 
@@ -847,79 +845,6 @@ bool fake_noisy(int loudness, const coord_def& where)
     return noisy(loudness, where, nullptr, MID_NOBODY, true);
 }
 
-void check_monsters_sense(sense_type sense, int range, const coord_def& where)
-{
-    for (monster_iterator mi; mi; ++mi)
-    {
-        if (grid_distance(mi->pos(), where) > range)
-            continue;
-
-        switch (sense)
-        {
-        case SENSE_SMELL_BLOOD:
-            if (!mons_class_flag(mi->type, M_BLOOD_SCENT))
-                break;
-
-            // Let sleeping hounds lie.
-            if (mi->asleep()
-                && mons_species(mi->type) != MONS_VAMPIRE)
-            {
-                // 33% chance of sleeping on
-                // 33% of being disturbed (start BEH_WANDER)
-                // 33% of being alerted   (start BEH_SEEK)
-                if (!one_chance_in(3))
-                {
-                    if (coinflip())
-                    {
-                        dprf(DIAG_NOISE, "disturbing %s (%d, %d)",
-                             mi->name(DESC_A, true).c_str(),
-                             mi->pos().x, mi->pos().y);
-                        behaviour_event(*mi, ME_DISTURB, 0, where);
-                    }
-                    break;
-                }
-            }
-            dprf(DIAG_NOISE, "alerting %s (%d, %d)",
-                            mi->name(DESC_A, true).c_str(),
-                            mi->pos().x, mi->pos().y);
-            behaviour_event(*mi, ME_ALERT, 0, where);
-            break;
-
-        case SENSE_WEB_VIBRATION:
-            if (!mons_class_flag(mi->type, M_WEB_SENSE))
-                break;
-
-            if (!one_chance_in(4))
-            {
-                if (coinflip())
-                {
-                    dprf(DIAG_NOISE, "disturbing %s (%d, %d)",
-                         mi->name(DESC_A, true).c_str(),
-                         mi->pos().x, mi->pos().y);
-                    behaviour_event(*mi, ME_DISTURB, 0, where);
-                }
-                else
-                {
-                    dprf(DIAG_NOISE, "alerting %s (%d, %d)",
-                         mi->name(DESC_A, true).c_str(),
-                         mi->pos().x, mi->pos().y);
-                    behaviour_event(*mi, ME_ALERT, 0, where);
-                }
-            }
-            break;
-        }
-    }
-}
-
-void blood_smell(int strength, const coord_def& where)
-{
-    const int range = strength;
-    dprf("blood stain at (%d, %d), range of smell = %d",
-         where.x, where.y, range);
-
-    check_monsters_sense(SENSE_SMELL_BLOOD, range, where);
-}
-
 //////////////////////////////////////////////////////////////////////////////
 // noise machinery
 
@@ -1040,8 +965,7 @@ void noise_grid::propagate_noise()
             {
                 apply_noise_effects(p,
                                     cell.noise_intensity_millis,
-                                    noises[cell.noise_id],
-                                    travel_distance - 1);
+                                    noises[cell.noise_id]);
 
                 const int attenuation = _noise_attenuation_millis(p);
                 // If the base noise attenuation kills the noise, go no farther:
@@ -1126,8 +1050,7 @@ bool noise_grid::propagate_noise_to_neighbour(int base_attenuation,
 
 void noise_grid::apply_noise_effects(const coord_def &pos,
                                      int noise_intensity_millis,
-                                     const noise_t &noise,
-                                     int noise_travel_distance)
+                                     const noise_t &noise)
 {
     if (you.pos() == pos)
     {
@@ -1137,8 +1060,7 @@ void noise_grid::apply_noise_effects(const coord_def &pos,
         // because the type is correct here.
 
         _actor_apply_noise(&you, noise.noise_source,
-                           noise_intensity_millis, noise,
-                           noise_travel_distance);
+                           noise_intensity_millis);
 
         // The next bit stores noise heard at the player's position for
         // display in the HUD. A more interesting (and much more complicated)
@@ -1165,8 +1087,7 @@ void noise_grid::apply_noise_effects(const coord_def &pos,
             const coord_def perceived_position =
                 noise_perceived_position(mons, pos, noise);
             _actor_apply_noise(mons, perceived_position,
-                               noise_intensity_millis, noise,
-                               noise_travel_distance);
+                               noise_intensity_millis);
             ++affected_actor_count;
         }
     }
@@ -1183,15 +1104,15 @@ void noise_grid::apply_noise_effects(const coord_def &pos,
 //  - If the cells cannot see each other, calculate a noise source as follows:
 //
 //    Calculate a noise centroid between the noise source and the observer,
-//    weighted to the noise source if the noise has traveled in a straight line,
+//    weighted to the noise source if the noise has travelled in a straight line,
 //    weighted toward the observer the more the noise has deviated from a
 //    straight line.
 //
-//    Fuzz the centroid by the extra distance the noise has traveled over
+//    Fuzz the centroid by the extra distance the noise has travelled over
 //    the straight line distance. This is where the observer will think the
 //    noise originated.
 //
-//    Thus, if the noise has traveled in a straight line, the observer
+//    Thus, if the noise has travelled in a straight line, the observer
 //    will know the exact origin, 100% of the time, even if the
 //    observer is all the way across the level.
 coord_def noise_grid::noise_perceived_position(actor *act,
@@ -1359,9 +1280,7 @@ void noise_grid::dump_noise_grid(const string &filename) const
 
 static void _actor_apply_noise(actor *act,
                                const coord_def &apparent_source,
-                               int noise_intensity_millis,
-                               const noise_t &noise,
-                               int noise_travel_distance)
+                               int noise_intensity_millis)
 {
 #ifdef DEBUG_NOISE_PROPAGATION
     dprf(DIAG_NOISE, "[NOISE] Actor %s (%d,%d) perceives noise (%d) "
@@ -1393,7 +1312,7 @@ static void _actor_apply_noise(actor *act,
         // linear from p(0) = 100 to p(R) = 10. This replaces a version that
         // was 100% from 0 to 3, and 0% outward.
         //
-        // behavior around the old breakpoint for R=8: p(3) = 66, p(4) = 55.
+        // behaviour around the old breakpoint for R=8: p(3) = 66, p(4) = 55.
 
         const int player_distance = grid_distance(apparent_source, you.pos());
         const int alert_prob = max(player_distance * -90 / LOS_RADIUS + 100, 0);

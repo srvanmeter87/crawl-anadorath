@@ -104,8 +104,8 @@ Dig ability
 
 Allows making tunnels through soft rock and rusted grates. Activating the
 ability has no cost and simply prepares you to start digging; once active,
-moving into a wall will start tunneling. Doing so makes some noise and causes
-hunger, and is a little slower than walking.
+moving into a wall will start tunneling. Doing so makes some noise and is a
+little slower than walking.
 
 Once active, activating the ability again or making any non-digging movement
 action will cancel the Dig status.
@@ -114,6 +114,13 @@ Shaft Self ability
 
 Sends you to a random position one to two floors down, as if you jumped into a
 shaft trap. It takes some time to dig the shaft.
+%%%%
+Rolling Charge ability
+
+Roll at a foe with a clatter of scales, uncurl, and strike! The further you go,
+the more momentum will be added to the force of your strike. You roll with
+sufficient speed to dodge traps and harmful terrain along the way, but not at
+your destination.
 %%%%
 Evoke Blink ability
 
@@ -261,11 +268,8 @@ skeletons cannot leave the level they were created on.
 %%%%
 Drain Life ability
 
-# Note: part of this description duplicates the Drain Life spell description.
-
-Drains the life force of any nearby creatures, healing the user depending on
-the damage dealt. The amount of life force drained is increased by Invocations
-skill.
+[[Drain Life spell]] The amount of life force drained is increased by
+Invocations skill.
 %%%%
 Enslave Soul ability
 
@@ -303,13 +307,13 @@ demon hostile.
 %%%%
 Major Destruction ability
 
-Shoots a random harmful beam or explosion at the targeted creature. Damage and
-accuracy are increased by Invocations skill.
+[[Major Destruction spell]] Damage and accuracy are increased by Invocations
+skill.
 %%%%
 Greater Servant of Makhleb ability
 
-Summons a major demon. Failing to use this ability correctly will turn the
-demon hostile.
+[[Greater Servant of Makhleb spell]] Failing to use this ability correctly will
+turn the demon hostile.
 %%%%
 # Sif Muna
 %%%%
@@ -374,11 +378,12 @@ Heals a creature other than yourself by a moderate amount, depending on
 Invocations skill. Using this ability on hostile monsters will try to turn them
 neutral. This works best on animals, and is less effective on humanoids and
 other intelligent creatures. Undead and demons are harder still to pacify.
+Plants do not respond to the healing arts and cannot be pacified.
 Ghosts of dead adventurers and demon lords are too wrathful to be pacified,
 mindless creatures are too unintelligent to be pacified, and no monster can be
 pacified while it is asleep.
 
-Whether the pacification succeeds or not, the invested food, piety and magic
+Whether the pacification succeeds or not, the invested piety and magic
 points are lost. If it does succeed, the monster is healed and you gain half
 the monster's experience value. Otherwise, the monster is unaffected and you
 gain nothing.
@@ -412,7 +417,7 @@ nearby creatures and the damage dealt to those affected.
 Banish ability
 
 Attempts to banish a creature into the Abyss. If the attempt succeeds, you gain
-some piety and half the creature's experience value. Invocations skill makes it
+some piety and the creature's full experience value. Invocations skill makes it
 harder to resist.
 %%%%
 Corrupt ability
@@ -458,8 +463,7 @@ Re-using this ability will discard the current stack.
 # Beogh
 Smiting ability
 
-Smites any targeted enemy within sight, with no direct line of fire required.
-The strength of the smiting is increased by Invocations skill.
+[[Smiting spell]] The strength of the smiting is increased by Invocations skill.
 %%%%
 Recall Orcish Followers ability
 
@@ -481,47 +485,33 @@ Bring an orc corpse back to life. The orc will be an ally, even if it was not
 already one before it died.
 %%%%
 # Fedhas
-Fungal Bloom ability
+Wall of Briars ability
 
-Call up Fedhas to accelerate the natural process of decay, transforming all
-corpses nearby into fast-growing, short-lived toadstools. Zombies, ghouls,
-and necrophages are considered walking corpses, and are affected accordingly;
-zombies rot into skeletons, and ghouls and necrophages rot away entirely,
-granting no experience.
+Grow short-lived briar patches around you. Monsters attacking these briars will
+be damaged by sharp thorns. Invocations skill increases the briars' health.
 %%%%
-Sunlight ability
+Grow Ballistomycete ability
 
-Calls sunlight down over a small area of the dungeon. Monsters illuminated by
-the light will be easier to hit. Water affected by the sunlight will evaporate.
-In particular, deep water will become shallow water, and shallow water will dry
-up completely, revealing the dungeon floor.
+Grow a short-lived ballistomycete at the location you choose. A ballistomycete
+occasionally releases spores that quickly seek out foes and violently explode,
+damaging and confusing all living things caught in the blast.
+
+Invocations skill increases the health and duration of the ballistomycete as
+well as the damage of its exploding spores.
 %%%%
-Growth ability
+Overgrow ability
 
-Uses food to grow a ring of plants around yourself. If a complete ring cannot
-be formed (because you do not have enough food), plants will grow on squares
-adjacent to you that are close to monsters. The plants you create gain bonus
-health proportional to your Invocations skill.
+Permanently destroy a wall-like structure, growing a short-lived plant ally in
+its place. Even a tree will give its life to support the will of Fedhas, and
+only truly indestructible walls are immune to this power.
 %%%%
-Rain ability
+Grow Oklob ability
 
-Causes rain to fall around you, turning the dungeon floor into shallow water
-and shallow water into deep water. This may also allow plants and mushrooms to
-grow in areas that are not directly drenched. Invocations skill increases the
-number of rain-clouds created.
-%%%%
-Reproduction ability
+Grow a short-lived oklob plant at the location you choose. These dangerous
+plants spray corrosive vitriol at your foes.
 
-Creates ballistomycete spores from corpses in your line of sight. The spores will
-explode, causing damage to you or your enemies.
-%%%%
-Evolution ability
-
-Turns plants and fungi into stronger species. Upgraded plants gain a bonus to attack
-accuracy proportional to the user's Invocations skill, and oklob plants are
-more likely to spit acid at higher Invocations.
-
-Upgrading fungi requires piety, while upgrading plants requires food.
+Invocations skill increases the health and duration of the oklob as well as the
+frequency with which it sprays its acid.
 %%%%
 # Cheibriados
 Bend Time ability
@@ -600,23 +590,7 @@ three lists at a time, with varying prices.
 Call Merchant ability
 
 Sends funds to a merchant to help them set up shop at your location. The cost of
-funding a shop increases with the number of shops funded.{{
-    if you.race() == "Mummy" or you.race() == "Vampire" then
-        return
-    end
-
-    local desc = " You will always have the option to fund a shop selling "
-
-    if you.race() == "Ghoul" then
-        desc = desc .. "carrion"
-    else
-        desc = desc .. "food"
-    end
-
-    desc = desc .. "."
-
-    return desc
-}}
+funding a shop increases with the number of shops funded.
 %%%%
 Bribe Branch ability
 
@@ -670,7 +644,7 @@ increases with your piety and experience level.
 Apocalypse ability
 
 Reveals Ru's truth to your enemies, dealing severe damage to all enemies in
-your line of sight. Affected creatures may be paralyzed, slowed or have their
+your line of sight. Affected creatures may be paralysed, slowed or have their
 magic drained. The damage dealt increases with your piety and experience level.
 %%%%
 Sacrifice Purity ability
@@ -862,17 +836,16 @@ the landing spot and taking two turns to complete the motion.
 %%%%
 Serpent's Lash ability
 
-Allows you to move at supernatural speeds, making any movements up to a
+Allows you to move at supernatural speeds, making any normal movements up to a
 distance of two tiles instantly. Martial attacks performed under the effect of
 Serpent's Lash are more damaging and never miss.
 %%%%
 Heavenly Storm ability
 
-Invokes a storm of heavenly clouds. While the storm rages, striking enemies
-with martial attacks provides an increasing bonus to melee damage and accuracy.
-The bonus fades over time, and the storm lasts until the bonus has faded
-completely. The heavenly clouds prevent invisibility, and obscure the vision of
-those outside the storm.
+Invokes a storm of heavenly clouds. While the storm rages, your combat
+accuracy and damage are substantially increased, and striking enemies with
+martial attacks increases this bonus. The storm weakens over time and fades
+away once the bonus reaches zero. The heavenly clouds prevent invisibility, and obscure the vision of those outside the storm.
 %%%%
 Hop ability
 

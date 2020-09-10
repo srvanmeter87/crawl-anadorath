@@ -15,8 +15,6 @@
 #include <sstream>
 
 #include "ability.h"
-#include "act-iter.h"
-#include "butcher.h"
 #include "cio.h"
 #include "coordit.h"
 #include "dactions.h"
@@ -31,7 +29,6 @@
 #include "libutil.h"
 #include "menu.h"
 #include "message.h"
-#include "mon-death.h"
 #include "mon-place.h"
 #include "notes.h"
 #include "output.h"
@@ -44,7 +41,6 @@
 #include "stringutil.h"
 #include "transform.h"
 #include "unicode.h"
-#include "viewchar.h"
 #include "xom.h"
 
 using namespace ui;
@@ -100,6 +96,40 @@ static const body_facet_def _body_facets[] =
     { EQ_BOOTS, MUT_TALONS }
 };
 
+static vector<mutation_type> removed_mutations =
+    {
+#if TAG_MAJOR_VERSION == 34
+        MUT_ROUGH_BLACK_SCALES,
+        MUT_BREATHE_FLAMES,
+        MUT_BREATHE_POISON,
+        MUT_CARNIVOROUS,
+        MUT_CLING,
+        MUT_CONSERVE_POTIONS,
+        MUT_CONSERVE_SCROLLS,
+        MUT_EXOSKELETON,
+        MUT_FAST_METABOLISM,
+        MUT_FLEXIBLE_WEAK,
+        MUT_FOOD_JELLY,
+        MUT_FORLORN,
+        MUT_FUMES,
+        MUT_HERBIVOROUS,
+        MUT_JUMP,
+        MUT_SAPROVOROUS,
+        MUT_SLOW_METABOLISM,
+        MUT_STRONG_STIFF,
+        MUT_SUSTAIN_ATTRIBUTES,
+        MUT_TELEPORT_CONTROL,
+        MUT_TRAMPLE_RESISTANCE,
+        MUT_MUMMY_RESTORATION,
+        MUT_NO_CHARM_MAGIC,
+#endif
+    };
+
+vector<mutation_type> get_removed_mutations()
+{
+    return removed_mutations;
+}
+
 /**
  * Conflicting mutation pairs. Entries are symmetric (so if A conflicts
  * with B, B conflicts with A in the same way).
@@ -126,7 +156,9 @@ static const body_facet_def _body_facets[] =
  */
 static const int conflict[][3] =
 {
+#if TAG_MAJOR_VERSION == 34
     { MUT_REGENERATION,        MUT_SLOW_METABOLISM,         0},
+#endif
     { MUT_REGENERATION,        MUT_INHIBITED_REGENERATION,  0},
     { MUT_ACUTE_VISION,        MUT_BLURRY_VISION,           0},
     { MUT_FAST,                MUT_SLOW,                    0},
@@ -139,8 +171,10 @@ static const int conflict[][3] =
     { MUT_ROBUST,              MUT_FRAIL,                   1},
     { MUT_HIGH_MAGIC,          MUT_LOW_MAGIC,               1},
     { MUT_WILD_MAGIC,          MUT_SUBDUED_MAGIC,           1},
+#if TAG_MAJOR_VERSION == 34
     { MUT_CARNIVOROUS,         MUT_HERBIVOROUS,             1},
     { MUT_SLOW_METABOLISM,     MUT_FAST_METABOLISM,         1},
+#endif
     { MUT_REGENERATION,        MUT_INHIBITED_REGENERATION,  1},
     { MUT_ACUTE_VISION,        MUT_BLURRY_VISION,           1},
     { MUT_BERSERK,             MUT_CLARITY,                 1},
@@ -158,25 +192,6 @@ static const int conflict[][3] =
     { MUT_NO_REGENERATION,     MUT_INHIBITED_REGENERATION, -1},
     { MUT_NO_REGENERATION,     MUT_REGENERATION,           -1},
 };
-
-equipment_type beastly_slot(int mut)
-{
-    switch (mut)
-    {
-    case MUT_HORNS:
-    case MUT_ANTENNAE:
-    // Not putting MUT_BEAK here because it doesn't conflict with the other two.
-        return EQ_HELMET;
-    case MUT_CLAWS:
-        return EQ_GLOVES;
-    case MUT_HOOVES:
-    case MUT_TALONS:
-    case MUT_TENTACLE_SPIKE:
-        return EQ_BOOTS;
-    default:
-        return EQ_NONE;
-    }
-}
 
 static bool _mut_has_use(const mutation_def &mut, mutflag use)
 {
@@ -277,7 +292,8 @@ static const mutation_type _all_scales[] =
     MUT_RUGGED_BROWN_SCALES,        MUT_SLIMY_GREEN_SCALES,
     MUT_THIN_METALLIC_SCALES,       MUT_THIN_SKELETAL_STRUCTURE,
     MUT_YELLOW_SCALES,              MUT_STURDY_FRAME,
-    MUT_SANGUINE_ARMOUR,
+    MUT_SANGUINE_ARMOUR,            MUT_BIG_BRAIN,
+    MUT_SHARP_SCALES,
 };
 
 static bool _is_covering(mutation_type mut)
@@ -356,6 +372,7 @@ mutation_activity_type mutation_activity_level(mutation_type mut)
         case MUT_ROUGH_BLACK_SCALES:
 #endif
         case MUT_RUGGED_BROWN_SCALES:
+        case MUT_SHARP_SCALES:
             return mutation_activity_type::PARTIAL;
         case MUT_YELLOW_SCALES:
         case MUT_ICY_BLUE_SCALES:
@@ -385,6 +402,9 @@ mutation_activity_type mutation_activity_level(mutation_type mut)
         return mutation_activity_type::INACTIVE;
     }
 #endif
+
+    if (mut == MUT_BERSERK && you.species == SP_VAMPIRE && !you.vampire_alive)
+        return mutation_activity_type::INACTIVE;
 
     if (!form_can_bleed(you.form) && mut == MUT_SANGUINE_ARMOUR)
         return mutation_activity_type::INACTIVE;
@@ -585,9 +605,6 @@ void validate_mutations(bool debug_msg)
         }
     }
     ASSERT(total_temp == you.attribute[ATTR_TEMP_MUTATIONS]);
-    ASSERT(you.attribute[ATTR_TEMP_MUT_XP] >=0);
-    if (total_temp > 0)
-        ASSERT(you.attribute[ATTR_TEMP_MUT_XP] > 0);
 }
 
 string describe_mutations(bool drop_title)
@@ -649,6 +666,7 @@ string describe_mutations(bool drop_title)
         {
             result += "<green>You do not regenerate when monsters are visible.</green>\n";
             result += "<green>You are frail without blood (-20% HP).</green>\n";
+            result += "<green>You can heal yourself when you bite living creatures.</green>\n";
         }
         else
             result += "<green>Your natural rate of healing is unusually fast.</green>\n";
@@ -779,16 +797,18 @@ static string _display_vampire_attributes()
 
     string result;
 
-    const int lines = 11;
+    const int lines = 12;
     string column[lines][3] =
     {
         {"                     ", "<green>Alive</green>      ", "<lightred>Bloodless</lightred>"},
                                  //Full       Bloodless
         {"Regeneration         ", "fast       ", "none with monsters in sight"},
 
-        {"HP Modifier          ", "none       ", "-20%"},
+        {"HP modifier          ", "none       ", "-20%"},
 
         {"Stealth boost        ", "none       ", "major "},
+
+        {"Heal on bite         ", "no         ", "yes "},
 
         {"\n<w>Resistances</w>\n"
          "Poison resistance    ", "           ", "immune"},
@@ -812,7 +832,7 @@ static string _display_vampire_attributes()
 
     for (int y = 0; y < lines; y++)  // lines   (properties)
     {
-        for (int x = 0; x < 3; x++)  // columns (hunger states)
+        for (int x = 0; x < 3; x++)  // columns (states)
         {
             if (y > 0 && x == current)
                 result += "<w>";
@@ -847,11 +867,14 @@ void display_mutations()
     trim_string_right(mutation_s);
 
     auto vbox = make_shared<Box>(Widget::VERT);
+    vbox->set_cross_alignment(Widget::STRETCH);
 
     const char *title_text = "Innate Abilities, Weirdness & Mutations";
     auto title = make_shared<Text>(formatted_string(title_text, WHITE));
-    title->align_self = Widget::CENTER;
-    vbox->add_child(move(title));
+    auto title_hbox = make_shared<Box>(Widget::HORZ);
+    title_hbox->add_child(move(title));
+    title_hbox->set_main_alignment(Widget::CENTER);
+    vbox->add_child(move(title_hbox));
 
     auto switcher = make_shared<Switcher>();
 
@@ -862,23 +885,24 @@ void display_mutations()
         auto scroller = make_shared<Scroller>();
         auto text = make_shared<Text>(formatted_string::parse_string(
                 descs[static_cast<int>(i)]));
-        text->wrap_text = true;
+        text->set_wrap_text(true);
         scroller->set_child(text);
         switcher->add_child(move(scroller));
     }
 
     switcher->current() = 0;
-    switcher->set_margin_for_sdl({20, 0, 0, 0});
-    switcher->set_margin_for_crt({1, 0, 0, 0});
+    switcher->set_margin_for_sdl(20, 0, 0, 0);
+    switcher->set_margin_for_crt(1, 0, 0, 0);
     switcher->expand_h = false;
+    switcher->align_x = Widget::STRETCH;
 #ifdef USE_TILE_LOCAL
-    switcher->max_size()[0] = tiles.get_crt_font()->char_width()*80;
+    switcher->max_size().width = tiles.get_crt_font()->char_width()*80;
 #endif
     vbox->add_child(switcher);
 
     auto bottom = make_shared<Text>(_vampire_Ascreen_footer(true));
-    bottom->set_margin_for_sdl({20, 0, 0, 0});
-    bottom->set_margin_for_crt({1, 0, 0, 0});
+    bottom->set_margin_for_sdl(20, 0, 0, 0);
+    bottom->set_margin_for_crt(1, 0, 0, 0);
     if (you.species == SP_VAMPIRE)
         vbox->add_child(bottom);
 
@@ -886,22 +910,23 @@ void display_mutations()
 
     bool done = false;
     int lastch;
-    popup->on(Widget::slots.event, [&](wm_event ev) {
-        if (ev.type != WME_KEYDOWN)
-            return false;
-        lastch = ev.key.keysym.sym;
+    popup->on_keydown_event([&](const KeyEvent& ev) {
+        lastch = ev.key();
         if (you.species == SP_VAMPIRE && (lastch == '!' || lastch == CK_MOUSE_CMD || lastch == '^'))
         {
-            int c = 1 - switcher->current();
-            switcher->current() = c;
+            int& c = switcher->current();
+
+            bottom->set_text(_vampire_Ascreen_footer(c));
+
+            c = 1 - c;
 #ifdef USE_TILE_WEB
             tiles.json_open_object();
             tiles.json_write_int("pane", c);
             tiles.ui_state_change("mutations", 0);
 #endif
-            bottom->set_text(_vampire_Ascreen_footer(c));
-        } else
-            done = !vbox->on_event(ev);
+        }
+        else
+            done = !switcher->current_widget()->on_event(ev);
         return true;
     });
 
@@ -911,13 +936,10 @@ void display_mutations()
     if (you.species == SP_VAMPIRE)
         tiles.json_write_int("vampire", _vampire_bloodlessness());
     tiles.push_ui_layout("mutations", 1);
+    popup->on_layout_pop([](){ tiles.pop_ui_layout(); });
 #endif
 
     ui::run_layout(move(popup), done);
-
-#ifdef USE_TILE_WEB
-    tiles.pop_ui_layout();
-#endif
 }
 
 static int _calc_mutation_amusement_value(mutation_type which_mutation)
@@ -948,6 +970,9 @@ static bool _accept_mutation(mutation_type mutat, bool ignore_weight = false)
 
     if (ignore_weight)
         return true;
+
+    if (mdef.weight == 0)
+        return false;
 
     // bias towards adding (non-innate) levels to existing innate mutations.
     const int weight = mdef.weight + you.get_innate_mutation_level(mutat);
@@ -1207,9 +1232,9 @@ bool physiology_mutation_conflict(mutation_type mutat)
     if (_is_covering(mutat) && _body_covered() >= 3)
         return true;
 
-    // Only Nagas and Draconians can get this one.
+    // Only species that already have tails can get this one.
     if (you.species != SP_NAGA && !species_is_draconian(you.species)
-        && mutat == MUT_STINGER)
+        && you.species != SP_PALENTONGA && mutat == MUT_STINGER)
     {
         return true;
     }
@@ -1243,11 +1268,9 @@ bool physiology_mutation_conflict(mutation_type mutat)
         return true;
     }
 
-    // Vampires' healing and thirst rates depend on their blood level.
+    // Vampires' healing rates depend on their blood level.
     if (you.species == SP_VAMPIRE
-        && (mutat == MUT_CARNIVOROUS || mutat == MUT_HERBIVOROUS
-            || mutat == MUT_REGENERATION || mutat == MUT_INHIBITED_REGENERATION
-            || mutat == MUT_FAST_METABOLISM || mutat == MUT_SLOW_METABOLISM))
+        && (mutat == MUT_REGENERATION || mutat == MUT_INHIBITED_REGENERATION))
     {
         return true;
     }
@@ -1671,8 +1694,11 @@ bool mutate(mutation_type which_mutation, const string &reason, bool failMsg,
         case MUT_HOOVES:
         case MUT_TALONS:
             // Hooves and talons force boots off at 3.
-            if (cur_base_level >= 3 && !you.melded[EQ_BOOTS])
+            if (cur_base_level >= 3 && !you.melded[EQ_BOOTS]
+                && !you.wear_barding())
+            {
                 remove_one_equip(EQ_BOOTS, false, true);
+            }
             // Recheck Ashenzari bondage in case our available slots changed.
             ash_check_bondage();
             break;
@@ -1750,6 +1776,7 @@ bool mutate(mutation_type which_mutation, const string &reason, bool failMsg,
     {
         tiles.layout_statcol();
         redraw_screen();
+        update_screen();
     }
 #endif
     if (crawl_state.game_is_hints()
@@ -1873,6 +1900,14 @@ static bool _delete_single_mutation_level(mutation_type mutat,
     return true;
 }
 
+static bool _is_appendage_mutation(mutation_type mut)
+{
+    for (auto app : you.props[APPENDAGE_KEY].get_vector())
+        if (mut == static_cast<mutation_type>(app.get_int()))
+            return true;
+    return false;
+}
+
 /*
  * Delete a mutation level, accepting random mutation types and checking mutation resistance.
  * This will not delete temporary or innate mutations.
@@ -1950,7 +1985,7 @@ bool delete_mutation(mutation_type which_mutation, const string &reason,
                 continue;
 
             // MUT_ANTENNAE is 0, and you.attribute[] is initialized to 0.
-            if (mutat && mutat == you.attribute[ATTR_APPENDAGE])
+            if (mutat && _is_appendage_mutation(mutat))
                 continue;
 
             const mutation_def& mdef = _get_mutation_def(mutat);
@@ -2267,7 +2302,7 @@ string mutation_desc(mutation_type mut, int level, bool colour,
             colourname = "darkgrey";
         else if (partially_active)
             colourname = "brown";
-        else if (you.form == transformation::appendage && you.attribute[ATTR_APPENDAGE] == mut)
+        else if (_is_appendage_mutation(mut) && you.form == transformation::appendage)
             colourname = "lightgreen";
         else if (is_slime_mutation(mut))
             colourname = "green";
@@ -2332,6 +2367,10 @@ static const facet_def _demon_facets[] =
       { -33, -33, 0 } },
     { 1, { MUT_SANGUINE_ARMOUR, MUT_SANGUINE_ARMOUR, MUT_SANGUINE_ARMOUR },
       { -33, -33, 0 } },
+    { 1, { MUT_BIG_BRAIN, MUT_BIG_BRAIN, MUT_BIG_BRAIN },
+      { -33, -33, 0 } },
+    { 1, { MUT_SHARP_SCALES, MUT_SHARP_SCALES, MUT_SHARP_SCALES },
+      { -33, -33, 0 } },
     // Tier 2 facets
     { 2, { MUT_HEAT_RESISTANCE, MUT_FLAME_CLOUD_IMMUNITY, MUT_IGNITE_BLOOD },
       { -33, 0, 0 } },
@@ -2341,8 +2380,6 @@ static const facet_def _demon_facets[] =
       { -33, 0, 0 } },
     { 2, { MUT_DEMONIC_GUARDIAN, MUT_DEMONIC_GUARDIAN, MUT_DEMONIC_GUARDIAN },
       { -66, 17, 50 } },
-    { 2, { MUT_NIGHTSTALKER, MUT_NIGHTSTALKER, MUT_NIGHTSTALKER },
-      { -33, 0, 0 } },
     { 2, { MUT_SPINY, MUT_SPINY, MUT_SPINY },
       { -33, 0, 0 } },
     { 2, { MUT_POWERED_BY_PAIN, MUT_POWERED_BY_PAIN, MUT_POWERED_BY_PAIN },
@@ -2544,6 +2581,12 @@ _schedule_ds_mutations(vector<mutation_type> muts)
 
 void roll_demonspawn_mutations()
 {
+    // intentionally create the subgenerator either way, so that this has the
+    // same impact on the current main rng for all chars.
+    rng::subgenerator ds_rng;
+
+    if (you.species != SP_DEMONSPAWN)
+        return;
     you.demonic_traits = _schedule_ds_mutations(
                          _order_ds_mutations(
                          _select_ds_mutations()));
@@ -2657,14 +2700,14 @@ int player::how_mutated(bool innate, bool levels, bool temp) const
 // Return whether current tension is balanced
 static bool _balance_demonic_guardian()
 {
-    // if tension is unfavorably high, perhaps another guardian should spawn
+    // if tension is unfavourably high, perhaps another guardian should spawn
     const int mutlevel = you.get_mutation_level(MUT_DEMONIC_GUARDIAN);
     const int tension = get_tension(GOD_NO_GOD);
     return tension*3/4 <= mutlevel*6 + random2(mutlevel*mutlevel*2);
 }
 
 // Primary function to handle and balance demonic guardians, if the tension
-// is unfavorably high and a guardian was not recently spawned, a new guardian
+// is unfavourably high and a guardian was not recently spawned, a new guardian
 // will be made, if tension is below a threshold (determined by the mutations
 // level and a bit of randomness), guardians may be dismissed in
 // _balance_demonic_guardian()

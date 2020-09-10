@@ -22,7 +22,8 @@ class Stash
 {
 public:
     Stash(coord_def pos_ = coord_def());
-    Stash(const Stash &other) { *this = other; };
+    Stash(const Stash &) = default;
+    Stash& operator=(const Stash &) = default;
 
     static bool is_boring_feature(dungeon_feature_type feat);
 
@@ -31,8 +32,6 @@ public:
     bool unmark_trapping_nets();
     void save(writer&) const;
     void load(reader&);
-
-    void rot_all_corpses();
 
     string description() const;
     string feature_description() const;
@@ -46,9 +45,8 @@ public:
     // auto_sacrifce
     bool needs_stop() const;
 
-    // Returns true if this Stash is unverified (a visit by the character will
-    // verify the stash).
-    bool unverified() const;
+    // Returns true if this Stash is unvisited since the last update.
+    bool unvisited() const;
 
     vector<stash_search_result> matches_search(
         const string &prefix, const base_pattern &search) const;
@@ -61,7 +59,7 @@ public:
         return items.empty() && feat == DNGN_FLOOR;
     }
 
-    bool is_verified() const {  return verified; }
+    bool is_visited() const {  return visited; }
 
 private:
     void _update_corpses(int rot_time);
@@ -69,7 +67,7 @@ private:
     void add_item(const item_def &item, bool add_to_front = false);
 
 private:
-    bool verified;      // Is this correct to the best of our knowledge?
+    bool visited;      // Is this correct to the best of our knowledge?
     coord_def pos;
     dungeon_feature_type feat;
     string feat_desc; // Only for interesting features.
@@ -147,6 +145,9 @@ struct stash_search_result
     // Type of feature, if this result is for a feature.
     dungeon_feature_type feat;
 
+    // Type of trap, if this result is for a trap.
+    trap_type trap;
+
     // Whether the found items are in the player's inventory.
     bool in_inventory;
 
@@ -156,8 +157,8 @@ struct stash_search_result
 
     stash_search_result() : pos(), player_distance(0), match_type(), match(),
                             primary_sort(), item(), shop(nullptr), feat(),
-                            in_inventory(false), duplicates(0),
-                            duplicate_piles(0)
+                            trap(TRAP_UNASSIGNED), in_inventory(false),
+                            duplicates(0), duplicate_piles(0)
     {
     }
 
@@ -184,8 +185,6 @@ public:
 
     // Update stash at (x,y).
     bool  update_stash(const coord_def& c);
-
-    void rot_all_corpses();
 
     // Mark nets at (x,y) as no longer trapping an actor.
     bool unmark_trapping_nets(const coord_def &c);
@@ -339,10 +338,8 @@ void describe_stash(const coord_def& c);
 
 vector<item_def> item_list_in_stash(const coord_def& pos);
 
-string userdef_annotate_item(const char *s, const item_def *item,
-                             bool exclusive = false);
-string stash_annotate_item(const char *s, const item_def *item,
-                           bool exclusive = false);
+string userdef_annotate_item(const char *s, const item_def *item);
+string stash_annotate_item(const char *s, const item_def *item);
 
 #define STASH_LUA_SEARCH_ANNOTATE "ch_stash_search_annotate_item"
 #define STASH_LUA_DUMP_ANNOTATE   "ch_stash_dump_annotate_item"

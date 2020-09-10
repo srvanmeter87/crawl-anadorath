@@ -26,23 +26,20 @@
 #include "lookup-help.h"
 #include "macro.h"
 #include "message.h"
-#include "output.h"
 #include "prompt.h"
 #include "scroller.h"
 #include "showsymb.h"
-#include "sound.h"
 #include "state.h"
 #include "stringutil.h"
 #include "syscalls.h"
 #include "unicode.h"
 #include "version.h"
 #include "viewchar.h"
-#include "view.h"
 
 using namespace ui;
 
 #ifdef USE_TILE
- #include "tiledef-gui.h"
+ #include "rltiles/tiledef-gui.h"
 #endif
 
 static const char *features[] =
@@ -95,15 +92,15 @@ static string _get_version_features()
     string result;
     if (crawl_state.need_save
 #ifdef DGAMELAUNCH
-        && you.wizard
+        && (you.wizard || crawl_state.type == GAME_TYPE_CUSTOM_SEED)
 #endif
        )
     {
-        if (you.game_is_seeded)
+        if (you.fully_seeded)
         {
-            result += make_stringf("Game seed: %" PRIu64, crawl_state.seed);
+            result += seed_description();
             if (Version::history_size() > 1)
-                result += " (game has been upgraded, seed may be affected)";
+                result += " (seed may be affected by game upgrades)";
         }
         else
             result += "Game is not seeded.";
@@ -207,40 +204,37 @@ static void _print_version()
     auto vbox = make_shared<Box>(Widget::VERT);
 
 #ifdef USE_TILE_LOCAL
-    vbox->max_size()[0] = tiles.get_crt_font()->char_width()*80;
+    vbox->max_size().width = tiles.get_crt_font()->char_width()*80;
 #endif
 
     auto title_hbox = make_shared<Box>(Widget::HORZ);
 #ifdef USE_TILE
     auto icon = make_shared<Image>();
-    icon->set_tile(tile_def(TILEG_STARTUP_STONESOUP, TEX_GUI));
+    icon->set_tile(tile_def(TILEG_STARTUP_STONESOUP));
     title_hbox->add_child(move(icon));
 #endif
 
     auto title = make_shared<Text>(formatted_string::parse_string(info));
-    title->set_margin_for_crt({0, 0, 0, 0});
-    title->set_margin_for_sdl({0, 0, 0, 10});
+    title->set_margin_for_sdl(0, 0, 0, 10);
     title_hbox->add_child(move(title));
 
-    title_hbox->align_items = Widget::CENTER;
-    title_hbox->set_margin_for_crt({0, 0, 1, 0});
-    title_hbox->set_margin_for_sdl({0, 0, 20, 0});
+    title_hbox->set_cross_alignment(Widget::CENTER);
+    title_hbox->set_margin_for_crt(0, 0, 1, 0);
+    title_hbox->set_margin_for_sdl(0, 0, 20, 0);
     vbox->add_child(move(title_hbox));
 
     auto scroller = make_shared<Scroller>();
     auto content = formatted_string::parse_string(feats + "\n\n" + changes);
     auto text = make_shared<Text>(move(content));
-    text->wrap_text = true;
+    text->set_wrap_text(true);
     scroller->set_child(move(text));
     vbox->add_child(scroller);
 
     auto popup = make_shared<ui::Popup>(vbox);
 
     bool done = false;
-    popup->on(Widget::slots.event, [&done, &vbox](wm_event ev) {
-        if (ev.type != WME_KEYDOWN)
-            return false;
-        done = !vbox->on_event(ev);
+    popup->on_keydown_event([&](const KeyEvent& ev) {
+        done = !scroller->on_event(ev);
         return true;
     });
 
@@ -250,13 +244,10 @@ static void _print_version()
     tiles.json_write_string("features", feats);
     tiles.json_write_string("changes", changes);
     tiles.push_ui_layout("version", 0);
+    popup->on_layout_pop([](){ tiles.pop_ui_layout(); });
 #endif
 
     ui::run_layout(move(popup), done);
-
-#ifdef USE_TILE_WEB
-    tiles.pop_ui_layout();
-#endif
 }
 
 void list_armour()
@@ -276,11 +267,10 @@ void list_armour()
                  (i == EQ_GLOVES)      ? "Gloves " :
                  (i == EQ_SHIELD)      ? "Shield " :
                  (i == EQ_BODY_ARMOUR) ? "Armour " :
-                 (i == EQ_BOOTS) ?
-                 ((you.species == SP_CENTAUR
-                   || you.species == SP_NAGA) ? "Barding"
-                                              : "Boots  ")
-                                 : "unknown")
+                 (i == EQ_BOOTS)       ?
+                   (you.wear_barding() ? "Barding"
+                                       : "Boots  ")
+                                       : "unknown")
              << " : ";
 
         if (you_can_wear(i) == MB_FALSE)
@@ -371,6 +361,7 @@ void list_jewellery()
 static const char *targeting_help_1 =
     "<h>Examine surroundings ('<w>x</w><h>' in main):\n"
     "<w>Esc</w> : cancel (also <w>Space</w>, <w>x</w>)\n"
+    "<w>Ctrl-X</w> : list all things in view\n"
     "<w>Dir.</w>: move cursor in that direction\n"
     "<w>.</w> : move to cursor (also <w>Enter</w>, <w>Del</w>)\n"
     "<w>g</w> : pick up item at cursor\n"
@@ -414,7 +405,8 @@ static const char *targeting_help_wiz =
 static const char *targeting_help_2 =
     "<h>Targeting (zap wands, cast spells, etc.):\n"
     "Most keys from examine surroundings work.\n"
-    "Some keys fire at the target. By default,\n"
+    "Some keys fire at the target. <w>Ctrl-X</w> only\n"
+    "lists eligible targets. By default,\n"
     "range is respected and beams don't stop.\n"
     "<w>Enter</w> : fire (<w>Space</w>, <w>Del</w>)\n"
     "<w>.</w> : fire, stop at target\n"
@@ -465,33 +457,14 @@ static void _handle_FAQ()
     title->colour = YELLOW;
     FAQmenu.set_title(title);
 
-    const int width = get_number_of_cols();
-
     for (unsigned int i = 0, size = question_keys.size(); i < size; i++)
     {
         const char letter = index_to_letter(i);
-
         string question = getFAQ_Question(question_keys[i]);
-        // Wraparound if the question is longer than fits into a line.
-        linebreak_string(question, width - 4);
-        vector<formatted_string> fss;
-        formatted_string::parse_string_to_multiple(question, fss);
-
-        MenuEntry *me;
-        for (unsigned int j = 0; j < fss.size(); j++)
-        {
-            if (j == 0)
-            {
-                me = new MenuEntry(question, MEL_ITEM, 1, letter);
-                me->data = &question_keys[i];
-            }
-            else
-            {
-                question = "    " + fss[j].tostring();
-                me = new MenuEntry(question, MEL_ITEM, 1);
-            }
-            FAQmenu.add_entry(me);
-        }
+        trim_string_right(question);
+        MenuEntry *me = new MenuEntry(question, MEL_ITEM, 1, letter);
+        me->data = &question_keys[i];
+        FAQmenu.add_entry(me);
     }
 
     while (true)
@@ -519,44 +492,9 @@ static void _handle_FAQ()
     return;
 }
 
-///////////////////////////////////////////////////////////////////////////
-// Manual menu highlighter.
-
-class help_highlighter : public MenuHighlighter
-{
-public:
-    help_highlighter(string = "");
-    int entry_colour(const MenuEntry *entry) const override;
-private:
-    text_pattern pattern;
-    string get_species_key() const;
-};
-
-help_highlighter::help_highlighter(string highlight_string) :
-    pattern(highlight_string.empty() ? get_species_key() : highlight_string)
-{
-}
-
-int help_highlighter::entry_colour(const MenuEntry *entry) const
-{
-    return !pattern.empty() && pattern.matches(entry->text) ? WHITE : -1;
-}
-
-// To highlight species in aptitudes list. ('?%')
-string help_highlighter::get_species_key() const
-{
-    string result = species_name(you.species);
-    // The table doesn't repeat the word "Draconian".
-    if (you.species != SP_BASE_DRACONIAN && species_is_draconian(you.species))
-        strip_tag(result, "Draconian");
-
-    result += "  ";
-    return result;
-}
 ////////////////////////////////////////////////////////////////////////////
 
-int show_keyhelp_menu(const vector<formatted_string> &lines,
-                      int hotkey, string highlight_string)
+int show_keyhelp_menu(const vector<formatted_string> &lines)
 {
     int flags = FS_PREWRAPPED_TEXT | FS_EASY_EXIT;
     formatted_scroller cmd_help(flags);
@@ -564,7 +502,7 @@ int show_keyhelp_menu(const vector<formatted_string> &lines,
     cmd_help.set_more();
 
     for (unsigned i = 0; i < lines.size(); ++i)
-        cmd_help.add_formatted_string(lines[i], true);
+        cmd_help.add_formatted_string(lines[i], i < lines.size()-1);
 
     cmd_help.show();
 
@@ -573,7 +511,8 @@ int show_keyhelp_menu(const vector<formatted_string> &lines,
 
 void show_specific_help(const string &key)
 {
-    const string help = getHelpString(key);
+    string help = getHelpString(key);
+    trim_string_right(help);
     vector<formatted_string> formatted_lines;
     for (const string &line : split_string("\n", help, false, true))
         formatted_lines.push_back(formatted_string::parse_string(line));
@@ -614,11 +553,6 @@ void show_interlevel_travel_altar_help()
 void show_stash_search_help()
 {
     show_specific_help("stash-search.prompt");
-}
-
-void show_butchering_help()
-{
-    show_specific_help("butchering");
 }
 
 void show_skill_menu_help()
@@ -807,9 +741,6 @@ static void _add_formatted_keyhelp(column_composer &cols)
                            CMD_CYCLE_QUIVER_BACKWARD });
     _add_insert_commands(cols, 0, "<cyan>[</cyan> : armour (<w>%</w>ear and <w>%</w>ake off)",
                          { CMD_WEAR_ARMOUR, CMD_REMOVE_ARMOUR });
-    _add_insert_commands(cols, 0, "<brown>percent</brown> : corpses and food "
-                                  "(<w>%</w>hop up and <w>%</w>at)",
-                         { CMD_BUTCHER, CMD_EAT });
     _add_insert_commands(cols, 0, "<w>?</w> : scrolls (<w>%</w>ead)",
                          { CMD_READ });
     _add_insert_commands(cols, 0, "<magenta>!</magenta> : potions (<w>%</w>uaff)",
@@ -851,7 +782,7 @@ static void _add_formatted_keyhelp(column_composer &cols)
                          { CMD_USE_ABILITY });
     _add_command(cols, 0, CMD_CAST_SPELL, "cast spell, abort without targets", 2);
     _add_command(cols, 0, CMD_FORCE_CAST_SPELL, "cast spell, no matter what", 2);
-    _add_command(cols, 0, CMD_DISPLAY_SPELLS, "list all memorized spells", 2);
+    _add_command(cols, 0, CMD_DISPLAY_SPELLS, "list all memorised spells", 2);
     _add_command(cols, 0, CMD_MEMORISE_SPELL, "Memorise a spell from your library", 2);
 
     _add_insert_commands(cols, 0, 2, CMD_SHOUT,
@@ -970,8 +901,6 @@ static void _add_formatted_keyhelp(column_composer &cols)
             "<h>Item Interaction:\n");
 
     _add_command(cols, 1, CMD_INSCRIBE_ITEM, "inscribe item", 2);
-    _add_command(cols, 1, CMD_BUTCHER, "Chop up a corpse on floor", 2);
-    _add_command(cols, 1, CMD_EAT, "Eat food (tries floor first) \n", 2);
     _add_command(cols, 1, CMD_FIRE, "Fire next appropriate item", 2);
     _add_command(cols, 1, CMD_THROW_ITEM_NO_QUIVER, "select an item and Fire it", 2);
     _add_command(cols, 1, CMD_QUIVER_ITEM, "select item slot to be Quivered", 2);
@@ -1097,10 +1026,6 @@ static void _add_formatted_hints_help(column_composer &cols)
                          "armour (<w>%</w>ear and <w>%</w>ake off)",
                          { CMD_WEAR_ARMOUR, CMD_REMOVE_ARMOUR });
     _add_insert_commands(cols, 1,
-                         "<console><brown>percent</brown> : </console>"
-                         "corpses and food (<w>%</w>hop up and <w>%</w>at)",
-                         { CMD_BUTCHER, CMD_EAT });
-    _add_insert_commands(cols, 1,
                          "<console><w>?</w> : </console>"
                          "scrolls (<w>%</w>ead)",
                          { CMD_READ });
@@ -1177,7 +1102,7 @@ static formatted_string _col_conv(void (*func)(column_composer &))
     for (const auto& line : cols.formatted_lines())
     {
         contents += line;
-        contents += formatted_string("\n");
+        contents += "\n";
     }
     contents.ops.pop_back();
     return contents;
@@ -1205,7 +1130,7 @@ static int _get_help_section(int section, formatted_string &header_out, formatte
             ASSERTM(fp, "Failed to open '%s'!", fname.c_str());
             while (fgets(buf, sizeof buf, fp))
             {
-                text += formatted_string(buf);
+                text += string(buf);
                 if (next_is_hotkey && (isaupper(buf[0]) || isadigit(buf[0])))
                 {
                     int hotkey = tolower_safe(buf[0]);

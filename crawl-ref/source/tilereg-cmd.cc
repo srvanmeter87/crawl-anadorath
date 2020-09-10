@@ -5,11 +5,9 @@
 #include "tilereg-cmd.h"
 
 #include "ability.h"
-#include "areas.h"
 #include "cio.h"
 #include "command.h"
 #include "describe.h"
-#include "enum.h"
 #include "env.h"
 #include "items.h"
 #include "libutil.h"
@@ -18,11 +16,9 @@
 #include "religion.h"
 #include "spl-cast.h"
 #include "stringutil.h"
-#include "terrain.h"
-#include "tiledef-icons.h"
+#include "rltiles/tiledef-icons.h"
 #include "tilepick.h"
 #include "tiles-build-specific.h"
-#include "viewgeom.h"
 
 CommandRegion::CommandRegion(const TileRegionInit &init,
                              const command_type commands[],
@@ -57,13 +53,13 @@ void CommandRegion::draw_tag()
     draw_desc(get_command_description(cmd, true).c_str());
 }
 
-int CommandRegion::handle_mouse(MouseEvent &event)
+int CommandRegion::handle_mouse(wm_mouse_event &event)
 {
     unsigned int item_idx;
     if (!place_cursor(event, item_idx))
         return 0;
 
-    if (event.button == MouseEvent::LEFT)
+    if (event.button == wm_mouse_event::LEFT)
     {
         const command_type cmd = (command_type) m_items[item_idx].idx;
         m_last_clicked_item = item_idx;
@@ -185,14 +181,6 @@ static bool _command_not_applicable(const command_type cmd, bool safe)
         return you_worship(GOD_NO_GOD);
     case CMD_USE_ABILITY:
         return your_talents(false).empty();
-    case CMD_BUTCHER:
-        // this logic is enormously simplistic compared to food.cc
-        for (stack_iterator si(you.pos(), true); si; ++si)
-            if (si->is_type(OBJ_CORPSES, CORPSE_BODY))
-                return false;
-        if (you.species == SP_VAMPIRE)
-            return false;
-        return true;
     case CMD_CAST_SPELL:
         return can_cast_spells(true);
     case CMD_DISPLAY_MAP:

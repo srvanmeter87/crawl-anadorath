@@ -152,7 +152,7 @@ struct monsterentry
     int8_t AC; // armour class
     int8_t ev; // evasion
     int sec;   // actually mon_spellbook_type
-    corpse_effect_type corpse_thingy;
+    bool leaves_corpse;
     shout_type         shouts;
     mon_intel_type     intel;
     habitat_type     habitat;
@@ -196,7 +196,7 @@ int get_mons_class_ev(monster_type mc) IMMUTABLE;
 resists_t get_mons_class_resists(monster_type mc) IMMUTABLE;
 resists_t get_mons_resists(const monster& mon);
 int get_mons_resist(const monster& mon, mon_resist_flags res);
-const bool monster_resists_this_poison(const monster& mons, bool force = false);
+bool monster_resists_this_poison(const monster& mons, bool force = false);
 
 void init_monsters();
 void init_monster_symbols();
@@ -245,12 +245,11 @@ bool mons_class_sees_invis(monster_type type, monster_type base);
 
 bool mons_immune_magic(const monster& mon);
 
-mon_attack_def mons_attack_spec(const monster& mon, int attk_number, bool base_flavour = false);
+mon_attack_def mons_attack_spec(const monster& mon, int attk_number, bool base_flavour = true);
 string mon_attack_name(attack_type attack, bool with_object = true);
+bool is_plain_attack_type(attack_type attack);
 bool flavour_triggers_damageless(attack_flavour flavour);
 int flavour_damage(attack_flavour flavour, int HD, bool random = true);
-
-corpse_effect_type mons_corpse_effect(monster_type mc);
 
 bool mons_class_flag(monster_type mc, monclass_flags_t bits);
 
@@ -281,7 +280,10 @@ mon_intel_type mons_intel(const monster& mon);
 
 // Use mons_habitat() and mons_primary_habitat() wherever possible,
 // since the class variants do not handle zombies correctly.
+habitat_type mons_habitat_type(monster_type t, monster_type base_t,
+                               bool real_amphibious = false);
 habitat_type mons_habitat(const monster& mon, bool real_amphibious = false);
+
 habitat_type mons_class_primary_habitat(monster_type mc);
 habitat_type mons_primary_habitat(const monster& mon);
 habitat_type mons_class_secondary_habitat(monster_type mc);
@@ -419,7 +421,6 @@ bool mons_is_earthy(const monster& mon);
 bool mons_is_airy(const monster& mon);
 bool mons_is_projectile(monster_type mc);
 bool mons_is_projectile(const monster& mon);
-bool mons_can_cling_to_walls(const monster& mon);
 bool mons_is_object(monster_type mc);
 bool mons_has_blood(monster_type mc);
 bool mons_is_sensed(monster_type mc);
@@ -538,7 +539,8 @@ monster *choose_random_monster_on_level(
 
 void update_monster_symbol(monster_type mtype, cglyph_t md);
 
-void normalize_spell_freq(monster_spells &spells, int hd);
+int spell_freq_for_hd(int hd);
+void normalize_spell_freq(monster_spells &spells, int total_freq);
 
 enum mon_dam_level_type
 {
@@ -562,6 +564,9 @@ bool mons_is_threatening(const monster& mon);
 bool mons_class_gives_xp(monster_type mc, bool indirect = false);
 bool mons_gives_xp(const monster& mon, const actor& agent);
 bool mons_is_notable(const monster& mon);
+
+bool mons_class_is_fragile(monster_type mc);
+bool mons_is_fragile(const monster& mons);
 
 int max_mons_charge(monster_type m);
 

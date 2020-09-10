@@ -109,7 +109,7 @@ lifesaving_chance elyvilon_lifesaving();
 bool god_protects_from_harm();
 bool jiyva_is_dead();
 void set_penance_xp_timeout();
-bool fedhas_protects(const monster& target);
+bool fedhas_protects(const monster* target);
 bool fedhas_neutralises(const monster& target);
 bool anadorath_converts(const monster& target);
 void nemelex_death_message();
@@ -162,8 +162,8 @@ public:
     god_iterator();
 
     operator bool() const;
-    const god_type operator*() const;
-    const god_type operator->() const;
+    god_type operator*() const;
+    god_type operator->() const;
     god_iterator& operator++();
     god_iterator operator++(int);
 

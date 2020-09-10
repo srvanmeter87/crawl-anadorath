@@ -39,15 +39,14 @@ item_def* monster_die(monster& mons, killer_type killer,
 item_def* mounted_kill(monster* daddy, monster_type mc, killer_type killer,
                        int killer_index);
 
-item_def* place_monster_corpse(const monster& mons, bool silent,
-                                                    bool force = false);
+item_def* place_monster_corpse(const monster& mons, bool force = false);
 
 void monster_cleanup(monster* mons);
 void setup_spore_explosion(bolt & beam, const monster& origin);
 void record_monster_defeat(const monster* mons, killer_type killer);
 void unawaken_vines(const monster* mons, bool quiet);
 int mummy_curse_power(monster_type type);
-void fire_monster_death_event(monster* mons, killer_type killer, int i, bool polymorph);
+void fire_monster_death_event(monster* mons, killer_type killer, bool polymorph);
 void heal_flayed_effect(actor* act, bool quiet = false, bool blood_only = false);
 void end_flayed_effect(monster* ghost);
 

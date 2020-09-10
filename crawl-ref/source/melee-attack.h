@@ -23,6 +23,8 @@ enum unarmed_attack_type
     NUM_UNARMED_ATTACKS,
 };
 
+const int UC_FORM_TO_HIT_BONUS = 5;
+
 class melee_attack : public attack
 {
 public:
@@ -33,6 +35,7 @@ public:
     list<actor*> cleave_targets;
     bool         cleaving;        // additional attack from cleaving
     bool         is_riposte;      // long blade retaliation attack
+    int          roll_dist;       // palentonga rolling charge distance
     wu_jian_attack_type wu_jian_attack;
     int wu_jian_number_of_targets;
     coord_def attack_position;
@@ -40,14 +43,12 @@ public:
 public:
     melee_attack(actor *attacker, actor *defender,
                  int attack_num = -1, int effective_attack_num = -1,
-                 bool is_cleaving = false,
-                 coord_def attack_pos = coord_def(0, 0));
+                 bool is_cleaving = false);
 
     // Applies attack damage and other effects.
     bool attack();
-
-    // To-hit is a function of attacker/defender, inherited from attack
-    int calc_to_hit(bool random = true) override;
+    int calc_to_hit(bool random) override;
+    int post_roll_to_hit_modifiers(int mhit, bool random) override;
 
     static void chaos_affect_actor(actor *victim);
 
@@ -65,8 +66,9 @@ private:
     bool using_weapon() const override;
     int weapon_damage() override;
     int calc_mon_to_hit_base() override;
-    int apply_damage_modifiers(int damage, int damage_max) override;
+    int apply_damage_modifiers(int damage) override;
     int calc_damage() override;
+    bool apply_damage_brand(const char *what = nullptr) override;
 
     /* Attack effects */
     void check_autoberserk();
@@ -75,7 +77,7 @@ private:
     void rot_defender(int amount);
 
     bool consider_decapitation(int damage_done, int damage_type = -1);
-    bool attack_chops_heads(int damage_done, int damage_type, int wpn_brand);
+    bool attack_chops_heads(int damage_done, int damage_type);
     void decapitate(int dam_type);
 
     /* Axe cleaving */
@@ -135,7 +137,7 @@ private:
     bool player_monattk_hit_effects();
     void attacker_sustain_passive_damage();
     int  staff_damage(skill_type skill);
-    void apply_staff_damage();
+    bool apply_staff_damage();
     void player_stab_check() override;
     bool player_good_stab() override;
     void player_announce_aux_hit();
@@ -146,7 +148,7 @@ private:
 
     // Added in, were previously static methods of fight.cc
     bool _extra_aux_attack(unarmed_attack_type atk);
-    int calc_your_to_hit_unarmed(int uattack = UNAT_NO_ATTACK);
+    int calc_your_to_hit_unarmed();
     bool _player_vampire_draws_blood(const monster* mon, const int damage,
                                      bool needs_bite_msg = false);
     bool _vamp_wants_blood_from_monster(const monster* mon);
