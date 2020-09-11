@@ -32,5 +32,5 @@ forwards to @rawlins / advil, who will send an acknowledgement and report the
 issue to the devteam more generally.
 
 If you have access (devteam and server owners) you can directly report a
-security issue in private by opening an issue in the https://github.com/crawl/dcss-security
-repository.
+security issue in private by opening an issue in the
+[dcss-security](https://github.com/crawl/dcss-security) repository.
