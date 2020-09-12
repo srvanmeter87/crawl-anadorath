@@ -692,8 +692,8 @@ i-brand-armour SCR_BRAND_ARMOUR
 i-brand-ammunition SCR_BRAND_AMMUNITION SCR_ID_LAST
 # end TAG_MAJOR_VERSION
 # start TAG_MAJOR_VERSION == 35
-i-brand-ammunition SCR_BRAND_AMMUNITION
-%back scroll-yellow
+# i-brand-ammunition SCR_BRAND_AMMUNITION
+# %back scroll-yellow
 # i-amnesia SCR_AMNESIA SCR_ID_LAST
 # end TAG_MAJOR_VERSION
 %back none
@@ -940,7 +940,7 @@ i-divine-favour POT_DIVINE_FAVOUR
 i-penance POT_PENANCE POT_ID_LAST
 # end TAG_MAJOR_VERSION
 # start TAG_MAJOR_VERSION == 35
-i-penance POT_PENANCE
+# i-penance POT_PENANCE
 # i-lignify POT_LIGNIFY POT_ID_LAST
 # end TAG_MAJOR_VERSION
 %back none
