@@ -1053,6 +1053,7 @@ int main(int argc, char* argv[])
                 case AF_PLAIN:
                     break;
 #if TAG_MAJOR_VERSION == 34
+                case AF_HUNGER:
                 case AF_DISEASE:
                 case AF_PLAGUE:
                 case AF_STEAL_FOOD:
