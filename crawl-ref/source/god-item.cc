@@ -250,8 +250,8 @@ bool is_antichaotic_item(const item_def& item, bool calc_unid)
     if (item.base_type == OBJ_WEAPONS
         && (calc_unid || item_brand_known(item)))
     {
-        return (get_weapon_brand(item) == SPWPN_ANTIMAGIC
-                || get_weapon_brand(item) == SPWPN_HOLY_WRATH);
+        return get_weapon_brand(item) == SPWPN_ANTIMAGIC
+               || get_weapon_brand(item) == SPWPN_HOLY_WRATH;
     }
 
     if (!calc_unid && !item_type_known(item))
