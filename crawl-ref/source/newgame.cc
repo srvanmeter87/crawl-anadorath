@@ -13,7 +13,6 @@
 #include "end.h"
 #include "english.h"
 #include "files.h"
-#include "filter-enum.h"
 #include "hints.h"
 #include "initfile.h"
 #include "item-name.h" // make_name
@@ -343,9 +342,9 @@ static bool _reroll_random(newgame_def& ng)
 
     formatted_string prompt;
     prompt.cprintf("You are a%s %s %s.",
-            (is_vowel(specs[0])) ? "n" : "", specs.c_str(),
-            get_job_name(ng.job));
-    prompt.cprintf("\nDo you want to play this combination? (ynq) [y]");
+                   (is_vowel(specs[0])) ? "n" : "",
+                   specs.c_str(),
+                   get_job_name(ng.job));
 
     auto title_hbox = make_shared<Box>(Widget::HORZ);
 #ifdef USE_TILE
@@ -1815,75 +1814,6 @@ static void _construct_weapon_menu(const newgame_def& ng,
         _add_menu_sub_item(sub_items, 1, 2, text,
                 "Select your old weapon", '\t', M_DEFAULT_CHOICE);
     }
-}
-
-class UIPrecisionMenuWrapper : public Widget
-{
-public:
-    UIPrecisionMenuWrapper(int _w, int _h, PrecisionMenu &_menu) : w(_w), h(_h), menu(_menu) {};
-
-    virtual void _render() override;
-    virtual SizeReq _get_preferred_size(Direction dim, int prosp_width) override;
-    virtual bool on_event(const wm_event& event) override;
-private:
-    int w, h;
-    PrecisionMenu& menu;
-};
-
-SizeReq UIPrecisionMenuWrapper::_get_preferred_size(Direction dim, int prosp_width)
-{
-    SizeReq ret;
-    if (!dim)
-        ret = { w, w };
-    else
-        ret = { h, h };
-#ifdef USE_TILE_LOCAL
-    const FontWrapper* font = tiles.get_crt_font();
-    const int f = !dim ? font->char_width() : font->char_height();
-    ret.min *= f;
-    ret.nat *= f;
-#endif
-    return ret;
-}
-
-void UIPrecisionMenuWrapper::_render()
-{
-#ifdef USE_TILE_LOCAL
-    GLW_3VF t = {(float)m_region[0], (float)m_region[1], 0}, s = {1, 1, 1};
-    glmanager->set_transform(t, s);
-#endif
-    menu.draw_menu();
-#ifdef USE_TILE_LOCAL
-    glmanager->reset_transform();
-#endif
-}
-
-bool UIPrecisionMenuWrapper::on_event(const wm_event& ev)
-{
-#ifdef USE_TILE_LOCAL
-    if (ev.type == WME_MOUSEMOTION
-     || ev.type == WME_MOUSEBUTTONDOWN
-     || ev.type == WME_MOUSEWHEEL)
-    {
-        MouseEvent mouse_ev = ev.mouse_event;
-        mouse_ev.px -= m_region[0];
-        mouse_ev.py -= m_region[1];
-
-        int key = menu.handle_mouse(mouse_ev);
-        if (key && key != CK_NO_KEY)
-        {
-            wm_event fake_key = {0};
-            fake_key.type = WME_KEYDOWN;
-            fake_key.key.keysym.sym = key;
-            on_event(fake_key);
-        }
-
-        if (ev.type == WME_MOUSEMOTION)
-            _expose();
-        return true;
-    }
-#endif
-    return Widget::on_event(ev);
 }
 
 /**

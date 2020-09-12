@@ -269,15 +269,6 @@ bool builder(bool enable_random_maps)
     unwind_var<coord_def> saved_position(you.position);
     you.position.reset();
 
-    // For normal cases, this should already be taken care of by enter_level.
-    // However, we want to be really sure that the builder isn't ever run with
-    // the player at a real position on the level, e.g. during debug code or
-    // tests, because that can impact levelgen (somehow) and cause seed
-    // divergence. (I think it's because actor position can impact item gen,
-    // but it's a bit hard to track down.)
-    unwind_var<coord_def> saved_position(you.position);
-    you.position.reset();
-
     // Save a copy of unique creatures for vetoes.
     temp_unique_creatures = you.unique_creatures;
     // And unrands

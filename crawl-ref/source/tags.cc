@@ -3235,10 +3235,6 @@ static void _tag_read_you(reader &th)
             you.innate_mutation[MUT_SPIT_POISON] = 1;
     }
 
-    // Carnivore and herbivore used to be 3-level mutations.
-    _cap_mutation_at(MUT_HERBIVOROUS, 1);
-    _cap_mutation_at(MUT_CARNIVOROUS, 1);
-
     // Slow regeneration split into two single-level muts:
     // * Inhibited regeneration (no regen in los of monsters, what Gh get)
     // * No regeneration (what DDs get)

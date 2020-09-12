@@ -26,7 +26,6 @@
 #include "mon-place.h"
 #include "ouch.h"
 #include "religion.h"
-#include "spl-miscast.h"
 #include "state.h"
 #include "stringutil.h"
 #include "terrain.h"

@@ -33,7 +33,6 @@
 #include "mon-behv.h"
 #include "mon-poly.h"
 #include "mon-tentacle.h"
-#include "prompt.h"
 #include "religion.h"
 #include "shout.h"
 #include "spl-damage.h"
@@ -3393,12 +3392,6 @@ int melee_attack::calc_your_to_hit_unarmed()
 
     if (you.get_mutation_level(MUT_EYEBALLS))
         your_to_hit += 2 * you.get_mutation_level(MUT_EYEBALLS) + 1;
-
-    if (you.duration[DUR_VERTIGO])
-        your_to_hit -= 5;
-
-    if (you.confused())
-        your_to_hit -= 5;
 
     if (you.duration[DUR_VERTIGO])
         your_to_hit -= 5;

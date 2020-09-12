@@ -899,14 +899,6 @@ namespace arena
             return;
         }
 
-        if (contest_cancelled)
-        {
-            mpr("Canceled contest at user request");
-            ui_delay(Options.view_delay);
-            clear_messages();
-            return;
-        }
-
         clear_messages();
 
         trials_done++;

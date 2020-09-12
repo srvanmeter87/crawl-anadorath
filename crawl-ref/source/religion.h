@@ -10,14 +10,14 @@
 #include "player.h"
 #include "religion-enum.h"
 
-#define MAX_PIETY      200
-#define HALF_MAX_PIETY (MAX_PIETY / 2)
+#define MAX_PIETY         200
+#define HALF_MAX_PIETY    (MAX_PIETY / 2)
 
-#define MAX_PENANCE    200
+#define MAX_PENANCE       200
 
 #define NUM_VEHUMET_GIFTS 13
 
-#define NUM_PIETY_STARS 6
+#define NUM_PIETY_STARS   6
 
 enum class lifesaving_chance
 {
@@ -38,7 +38,7 @@ bool is_unavailable_god(god_type god);
 
 god_type random_god();
 
-int piety_breakpoint(int i);
+int piety_breakpoint(int stars);
 string god_name(god_type which_god, bool long_name = false);
 string god_name_jiyva(bool second_name = false);
 string wu_jian_random_sifu_name();

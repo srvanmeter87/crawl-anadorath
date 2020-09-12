@@ -252,24 +252,6 @@ private:
     COLOURS background;
 };
 
-enum edit_mode
-{
-    EDIT_MODE_INSERT,
-    EDIT_MODE_OVERWRITE,
-};
-
-class draw_colour
-{
-public:
-    draw_colour(COLOURS fg, COLOURS bg);
-    ~draw_colour();
-    void set();
-    void reset();
-private:
-    COLOURS foreground;
-    COLOURS background;
-};
-
 // Reads lines of text; used internally by cancellable_get_line.
 class line_reader
 {

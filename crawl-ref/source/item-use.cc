@@ -1757,16 +1757,6 @@ static bool _swap_rings(item_def& to_puton)
                     invprompt_flag::no_warning | invprompt_flag::hide_known);
         }
 
-        if (unwanted == EQ_NONE)
-        {
-            // do this here rather than in remove_ring so that the custom
-            // message is visible.
-            unwanted = prompt_invent_item(
-                    "You're wearing all the rings you can. Remove which one?",
-                    menu_type::invlist, OSEL_UNCURSED_WORN_RINGS, OPER_REMOVE,
-                    invprompt_flag::no_warning | invprompt_flag::hide_known);
-        }
-
         // Cancelled:
         if (unwanted < 0)
         {
@@ -3625,10 +3615,7 @@ void read_scroll(item_def& scroll)
 
     case SCR_ACQUIREMENT:
         if (!alreadyknown)
-        {
-            mpr(pre_succ_msg);
             mpr("This is a scroll of acquirement!");
-        }
 
         // included in default force_more_message
         // Identify it early in case the player checks the '\' screen.

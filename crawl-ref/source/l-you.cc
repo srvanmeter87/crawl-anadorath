@@ -161,6 +161,7 @@ LUARET1(you_xl, number, you.experience_level)
  * @function xl_progress
  */
 LUARET1(you_xl_progress, number, get_exp_progress())
+
 /*** Skill progress.
  * @tparam string name skill name
  * @treturn number percentage of the way to the next skill level

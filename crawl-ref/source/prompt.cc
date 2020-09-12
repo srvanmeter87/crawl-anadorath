@@ -14,7 +14,6 @@
 #include "menu.h"
 #include "message.h"
 #include "options.h"
-#include "output.h"
 #include "state.h"
 #include "stringutil.h"
 #ifdef USE_TILE

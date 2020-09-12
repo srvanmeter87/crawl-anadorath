@@ -198,9 +198,7 @@ static void _give_ranged_weapon(weapon_type weapon, int plus)
     switch (weapon)
     {
     case WPN_SHORTBOW:
-    case WPN_LONGBOW:
     case WPN_HAND_CROSSBOW:
-    case WPN_ARBALEST:
     case WPN_HUNTING_SLING:
         newgame_make_item(OBJ_WEAPONS, weapon, 1, plus);
         break;
@@ -225,11 +223,9 @@ static void _give_ammo(weapon_type weapon, int plus)
         newgame_make_item(OBJ_MISSILES, MI_THROWING_NET, 2);
         break;
     case WPN_SHORTBOW:
-    case WPN_LONGBOW:
         newgame_make_item(OBJ_MISSILES, MI_ARROW, 20);
         break;
     case WPN_HAND_CROSSBOW:
-    case WPN_ARBALEST:
         newgame_make_item(OBJ_MISSILES, MI_BOLT, 20);
         break;
     case WPN_HUNTING_SLING:
@@ -247,7 +243,6 @@ void give_items_skills(const newgame_def& ng)
     switch (you.char_class)
     {
     case JOB_BERSERKER:
-    {
         you.religion = GOD_TROG;
         you.piety = 35;
 
@@ -256,20 +251,17 @@ void give_items_skills(const newgame_def& ng)
         else
         {
             you.skills[SK_DODGING]++;
-            you.skills[SK_ARMOUR]++; // converted later
+            if (!is_useless_skill(SK_ARMOUR))
+                you.skills[SK_ARMOUR]++; // converted later
         }
         break;
-
     case JOB_ARTIFICER:
-    {
         if (species_apt(SK_ARMOUR) < species_apt(SK_DODGING))
             you.skills[SK_DODGING]++;
         else
             you.skills[SK_ARMOUR]++;
         break;
-    }
     case JOB_CHAOS_KNIGHT:
-    {
         you.religion = GOD_XOM;
         you.piety = 100;
         int timeout_rnd = random2(40);
@@ -281,9 +273,7 @@ void give_items_skills(const newgame_def& ng)
         else
             you.skills[SK_ARMOUR]++;
         break;
-    }
     case JOB_ABYSSAL_KNIGHT:
-    {
         you.religion = GOD_LUGONU;
         if (!crawl_state.game_is_sprint())
             you.chapter = CHAPTER_POCKET_ABYSS;
@@ -294,49 +284,37 @@ void give_items_skills(const newgame_def& ng)
         else
             you.skills[SK_ARMOUR]++;
         break;
-    }
     case JOB_CONJURER:
     case JOB_EARTH_ELEMENTALIST:
     case JOB_FIRE_ELEMENTALIST:
     case JOB_SUMMONER:
     case JOB_WIZARD:
-    {
         if (you.species != SP_PYROLITH)
         {
             you.skills[SK_DODGING] += 2;
             you.skills[SK_STEALTH] += 2;
         }
         break;
-    }
     case JOB_ARCANE_MARKSMAN:
-    {
         if (you.species != SP_PYROLITH)
             you.skills[SK_DODGING] += 2;
         break;
-    }
     case JOB_FIGHTER:
-    {
         if (you.species != SP_PYROLITH)
             you.skills[SK_ARMOUR] += 3;
         break;
-    }
     case JOB_GLADIATOR:
-    {
         if (you.species != SP_PYROLITH)
             you.skills[SK_DODGING] += 3;
         break;
-    }
     case JOB_HUNTER:
-    {
         if (you.species != SP_PYROLITH)
         {
             you.skills[SK_DODGING] += 2;
             you.skills[SK_STEALTH]++;
         }
         break;
-    }
     case JOB_PRIMALIST:
-    {
         you.religion = GOD_ANADORATH;
         you.piety = 20;
 
@@ -354,15 +332,14 @@ void give_items_skills(const newgame_def& ng)
         else
             you.skills[SK_SPELLCASTING]++;
         break;
-    }
     case JOB_WANDERER:
-    {
         create_wanderer();
         break;
-    }
+
     default:
         break;
     }
+
     if (you.char_class == JOB_ABYSSAL_KNIGHT)
         newgame_make_item(OBJ_WEAPONS, ng.weapon, 1, +1);
     else if (you.char_class == JOB_CHAOS_KNIGHT)

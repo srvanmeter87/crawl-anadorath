@@ -2692,6 +2692,7 @@ bool fedhas_neutralises(const monster& target)
            && target.type != MONS_SNAPLASHER_VINE_SEGMENT;
 }
 
+// Anadorath converts most elemental monsters
 bool anadorath_converts(const monster& target)
 {
     return mons_is_airy(target)
@@ -4369,21 +4370,20 @@ colour_t god_message_altar_colour(god_type god)
 }
 
 /**
- * Utilises piety_breakpoint() to determine your piety rank in stars (*).
+ * Utilises `piety_breakpoint()` to determine your `piety_rank` in stars (*).
  *
- * @param int piety: range(0, MAX_PIETY=200)
+ * @param int piety: `range(0, MAX_PIETY=200)`
  *
- * The rank ranges in piety to piety_breakpoints are as follows:
- * 0-29: 0,
- * 30-49: 1,
- * 50-74: 2,
- * 75-99: 3,
- * 100-119: 4,
- * 120-159: 5,
- * 160-199: 6,
- * 200: 7
+ * The `piety` ranges to `piety_breakpoint` maps as follows:
+ *   `0-29:    0`,
+ *   `30-49:   1`,
+ *   `50-74:   2`,
+ *   `75-99:   3`,
+ *   `100-129: 4`,
+ *   `130-169: 5`,
+ *   `170-200: 6`
  *
- * @returns your piety rank in number of stars (*).
+ * @returns Your `piety_rank` in number of stars (*).
  */
 int piety_rank(int piety)
 {
@@ -4405,21 +4405,25 @@ int piety_rank(int piety)
 }
 
 /**
- * @param int i: range(0, MAX_PIETY_STARS=6)
+ * @param int stars: `range(0, MAX_PIETY_STARS=6)`
  *
- * The breakpoints are as follows in the array:
- * 0: =  30, 1: =  50, 2: =  75,
- * 3: = 100, 4: = 120, 5: = 160
+ * The piety_breakpoints to piety maps as follows:
+ *   `0:  30`,
+ *   `1:  50`,
+ *   `2:  75`,
+ *   `3: 100`,
+ *   `4: 130`,
+ *   `5: 170`
  *
- * @return the corresponding piety breakpoint (breakpoints[i]).
+ * @return The corresponding piety breakpoint (`breakpoints[stars]`).
  */
-int piety_breakpoint(int i)
+int piety_breakpoint(int stars)
 {
-    int breakpoints[NUM_PIETY_STARS] = { 30, 50, 75, 100, 120, 160 };
-    if (i >= NUM_PIETY_STARS || i < 0)
+    int breakpoints[NUM_PIETY_STARS] = { 30, 50, 75, 100, 130, 170 };
+    if (stars >= NUM_PIETY_STARS || stars < 0)
         return 255;
     else
-        return breakpoints[i];
+        return breakpoints[stars];
 }
 
 int get_monster_tension(const monster& mons, god_type god)

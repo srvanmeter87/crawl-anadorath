@@ -460,16 +460,6 @@ static int crawl_process_keys(lua_State *ls)
 
     process_command_on_record(cmd);
 
-/*** Enable or disable crashing on an incomplete buffer.
- * Used for tests, not generally useful in real life. Crashing only happens in
- * wizmode.
- * @tparam boolean param
- * @function set_sendkeys_errors
- */
-static int crawl_set_sendkeys_errors(lua_State *ls)
-{
-    const bool errors = lua_toboolean(ls, 1);
-    crawl_state.nonempty_buffer_flush_errors = errors;
     return 0;
 }
 

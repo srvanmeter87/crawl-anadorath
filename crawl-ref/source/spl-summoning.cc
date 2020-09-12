@@ -263,9 +263,6 @@ spret cast_dragon_call(int pow, bool fail)
     if (otr_stop_summoning_prompt("call dragons"))
         return spret::abort;
 
-    if (otr_stop_summoning_prompt("call dragons"))
-        return spret::abort;
-
     fail_check();
 
     mpr("You call out to the draconic realm, and the dragon horde roars back!");

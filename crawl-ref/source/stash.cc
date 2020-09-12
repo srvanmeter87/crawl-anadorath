@@ -47,9 +47,6 @@
 #include "unicode.h"
 #include "unwind.h"
 #include "viewmap.h"
-#ifdef USE_TILE
-# include "tilepick.h"
-#endif
 
 // Global
 StashTracker StashTrack;

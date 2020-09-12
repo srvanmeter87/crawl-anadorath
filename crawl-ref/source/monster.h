@@ -251,7 +251,7 @@ public:
     actor *get_foe() const;
 
     // actor interface
-    int mindex() const override;
+    int      mindex() const override;
     int      get_hit_dice() const override;
     int      get_experience_level() const override;
     god_type deity() const override;

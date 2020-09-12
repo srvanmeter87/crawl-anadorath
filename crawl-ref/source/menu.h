@@ -417,6 +417,7 @@ protected:
 
     virtual void webtiles_write_title() const;
     virtual void webtiles_write_item(const MenuEntry *me) const;
+
     bool _webtiles_title_changed;
     formatted_string _webtiles_title;
 #endif

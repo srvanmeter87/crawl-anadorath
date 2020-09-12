@@ -46,8 +46,6 @@ public:
 
     int tile_iw, tile_ih;
 
-    int tile_iw, tile_ih;
-
 protected:
     void pack_buffers();
     void pack_cursor(cursor_type type, unsigned int tile);

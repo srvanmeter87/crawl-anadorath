@@ -555,7 +555,6 @@ static const struct spell_desc spelldata[] =
     TILEG_PAIN,
 },
 
-#if TAG_MAJOR_VERSION == 34
 {
     SPELL_ANIMATE_SKELETON, "Animate Skeleton",
     spschool::necromancy,
@@ -1636,7 +1635,7 @@ static const struct spell_desc spelldata[] =
     0,
     -1, -1,
     4, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_CREATE_TENTACLES,
 },
 
 {
@@ -1861,7 +1860,7 @@ static const struct spell_desc spelldata[] =
     0,
     LOS_RADIUS, LOS_RADIUS,
     4, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_SUMMON_SPECTRAL_ORCS,
 },
 
 {
@@ -2096,12 +2095,12 @@ static const struct spell_desc spelldata[] =
     SPELL_SENTINEL_MARK, "Sentinel's Mark",
     spschool::hexes,
     spflag::dir_or_target | spflag::needs_tracer | spflag::MR_check
-        | spflag::monster,
+                          | spflag::monster,
     5,
     200,
     LOS_RADIUS, LOS_RADIUS,
     4, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_SENTINEL_MARK,
 },
 
 // Ironbrand Convoker version (delayed activation, recalls only humanoids)
@@ -2165,7 +2164,7 @@ static const struct spell_desc spelldata[] =
     SPELL_DIMENSION_ANCHOR, "Dimension Anchor",
     spschool::translocation | spschool::hexes,
     spflag::dir_or_target | spflag::needs_tracer | spflag::MR_check
-        | spflag::monster,
+                          | spflag::monster,
     4,
     200,
     LOS_RADIUS, LOS_RADIUS,
@@ -2192,7 +2191,7 @@ static const struct spell_desc spelldata[] =
     200,
     LOS_RADIUS, LOS_RADIUS,
     5, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_AWAKEN_VINES,
 },
 
 {
@@ -2214,7 +2213,7 @@ static const struct spell_desc spelldata[] =
     100,
     LOS_RADIUS, LOS_RADIUS,
     5, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_WALL_OF_BRAMBLES,
 },
 
 {
@@ -2243,12 +2242,12 @@ static const struct spell_desc spelldata[] =
     SPELL_STRIP_RESISTANCE, "Strip Resistance",
     spschool::hexes,
     spflag::dir_or_target | spflag::needs_tracer | spflag::MR_check
-        | spflag::monster,
+                          | spflag::monster,
     5,
     200,
     LOS_RADIUS, LOS_RADIUS,
     4, 0,
-    TILEG_GENERIC_MONSTER_SPELL,
+    TILEG_STRIP_RESISTANCE,
 },
 
 {
@@ -2277,7 +2276,7 @@ static const struct spell_desc spelldata[] =
     SPELL_MALIGN_OFFERING, "Malign Offering",
     spschool::necromancy,
     spflag::dir_or_target | spflag::not_self | spflag::needs_tracer
-        | spflag::monster,
+                          | spflag::monster,
     5,
     200,
     LOS_RADIUS, LOS_RADIUS,
@@ -2311,7 +2310,7 @@ static const struct spell_desc spelldata[] =
     SPELL_INVISIBILITY_OTHER, "Invisibility Other",
     spschool::hexes,
     spflag::dir_or_target | spflag::not_self | spflag::helpful
-        | spflag::monster,
+                          | spflag::monster,
     6,
     200,
     LOS_RADIUS, LOS_RADIUS,
@@ -2323,7 +2322,7 @@ static const struct spell_desc spelldata[] =
     SPELL_VIRULENCE, "Virulence",
     spschool::poison | spschool::hexes,
     spflag::dir_or_target | spflag::needs_tracer | spflag::MR_check
-        | spflag::monster,
+                          | spflag::monster,
     4,
     200,
     LOS_RADIUS, LOS_RADIUS,
@@ -2434,7 +2433,7 @@ static const struct spell_desc spelldata[] =
     SPELL_MAJOR_DESTRUCTION, "Major Destruction",
     spschool::conjuration,
     spflag::dir_or_target | spflag::chaotic | spflag::needs_tracer
-        | spflag::monster,
+                          | spflag::monster,
     7,
     200,
     6, 6,

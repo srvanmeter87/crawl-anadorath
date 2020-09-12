@@ -30,7 +30,6 @@
 #include "message.h"
 #include "potion.h" // you_drinkless for pakellas compat
 #include "religion.h"
-#include "scroller.h"
 #include "skills.h"
 #include "spl-util.h"
 #include "stringutil.h"

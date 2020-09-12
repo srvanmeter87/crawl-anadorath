@@ -141,19 +141,3 @@ namespace rng
         return store;
     }
 }
-
-PcgRNG::PcgRNG(const CrawlVector &v)
-    : PcgRNG()
-{
-    ASSERT(v.size() == 2);
-    state_ = static_cast<uint64_t>(v[0].get_int64());
-    inc_ = static_cast<uint64_t>(v[1].get_int64());
-}
-
-CrawlVector PcgRNG::to_vector()
-{
-    CrawlVector store;
-    store.push_back(static_cast<int64_t>(state_));
-    store.push_back(static_cast<int64_t>(inc_));
-    return store;
-}

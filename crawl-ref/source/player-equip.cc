@@ -910,15 +910,6 @@ static void _equip_armour_effect(item_def& arm, bool unmeld,
             mpr("You are surrounded by a repulsion field.");
             break;
 
-        case SPARM_CLOUD_IMMUNE:
-            if (have_passive(passive_t::elemental_resistance))
-            {
-                mpr("Your immunity to the effects of clouds is unaffected.");
-            }
-            else
-                mpr("You feel immune to the effects of clouds.");
-            break;
-
         case SPARM_SHADOWS:
             mpr("It gets dark.");
             update_vision_range();
@@ -1093,11 +1084,6 @@ static void _unequip_armour_effect(item_def& item, bool meld,
         mpr("The haze of the repulsion field disappears.");
         break;
 
-    case SPARM_CLOUD_IMMUNE:
-        if (!you.cloud_immune())
-            mpr("You feel vulnerable to the effects of clouds.");
-        break;
-
     case SPARM_SHADOWS:
         mpr("The dungeon's light returns to normal.");
         update_vision_range();
@@ -1189,28 +1175,6 @@ static void _equip_regeneration_item(const item_def &item)
 bool acrobat_boost_active()
 {
     return you.wearing(EQ_AMULET, AMU_ACROBAT)
-           && you.duration[DUR_ACROBAT]
-           && (!you.caught())
-           && (!you.is_constricted());
-}
-
-static void _equip_amulet_of_the_acrobat()
-{
-    if (you.hp == you.hp_max)
-    {
-        you.props[ACROBAT_AMULET_ACTIVE] = 1;
-        mpr("You feel ready to tumble and roll out of harm's way.");
-    }
-    else
-    {
-        mpr("Your injuries prevent the amulet from attuning itself.");
-        you.props[ACROBAT_AMULET_ACTIVE] = 0;
-    }
-}
-
-bool acrobat_boost_active()
-{
-    return you.props[ACROBAT_AMULET_ACTIVE].get_int() == 1
            && you.duration[DUR_ACROBAT]
            && (!you.caught())
            && (!you.is_constricted());
@@ -1318,11 +1282,6 @@ static void _equip_jewellery_effect(item_def &item, bool unmeld,
     case AMU_ACROBAT:
         if (!unmeld)
             mpr("You feel ready to tumble and roll out of harm's way.");
-        break;
-
-    case AMU_ACROBAT:
-        if (!unmeld)
-            _equip_amulet_of_the_acrobat();
         break;
 
     case AMU_MANA_REGENERATION:

@@ -116,11 +116,7 @@ void debug_dump_levgen()
         for (auto &vname : vaults)
             mprf("    %s", vname.c_str());
     }
-
-    formatted_scroller hist(FS_PREWRAPPED_TEXT);
-    hist.set_more();
-    hist.add_formatted_string(lines, !lines.empty());
-    hist.show();
+    mpr("");
 }
 
 void debug_show_builder_logs()

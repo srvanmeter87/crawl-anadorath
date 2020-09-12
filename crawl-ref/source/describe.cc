@@ -3317,49 +3317,6 @@ static string _spell_sources(const spell_type spell)
 }
 
 /**
- * Make a list of all books that contain a given spell.
- *
- * @param spell_type spell      The spell in question.
- * @return                      A formatted list of books containing
- *                              the spell, e.g.:
- *    \n\nThis spell can be found in the following books: dreams, burglary.
- *    or
- *    \n\nThis spell is not found in any books.
- */
-static string _spell_sources(const spell_type spell)
-{
-    item_def item;
-    set_ident_flags(item, ISFLAG_IDENT_MASK);
-    vector<string> books;
-
-    item.base_type = OBJ_BOOKS;
-    for (int i = 0; i < NUM_FIXED_BOOKS; i++)
-    {
-        if (item_type_removed(OBJ_BOOKS, i))
-            continue;
-        for (spell_type sp : spellbook_template(static_cast<book_type>(i)))
-            if (sp == spell)
-            {
-                item.sub_type = i;
-                books.push_back(item.name(DESC_PLAIN));
-            }
-    }
-
-    if (books.empty())
-        return "\nThis spell is not found in any books.";
-
-    string desc;
-
-    desc += "\nThis spell can be found in the following book";
-    if (books.size() > 1)
-        desc += "s";
-    desc += ":\n ";
-    desc += comma_separated_line(books.begin(), books.end(), "\n ", "\n ");
-
-    return desc;
-}
-
-/**
  * Provide the text description of a given spell.
  *
  * @param spell     The spell in question.
@@ -3465,41 +3422,6 @@ void describe_ability(ability_type ability)
     inf.body << get_ability_desc(ability, false);
     tile_def tile = tile_def(tileidx_ability(ability));
     show_description(inf, &tile);
-}
-
-/**
- * Examine a given deck.
- */
-void describe_deck(deck_type deck)
-{
-    describe_info inf;
-
-    if (deck == DECK_STACK)
-        inf.title = "A stacked deck";
-    else
-        inf.title = "The " + deck_name(deck);
-
-    inf.body << deck_description(deck);
-
-    show_description(inf);
-}
-
-/**
- * Examine a given ability. List its description and details.
- *
- * @param ability   The ability in question.
- */
-void describe_ability(ability_type ability)
-{
-    describe_info inf;
-    inf.title = ability_name(ability);
-    inf.body << get_ability_desc(ability, false);
-#ifdef USE_TILE
-    tile_def tile = tile_def(tileidx_ability(ability), TEX_GUI);
-    show_description(inf, &tile);
-#else
-    show_description(inf);
-#endif
 }
 
 /**

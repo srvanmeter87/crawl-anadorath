@@ -35,7 +35,6 @@
 #include "player-equip.h" // lose_permafly_source
 #include "player-stats.h"
 #include "religion.h"
-#include "scroller.h"
 #include "skills.h"
 #include "state.h"
 #include "stringutil.h"

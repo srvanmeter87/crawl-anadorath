@@ -1545,18 +1545,6 @@ bolt mons_spell_beam(const monster* mons, spell_type spell_cast, int power,
         zappy(ZAP_ELEMENTAL_BLAST, power, true, beam);
         break;
 
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_HOLY_LIGHT:
-    case SPELL_SILVER_BLAST:
-        beam.name     = "beam of golden light";
-        beam.damage   = dice_def(3, 8 + power / 11);
-        beam.colour   = ETC_HOLY;
-        beam.flavour  = BEAM_HOLY;
-        beam.hit      = 17 + power / 25;
-        beam.pierce   = true;
-        break;
-#endif
-
     case SPELL_ENSNARE:
         beam.name     = "stream of webbing";
         beam.colour   = WHITE;
@@ -1760,7 +1748,6 @@ bool setup_mons_cast(const monster* mons, bolt &pbolt, spell_type spell_cast,
 #endif
     case SPELL_TWISTED_RESURRECTION:
 #if TAG_MAJOR_VERSION == 34
-    case SPELL_CIGOTUVIS_EMBRACE:
     case SPELL_SIMULACRUM:
 #endif
     case SPELL_CALL_IMP:
@@ -5934,9 +5921,6 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
         return;
     }
 
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_CONTROL_UNDEAD:
-#endif
     case SPELL_SUMMON_UNDEAD:
         _do_high_level_summon(mons, spell_cast, _pick_undead_summon,
                               2 + random2(mons->spell_hd(spell_cast) / 5 + 1),

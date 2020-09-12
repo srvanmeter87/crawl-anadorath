@@ -48,12 +48,11 @@ static const map<job_type, job_def> job_data =
 { JOB_ARCANE_MARKSMAN, {
     "AM", "Arcane Marksman",
     2, 5, 5,
-    { SP_FORMICID, SP_DEEP_ELF, SP_KOBOLD, SP_PYROLITH, SP_SPRIGGAN,
-      SP_TROLL },
+    { SP_FORMICID, SP_DEEP_ELF, SP_KOBOLD, SP_SPRIGGAN, SP_TROLL },
     { "robe", "book of Debilitation" },
     WCHOICE_RANGED,
-    { { SK_FIGHTING, 1 }, { SK_SPELLCASTING, 1 }, { SK_HEXES, 3 },
-      { SK_WEAPON, 2 }, },
+    { { SK_FIGHTING, 1 }, { SK_DODGING, 2 }, { SK_SPELLCASTING, 1 },
+      { SK_HEXES, 3 }, { SK_WEAPON, 2 }, },
 } },
 
 { JOB_ARTIFICER, {
@@ -104,7 +103,8 @@ static const map<job_type, job_def> job_data =
 { JOB_CONJURER, {
     "Cj", "Conjurer",
     -1, 10, 3,
-    { SP_DEEP_ELF, SP_NAGA, SP_TENGU, SP_BASE_DRACONIAN, SP_DEMIGOD, SP_PYROLITH, },
+    { SP_DEEP_ELF, SP_NAGA, SP_TENGU, SP_BASE_DRACONIAN, SP_DEMIGOD,
+      SP_PYROLITH, },
     { "robe", "book of Conjurations" },
     WCHOICE_NONE,
     { { SK_CONJURATIONS, 4 }, { SK_SPELLCASTING, 2 }, },
@@ -221,7 +221,8 @@ static const map<job_type, job_def> job_data =
     { "stone q:15", "robe", "ring of wizardry",
       "book of the Primalist", "book of Elemental Power" },
     WCHOICE_NONE,
-    { { SK_CONJURATIONS, 3 }, { SK_SPELLCASTING, 3 }, },
+    { { SK_CONJURATIONS, 3 }, { SK_SPELLCASTING, 3 }, { SK_EARTH_MAGIC, 3 },
+      { SK_FIRE_MAGIC, 3 }, },
 } },
 
 { JOB_SUMMONER, {

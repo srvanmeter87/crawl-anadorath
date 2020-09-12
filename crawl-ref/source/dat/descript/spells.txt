@@ -199,8 +199,7 @@ Fires a penetrating bolt of flames.
 Bolt of Magma spell
 
 Fires a penetrating bolt of molten rock. A portion of its damage bypasses
-fire resistance. The range of the bolt is decreased by one for every creature
-it strikes.
+fire resistance.
 %%%%
 Borgnjor's Revivification spell
 

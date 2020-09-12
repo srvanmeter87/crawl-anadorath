@@ -5509,10 +5509,10 @@ bool player::missile_repulsion() const
     if (have_passive(passive_t::elemental_shield_3))
         return 2;
 
-    return (get_mutation_level(MUT_DISTORTION_FIELD) == 3
-        || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
-        || scan_artefacts(ARTP_RMSL, true)
-        || have_passive(passive_t::upgraded_storm_shield));
+    return get_mutation_level(MUT_DISTORTION_FIELD) == 3
+           || you.wearing_ego(EQ_ALL_ARMOUR, SPARM_REPULSION)
+           || scan_artefacts(ARTP_RMSL, true)
+           || have_passive(passive_t::upgraded_storm_shield);
 }
 
 /**

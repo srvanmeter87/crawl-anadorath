@@ -1517,7 +1517,7 @@ void dithmenos_shadow_throw(const dist &d, const item_def &item)
         beem.set_target(d);
         setup_monster_throw_beam(mon, beem);
         beem.item = &mitm[mon->inv[MSLOT_MISSILE]];
-        mons_throw(mon, beem, mon->inv[MSLOT_MISSILE], false);
+        mons_throw(mon, beem, mon->inv[MSLOT_MISSILE]);
     }
 
     shadow_monster_reset(mon);
@@ -1759,14 +1759,6 @@ static bool _wu_jian_whirlwind(const coord_def& old_pos)
 
         if (you.props.exists(WU_JIAN_HEAVENLY_STORM_KEY))
             _wu_jian_increment_heavenly_storm();
-
-        // Pin has a longer duration than one player turn, but gets cleared
-        // before its duration expires by wu_jian_end_of_turn_effects. This is
-        // necessary to make sure it works well with Wall Jump's longer aut
-        // count.
-        mons->del_ench(ENCH_WHIRLWIND_PINNED);
-        mons->add_ench(mon_enchant(ENCH_WHIRLWIND_PINNED, 2, nullptr,
-                                   BASELINE_DELAY * 5));
 
         you.apply_berserk_penalty = false;
 

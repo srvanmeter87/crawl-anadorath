@@ -76,36 +76,6 @@ void tag_profile_out()
 }
 #endif
 
-#ifdef DEBUG_TAG_PROFILING
-static map<string,int> _tag_profile;
-
-static void _profile_inc_tag(const string &tag)
-{
-    if (!_tag_profile.count(tag))
-        _tag_profile[tag] = 0;
-    _tag_profile[tag]++;
-}
-
-void tag_profile_out()
-{
-    long total = 0;
-    vector<pair<int, string>> resort;
-    fprintf(stderr, "\nTag hits:\n");
-    for (auto k : _tag_profile)
-    {
-        resort.emplace_back(k.second, k.first);
-        total += k.second;
-    }
-    sort(resort.begin(), resort.end());
-    for (auto p : resort)
-    {
-        long percent = ((long) p.first) * 100 / total;
-        fprintf(stderr, "%8d (%2ld%%): %s\n", p.first, percent, p.second.c_str());
-    }
-    fprintf(stderr, "Total: %ld\n", total);
-}
-#endif
-
 static const char *map_section_names[] =
 {
     "",

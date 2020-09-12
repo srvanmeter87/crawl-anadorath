@@ -1165,15 +1165,10 @@ static void _dgn_check_terrain_items(const coord_def &pos, bool preserve_items)
     }
 }
 
-static bool _dgn_check_terrain_monsters(const coord_def &pos)
+static void _dgn_check_terrain_monsters(const coord_def &pos)
 {
     if (monster* m = monster_at(pos))
-    {
         m->apply_location_effects(pos);
-        return true;
-    }
-    else
-        return false;
 }
 
 // Clear blood or off of terrain that shouldn't have it. Also clear of blood if
@@ -1278,6 +1273,7 @@ void dungeon_terrain_changed(const coord_def &pos,
     }
 
     _dgn_check_terrain_items(pos, preserve_items);
+    _dgn_check_terrain_monsters(pos);
     if (!wizmode)
         _dgn_check_terrain_player(pos);
     if (!temporary && feature_mimic_at(pos))
@@ -1689,13 +1685,6 @@ dungeon_feature_type feat_by_desc(string desc)
         return DNGN_DRY_FOUNTAIN;
 #endif
 
-#if TAG_MAJOR_VERSION == 34
-    // hard-coded because all the dry fountain variants match this description,
-    // and they have a lower enum value, so the first is incorrectly returned
-    if (desc == "a dry fountain.")
-        return DNGN_DRY_FOUNTAIN;
-#endif
-
     return lookup(feat_desc_cache, desc, DNGN_UNSEEN);
 }
 
@@ -1939,20 +1928,6 @@ void set_terrain_changed(const coord_def p)
 
 /**
  * Does this cell count for exploration piety?
- *
- * Don't count: endless map borders, deep water, lava, and cells explicitly
- * marked. (player_view_update_at in view.cc updates the flags)
- */
-bool cell_triggers_conduct(const coord_def p)
-{
-    return !(feat_is_endless(grd(p))
-             || grd(p) == DNGN_LAVA
-             || grd(p) == DNGN_DEEP_WATER
-             || env.pgrid(p) & FPROP_SEEN_OR_NOEXP);
-}
-
-/**
- * Does this cell count for exploraation piety?
  *
  * Don't count: endless map borders, deep water, lava, and cells explicitly
  * marked. (player_view_update_at in view.cc updates the flags)

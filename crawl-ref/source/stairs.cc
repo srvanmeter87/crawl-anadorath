@@ -815,15 +815,6 @@ void floor_transition(dungeon_feature_type how,
             BRANCH_TROVE
         };
 
-        if (branch == BRANCH_GAUNTLET)
-            _gauntlet_effect();
-
-        const set<branch_type> boring_branch_exits = {
-            BRANCH_TEMPLE,
-            BRANCH_BAZAAR,
-            BRANCH_TROVE
-        };
-
         // Did we leave a notable branch for the first time?
         if (boring_branch_exits.count(old_level.branch) == 0
             && !you.branches_left[old_level.branch])

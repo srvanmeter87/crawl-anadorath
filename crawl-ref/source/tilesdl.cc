@@ -108,6 +108,7 @@ bool HiDPIState::update(int ndevice, int nlogical, int ngame_scale)
         device = ndevice;
         logical = nlogical;
     }
+
     // check if the ratios remain the same.
     // yes, this is kind of a dumb way to do it.
     return (old.device * 100 / old.logical) != (device * 100 / logical);

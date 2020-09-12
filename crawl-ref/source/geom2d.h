@@ -79,11 +79,7 @@ struct lineseq
     lineseq(double a, double b, double o, double d)
         : f(a,b), offset(o), dist(d) {}
 
-#ifdef TARGET_COMPILER_VC
-    double index(const vector &v) const;
-#else
     double index(const vector &v) const PURE;
-#endif
 
 };
 

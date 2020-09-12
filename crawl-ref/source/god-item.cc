@@ -670,6 +670,9 @@ vector<conduct_type> item_conducts(const item_def &item)
         conducts.push_back(DID_SPELL_PRACTISE);
     }
 
+    if (is_wizardly_item(item, false))
+        conducts.push_back(DID_WIZARDLY_ITEM);
+
     if (_is_potentially_hasty_item(item) || is_hasty_item(item, false))
         conducts.push_back(DID_HASTY);
 
@@ -699,48 +702,8 @@ vector<conduct_type> item_conducts(const item_def &item)
 
 /* conduct_type god_hates_item_handling(const item_def &item)
 {
-    if (item_type_known(item) && is_potentially_evil_item(item)
-        && is_good_god(you.religion))
-    {
-        return DID_EVIL;
-    }
     switch (you.religion)
     {
-    case GOD_ZIN:
-        if (!item_type_known(item))
-            return DID_NOTHING;
-
-        if (is_unclean_item(item))
-            return DID_UNCLEAN;
-
-        if (is_chaotic_item(item))
-            return DID_CHAOS;
-        break;
-
-    if (is_holy_item(item, false))
-        conducts.push_back(DID_HOLY);
-
-    if ((item.sub_type == BOOK_MANUAL
-         && item_type_known(item)
-         && is_magic_skill((skill_type)item.plus)))
-    {
-        conducts.push_back(DID_SPELL_PRACTISE);
-    }
-
-    case GOD_CHEIBRIADOS:
-        if (item_type_known(item)
-                && (_is_potentially_hasty_item(item) || is_hasty_item(item))
-            || item.is_type(OBJ_WEAPONS, WPN_QUICK_BLADE))
-        {
-            return DID_HASTY;
-        }
-        break;
-
-    case GOD_PAKELLAS:
-        if (item_type_known(item) && is_channeling_item(item))
-            return DID_CHANNEL;
-        break;
-
     case GOD_ANADORATH:
         if (!item_type_known(item))
             return DID_NOTHING;
@@ -763,18 +726,9 @@ vector<conduct_type> item_conducts(const item_def &item)
         break;
     }
 
-    if (is_wizardly_item(item, false))
-        conducts.push_back(DID_WIZARDLY_ITEM);
-
-    if (_is_potentially_hasty_item(item) || is_hasty_item(item, false))
-        conducts.push_back(DID_HASTY);
-
-    if (is_potentially_evil_item(item, false))
-        conducts.push_back(DID_EVIL);
-
     return conducts;
-}
- */
+}*/
+
 bool god_hates_item(const item_def &item)
 {
     return god_hates_item_handling(item) != DID_NOTHING;

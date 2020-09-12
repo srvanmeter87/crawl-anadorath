@@ -69,7 +69,6 @@ static bool _banned_combination(job_type job, species_type species)
     }
     if (job == JOB_PRIMALIST
         && ((species == SP_BARACHI)
-            || (species == SP_CENTAUR)
             || (species == SP_FORMICID)
             || (species == SP_GHOUL)
             || (species == SP_HALFLING)

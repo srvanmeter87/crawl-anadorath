@@ -146,9 +146,6 @@ void autopickup(bool forced = false);
 void set_item_autopickup(const item_def &item, autopickup_level_type ap);
 int item_autopickup_level(const item_def &item);
 
-void set_item_autopickup(const item_def &item, autopickup_level_type ap);
-int item_autopickup_level(const item_def &item);
-
 int find_free_slot(const item_def &i);
 
 bool need_to_autoinscribe();

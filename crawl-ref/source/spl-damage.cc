@@ -3408,15 +3408,17 @@ spret cast_absolute_zero(int pow, bool fail, bool tracer)
 }
 
 spret cast_elemental_blast(const spell_type spell, int powc, dist spd,
-                                bolt& beam, bool fail)
+                           bolt& beam, bool fail)
 {
     beam.range = LOS_RADIUS;
     if (!spell_direction(spd, beam))
         return spret::abort;
 
-    int power = random2avg((you.skill(SK_AIR_MAGIC, 2) + you.skill(SK_EARTH_MAGIC, 2)
-                 + you.skill(SK_FIRE_MAGIC, 2) + you.skill(SK_ICE_MAGIC, 2)), 7)
-                 + random2(1 + you.skill(SK_SPELLCASTING, 1));
+    int power = random2avg((you.skill(SK_AIR_MAGIC, 2)
+                            + you.skill(SK_EARTH_MAGIC, 2)
+                            + you.skill(SK_FIRE_MAGIC, 2)
+                            + you.skill(SK_ICE_MAGIC, 2)), 7)
+                + random2(1 + you.skill(SK_SPELLCASTING, 1));
 
     if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, LOS_RADIUS))
         return spret::abort;

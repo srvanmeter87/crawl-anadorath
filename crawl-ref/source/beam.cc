@@ -5140,10 +5140,6 @@ bool ench_flavour_affects_monster(beam_type flavour, const monster* mon,
         rc = !mon->res_petrify();
         break;
 
-    case BEAM_PETRIFY:
-        rc = !mon->res_petrify();
-        break;
-
     case BEAM_INFESTATION:
         rc = mons_gives_xp(*mon, you) && !mon->has_ench(ENCH_INFESTATION);
         break;
@@ -6531,25 +6527,6 @@ bool bolt::can_knockback(const actor &act, int dam) const
            || origin_spell == SPELL_CHILLING_BREATH && act.airborne()
            || origin_spell == SPELL_FORCE_LANCE && dam
            || origin_spell == SPELL_ISKENDERUNS_MYSTIC_BLAST && dam;
-}
-
-/**
- * Can this bolt pull an actor?
- *
- * If a bolt is capable of pulling actors and the given actor can be pulled,
- * return true.
- *
- * @param act The target actor. Check if the actor is non-stationary and not
- *            already adjacent.
- * @param dam The damage dealt. Check that dam > 0.
- * @return True if the bolt could pull the actor, false otherwise.
-*/
-bool bolt::can_pull(const actor &act, int dam) const
-{
-    if (act.is_stationary() || adjacent(source, act.pos()))
-        return false;
-
-    return origin_spell == SPELL_HARPOON_SHOT && dam;
 }
 
 /**

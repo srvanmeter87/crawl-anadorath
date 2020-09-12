@@ -1558,7 +1558,7 @@ crawl_view_buffer view_dungeon(animation *a, bool anim_updates, view_renderer *r
 
     screen_cell_t *cell(vbuf);
 
-        cursor_control cs(false);
+    cursor_control cs(false);
 
     _sort_overlays();
 
@@ -1575,13 +1575,13 @@ crawl_view_buffer view_dungeon(animation *a, bool anim_updates, view_renderer *r
             ? a->cell_cb(view2grid(*ri), flash_colour)
             : view2grid(*ri);
 
-            if (you.flash_where && you.flash_where->is_affected(gc) <= 0)
-                draw_cell(cell, gc, anim_updates, 0);
-            else
-                draw_cell(cell, gc, anim_updates, flash_colour);
+        if (you.flash_where && you.flash_where->is_affected(gc) <= 0)
+            draw_cell(cell, gc, anim_updates, 0);
+        else
+            draw_cell(cell, gc, anim_updates, flash_colour);
 
-            cell++;
-        }
+        cell++;
+    }
 
     if (renderer)
         renderer->render(vbuf);

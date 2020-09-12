@@ -2108,25 +2108,6 @@ static string _spell_failure_rate_description(spell_type spell)
             col, severity_adj, col, col, failure.c_str(), col);
 }
 
-string spell_failure_rate_string(spell_type spell)
-{
-    const string failure = failure_rate_to_string(raw_spell_fail(spell));
-    const string colour = colour_to_str(failure_rate_colour(spell));
-    return make_stringf("<%s>%s</%s>",
-            colour.c_str(), failure.c_str(), colour.c_str());
-}
-
-static string _spell_failure_rate_description(spell_type spell)
-{
-    const string failure = failure_rate_to_string(raw_spell_fail(spell));
-    const char *severity_adj = fail_severity_adjs[fail_severity(spell)];
-    const string colour = colour_to_str(failure_rate_colour(spell));
-    const char *col = colour.c_str();
-
-    return make_stringf("<%s>%s</%s>; <%s>%s</%s> risk of failure",
-            col, severity_adj, col, col, failure.c_str(), col);
-}
-
 string spell_noise_string(spell_type spell, int chop_wiz_display_width)
 {
     const int casting_noise = spell_noise(spell);

@@ -44,7 +44,6 @@
 #include "stringutil.h"
 #include "terrain.h"
 #include "tile-flags.h"
-#include "tiledef-main.h"
 #include "tilepick.h"
 #include "tileview.h"
 #include "ui.h"
@@ -721,23 +720,6 @@ static MenuEntry* _branch_menu_gen(char letter, const string &str, string &key)
     int hotkey = branches[branch].travel_shortcut;
     me->hotkeys = {hotkey, tolower_safe(hotkey)};
     me->add_tile(tile_def(tileidx_branch(branch)));
-
-    return me;
-}
-
-/**
- * Generate a ?/B menu entry. (ref. _simple_menu_gen()).
- */
-static MenuEntry* _branch_menu_gen(char letter, const string &str, string &key)
-{
-    MenuEntry* me = _simple_menu_gen(letter, str, key);
-
-    const branch_type branch = branch_by_shortname(str);
-    int hotkey = branches[branch].travel_shortcut;
-    me->hotkeys = {hotkey, tolower_safe(hotkey)};
-#ifdef USE_TILE
-    me->add_tile(tile_def(tileidx_branch(branch), TEX_FEAT));
-#endif
 
     return me;
 }

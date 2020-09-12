@@ -80,9 +80,9 @@ void orb_pickup_noise(const coord_def& where, int loudness, const char* msg, con
  * @return True if the player is carrying the Orb or if the player is in Zot.
  *         Returns false otherwise.
  */
-bool orb_limits_translocation(bool temp)
+bool orb_limits_translocation()
 {
-    return temp && player_in_branch(BRANCH_ZOT) || player_has_orb();
+    return player_in_branch(BRANCH_ZOT) || player_has_orb();
 }
 
 void start_orb_run(game_chapter chapter, const char* message)

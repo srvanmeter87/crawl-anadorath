@@ -793,31 +793,6 @@ void objstat_record_feature(dungeon_feature_type feat_type, bool vault)
     _record_feature_stat(lev, feat_type, "NumForIter", 1);
 }
 
-static void _record_feature_stat(const level_id &lev,
-                                 dungeon_feature_type feat_type, string field,
-                                 double value)
-{
-    const level_id br_lev(lev.branch, -1);
-
-    feature_recs[lev][feat_type][field] += value;
-    feature_recs[br_lev][feat_type][field] += value;
-    feature_recs[all_lev][feat_type][field] += value;
-}
-
-void objstat_record_feature(dungeon_feature_type feat_type, bool vault)
-{
-    level_id lev = level_id::current();
-
-    _record_feature_stat(lev, feat_type, "Num", 1);
-
-    if (vault)
-        _record_feature_stat(lev, feat_type, "NumVault", 1);
-    else
-        _record_feature_stat(lev, feat_type, "NumNonVault", 1);
-
-    _record_feature_stat(lev, feat_type, "NumForIter", 1);
-}
-
 void objstat_iteration_stats()
 {
     for (const auto &entry : stat_branches)

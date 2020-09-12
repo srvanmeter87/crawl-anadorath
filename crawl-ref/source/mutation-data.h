@@ -73,6 +73,7 @@ static const mutation_def mut_data[] =
   {"You feel less resistant to poisons.", "", ""},
 },
 
+
 #if TAG_MAJOR_VERSION == 34
 { MUT_CARNIVOROUS, 0, 1, mutflag::good, false,
   "carnivore",
@@ -83,7 +84,6 @@ static const mutation_def mut_data[] =
 
   {"You feel able to eat a more balanced diet.", "", ""},
 },
-
 { MUT_HERBIVOROUS, 0, 1, mutflag::bad, false,
   "herbivore",
 

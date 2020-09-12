@@ -32,13 +32,6 @@
 #include "unwind.h"
 #include "view.h"
 
-static bool _msgs_to_stderr = false;
-
-void set_log_emergency_stderr(bool b)
-{
-    _msgs_to_stderr = b;
-}
-
 static void _mpr(string text, msg_channel_type channel=MSGCH_PLAIN, int param=0,
                  bool nojoin=false, bool cap=true);
 
@@ -1465,13 +1458,6 @@ void msgwin_set_temporary(bool temp)
     }
 }
 
-bool msgwin_errors_to_stderr()
-{
-    return crawl_state.test || crawl_state.script
-            || crawl_state.build_db
-            || crawl_state.map_stat_gen || crawl_state.obj_stat_gen;
-}
-
 void msgwin_clear_temporary()
 {
     buffer.roll_back();
@@ -1540,9 +1526,6 @@ static void _mpr(string text, msg_channel_type channel, int param, bool nojoin,
 
     // Must do this before converting to formatted string and back;
     // that doesn't preserve close tags!
-
-    if (current_message_tees.size())
-        _append_to_tees(text + "\n", channel);
 
     formatted_string fs = formatted_string::parse_string(text);
 

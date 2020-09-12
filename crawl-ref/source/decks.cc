@@ -47,7 +47,6 @@
 #include "prompt.h"
 #include "random.h"
 #include "religion.h"
-#include "scroller.h"
 #include "spl-clouds.h"
 #include "spl-goditem.h"
 #include "spl-miscast.h"
@@ -843,7 +842,6 @@ bool deck_triple_draw()
 
     if (choice == NUM_DECKS)
         return false;
-    }
 
     int num_cards = deck_cards(choice);
 
