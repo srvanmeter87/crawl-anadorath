@@ -1028,7 +1028,7 @@ static const struct spell_desc spelldata[] =
     SPELL_FLAME_TONGUE, "Flame Tongue",
     spschool::conjuration | spschool::fire,
     spflag::dir_or_target | spflag::not_self | spflag::needs_tracer
-        | spflag::monster,
+                          | spflag::monster,
     1,
     40, // cap for range; damage cap is at 25
     2, 5,
