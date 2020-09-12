@@ -82,7 +82,7 @@ Resumed Hostilities
 Tension
 
 %%%%
-_anger_quality_
+_anger_name_
 
 @_anger_quality_@
 

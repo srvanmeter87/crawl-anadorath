@@ -49,12 +49,6 @@ An amulet that allows the user to tumble and roll to evade the blows of their
 enemies, but only while moving and waiting. While taking other actions the
 amulet conveys no benefits.
 %%%%
-amulet of the acrobat
-
-An amulet that allows the user to tumble and roll to evade the blows of their
-enemies, but only while moving and waiting. While taking other actions the
-amulet conveys no benefits. In order to function, it must first attune itself to the wearer's body at full health.
-%%%%
 animal skin
 
 A large piece of thick skin covered in fur, cut from the corpse of an animal
@@ -740,11 +734,6 @@ much easier for even inexperienced handlers to attack with it quickly.
 rapier
 
 A slender, sharply pointed sword, with an uncommonly elegant design.
-%%%%
-ration
-
-Something for everyone: A filling meal of preserved meats, fruits, cheese,
-and stale, but hearty, bread.
 %%%%
 ring mail
 

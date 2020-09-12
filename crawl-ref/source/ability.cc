@@ -80,10 +80,6 @@
 #include "unicode.h"
 #include "view.h"
 
-#ifdef USE_TILE
-# include "tiledef-icons.h"
-#endif
-
 enum class abflag
 {
     none                = 0x00000000,
@@ -604,36 +600,35 @@ static const ability_def Ability_List[] =
 
     // Uskayaw
     { ABIL_USKAYAW_STOMP, "Stomp",
-        3, 0, generic_cost::fixed(20), {fail_basis::invo}, abflag::none },
+      3, 0, generic_cost::fixed(20), {fail_basis::invo}, abflag::none },
     { ABIL_USKAYAW_LINE_PASS, "Line Pass",
-        4, 0, generic_cost::fixed(20), {fail_basis::invo}, abflag::none},
+      4, 0, generic_cost::fixed(20), {fail_basis::invo}, abflag::none},
     { ABIL_USKAYAW_GRAND_FINALE, "Grand Finale",
-        8, 0, generic_cost::fixed(0), {fail_basis::invo, 120 + piety_breakpoint(4), 5, 1}, abflag::none},
+      8, 0, generic_cost::fixed(0), {fail_basis::invo, 120 + piety_breakpoint(4), 5, 1}, abflag::none},
 
     // Hepliaklqana
     { ABIL_HEPLIAKLQANA_RECALL, "Recall Ancestor",
-        2, 0, 0, {fail_basis::invo}, abflag::none },
+      2, 0, 0, {fail_basis::invo}, abflag::none },
     { ABIL_HEPLIAKLQANA_TRANSFERENCE, "Transference",
-        2, 0, 3, {fail_basis::invo, 40, 5, 20},
-        abflag::none },
+      2, 0, 3, {fail_basis::invo, 40, 5, 20}, abflag::none },
     { ABIL_HEPLIAKLQANA_IDEALISE, "Idealise",
-        4, 0, 4, {fail_basis::invo, 60, 4, 25}, abflag::none },
+      4, 0, 4, {fail_basis::invo, 60, 4, 25}, abflag::none },
 
     { ABIL_HEPLIAKLQANA_TYPE_KNIGHT, "Ancestor Life: Knight",
-        0, 0, 0, {fail_basis::invo}, abflag::none },
+      0, 0, 0, {fail_basis::invo}, abflag::none },
     { ABIL_HEPLIAKLQANA_TYPE_BATTLEMAGE, "Ancestor Life: Battlemage",
-        0, 0, 0, {fail_basis::invo}, abflag::none },
+      0, 0, 0, {fail_basis::invo}, abflag::none },
     { ABIL_HEPLIAKLQANA_TYPE_HEXER, "Ancestor Life: Hexer",
-        0, 0, 0, {fail_basis::invo}, abflag::none },
+      0, 0, 0, {fail_basis::invo}, abflag::none },
 
     { ABIL_HEPLIAKLQANA_IDENTITY, "Ancestor Identity",
-        0, 0, 0, {fail_basis::invo}, abflag::instant },
+      0, 0, 0, {fail_basis::invo}, abflag::instant },
 
     // Wu Jian
     { ABIL_WU_JIAN_SERPENTS_LASH, "Serpent's Lash",
-        0, 0, 2, {fail_basis::invo}, abflag::exhaustion | abflag::instant },
+      0, 0, 2, {fail_basis::invo}, abflag::exhaustion | abflag::instant },
     { ABIL_WU_JIAN_HEAVENLY_STORM, "Heavenly Storm",
-        0, 0, 20, {fail_basis::invo, piety_breakpoint(5), 0, 1}, abflag::none },
+      0, 0, 20, {fail_basis::invo, piety_breakpoint(5), 0, 1}, abflag::none },
     // Lunge and Whirlwind abilities aren't menu abilities but currently need
     // to exist for action counting, hence need enums/entries.
     { ABIL_WU_JIAN_LUNGE, "Lunge",
@@ -649,8 +644,8 @@ static const ability_def Ability_List[] =
     // Anadorath
     { ABIL_ANADORATH_ELEMENTAL_BLAST, "Elemental Blast",
       0, 10, 0, {fail_basis::invo, 60, 4, 20}, abflag::none },
-    /*  { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
-          5, 0, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath }, */
+/*  { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
+      5, 0, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath }, */
 
     { ABIL_RENOUNCE_RELIGION, "Renounce Religion",
       0, 0, 0, {fail_basis::invo}, abflag::none },
@@ -890,12 +885,6 @@ static const string _detailed_cost_description(ability_type ability)
         else
             ret << "variable";
     }
-
-    if (abil.flags & abflag::rations_or_piety)
-        ret << "\nPiety, or 2 rations";
-
-    if (abil.flags & abflag::rations)
-        ret << "\nRations: 2 per target";
 
     if (abil.flags & abflag::remove_curse_scroll)
     {
@@ -1964,6 +1953,7 @@ static spret _do_ability(const ability_def& abil, bool fail)
             return frog_hop(fail);
         else
             return spret::abort;
+
     case ABIL_ROLLING_CHARGE:
         if (_can_movement_ability(false))
             return palentonga_charge(fail);
@@ -2208,16 +2198,6 @@ static spret _do_ability(const ability_def& abil, bool fail)
             fly_player(
                 player_adjust_evoc_power(you.skill(SK_EVOCATIONS, 2) + 30));
         }
-        break;
-
-    case ABIL_EVOKE_THUNDER: // robe of Clouds
-        fail_check();
-        mpr("The folds of your robe billow into a mighty storm.");
-
-        for (radius_iterator ri(you.pos(), 2, C_SQUARE); ri; ++ri)
-            if (!cell_is_solid(*ri))
-                place_cloud(CLOUD_STORM, *ri, 8 + random2avg(8,2), &you);
-
         break;
 
     case ABIL_EVOKE_THUNDER: // robe of Clouds
@@ -2827,6 +2807,7 @@ static spret _do_ability(const ability_def& abil, bool fail)
 
     case ABIL_FEDHAS_GROW_BALLISTOMYCETE:
         return fedhas_grow_ballistomycete(fail);
+
     case ABIL_FEDHAS_OVERGROW:
     {
         fail_check();
@@ -3563,12 +3544,6 @@ vector<talent> your_talents(bool check_confused, bool include_unusable)
         _add_talent(talents, ABIL_EVOKE_THUNDER, check_confused);
     }
 
-    if (player_equip_unrand(UNRAND_RCLOUDS)
-        && !you.get_mutation_level(MUT_NO_ARTIFICE))
-    {
-        _add_talent(talents, ABIL_EVOKE_THUNDER, check_confused);
-    }
-
     if (you.evokable_berserk() && !you.get_mutation_level(MUT_NO_ARTIFICE))
         _add_talent(talents, ABIL_EVOKE_BERSERK, check_confused);
 
@@ -3819,17 +3794,6 @@ vector<ability_type> get_god_abilities(bool ignore_silence, bool ignore_piety,
         {
             abilities.push_back(static_cast<ability_type>(anc_type));
         }
-    }
-    if (you_worship(GOD_NEMELEX_XOBEH))
-    {
-        for (int deck = ABIL_NEMELEX_FIRST_DECK;
-             deck <= ABIL_NEMELEX_LAST_DECK;
-             ++deck)
-        {
-            abilities.push_back(static_cast<ability_type>(deck));
-        }
-        if (!you.props[NEMELEX_STACK_KEY].get_vector().empty())
-            abilities.push_back(ABIL_NEMELEX_DRAW_STACK);
     }
     if (you.transfer_skill_points > 0)
         abilities.push_back(ABIL_ASHENZARI_END_TRANSFER);

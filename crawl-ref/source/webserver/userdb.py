@@ -204,6 +204,7 @@ def encrypt_pw(passwd):  # type: (str) -> str
         salt = make_salt(2)
     return crypt.crypt(passwd, salt)
 
+
 def register_user(username, passwd, email):  # type: (str, str, str) -> Optional[str]
     """Returns an error message or None on success."""
     if passwd == "":

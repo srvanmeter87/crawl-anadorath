@@ -7,9 +7,6 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
 
     function DungeonCellRenderer()
     {
-        // see also, renderer_settings in game.js. In fact, do these values
-        // do anything?
-        var ratio = window.devicePixelRatio;
         this.set_cell_size(32, 32);
     }
 
@@ -1013,11 +1010,6 @@ function ($, view_data, main, tileinfo_player, icons, dngn, enums,
             if (fg.INFESTED)
             {
                 this.draw_icon(icons.INFESTED, x, y, -status_shift, 0);
-                status_shift += 6;
-            }
-            if (fg.PINNED)
-            {
-                this.draw_icon(icons.PINNED, x, y, -status_shift, 0);
                 status_shift += 6;
             }
             if (fg.RECALL)

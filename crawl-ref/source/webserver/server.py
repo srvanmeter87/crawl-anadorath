@@ -25,6 +25,7 @@ from game_data_handler import GameDataHandler
 from util import *
 from ws_handler import *
 
+
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
         host = self.request.host
@@ -266,10 +267,6 @@ def check_config():
         success = False
     return success
 
-    if getattr(config, "allow_password_reset", False) and not config.lobby_url:
-        logging.warning("Lobby URL needs to be defined!")
-        success = False
-    return success
 
 def monkeypatch_tornado24():
     # extremely ugly compatibility hack, to ease transition for servers running

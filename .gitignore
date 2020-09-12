@@ -1,14 +1,6 @@
 .cquery_cache/
 .DS_Store
-.idea/
 .vscode/
 .vstags
-crawl-ref/init.txt
-crawl-ref/source/.ctags
-crawl-ref/source/GPATH
-crawl-ref/source/GRTAGS
-crawl-ref/source/GTAGS
-crawl-ref/source/compile_commands.json
-crawl-ref/source/sound*/
 *.sublime-workspace
 *.sublime-project

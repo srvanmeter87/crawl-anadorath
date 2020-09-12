@@ -7,6 +7,9 @@
 core
 core.*
 err.txt
+GPATH
+GRTAGS
+GTAGS
 TAGS
 tags
 cscope.*

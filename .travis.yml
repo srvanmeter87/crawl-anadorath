@@ -101,5 +101,3 @@ before_install:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then if [ "$CXX" == "clang++" ]; then sudo ln -s `which ccache` /usr/lib/ccache/clang++; fi; fi
 install: perl .travis/deps.pl
 script: perl .travis/build.pl
-# notifications:
-#     webhooks: https://coveralls.io/webhook
