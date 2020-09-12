@@ -727,11 +727,8 @@ void bolt::apply_beam_conducts()
                             god_cares());
             break;
         case BEAM_DAMNATION:
-        {
             const int level = 2 + random2(3);
             did_god_conduct(DID_EVIL, level, god_cares());
-            break;
-        }
             break;
         case BEAM_CRYSTAL:
         case BEAM_FRAG:
@@ -750,7 +747,7 @@ void bolt::apply_beam_conducts()
                                                    : 2 + random2(3),
                             god_cares());
             break;
-        }
+
         default:
             break;
         }
