@@ -2,19 +2,19 @@
 
 #include <set>
 
-// Character info has its own top-level tag, mismatching majors don't break
-// compatibility there.
-// DO NOT BUMP THIS UNLESS YOU KNOW WHAT YOU'RE DOING. This would break
-// the save browser across versions, possibly leading to overwritten games.
-// It's only there in case there's no way out.
+/* Character info has its own top-level tag, mismatching majors don't break
+   compatibility there.
+   DO NOT BUMP THIS UNLESS YOU KNOW WHAT YOU'RE DOING. This would break
+   the save browser across versions, possibly leading to overwritten games.
+   It's only there in case there's no way out. */
 #define TAG_CHR_FORMAT 0
 COMPILE_CHECK(TAG_CHR_FORMAT < 256);
 
-// Let CDO updaters know if the syntax changes.
-// Really, really, REALLY _never_ ever bump this and clean up old #ifdefs
-// in a single commit, please. Making clean-up and actual code changes,
-// especially of this size, separated is vital for sanity.
 #ifndef TAG_MAJOR_VERSION
+/* Let CDO updaters know if the syntax changes.
+   Really, really, REALLY _never_ ever bump this and clean up old #ifdefs
+   in a single commit, please. Making clean-up and actual code changes,
+   especially of this size, separated is vital for sanity. */
 #define TAG_MAJOR_VERSION 34
 #endif
 COMPILE_CHECK(TAG_MAJOR_VERSION < 256);
@@ -302,41 +302,44 @@ struct save_version
 
     bool valid() const
     {
-        return major > 0 && minor > -1;
+        return major > 0
+               && minor > -1;
     }
 
     inline friend bool operator==(const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
-        return lhs.major == rhs.major && lhs.minor == rhs.minor;
+        return lhs.major == rhs.major
+               && lhs.minor == rhs.minor;
     }
 
     inline friend bool operator!=(const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
         return !operator==(lhs, rhs);
     }
 
     inline friend bool operator< (const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
-        return lhs.major < rhs.major || lhs.major == rhs.major &&
-                                                    lhs.minor < rhs.minor;
+        return lhs.major < rhs.major
+               || lhs.major == rhs.major
+                  && lhs.minor < rhs.minor;
     }
     inline friend bool operator> (const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
         return  operator< (rhs, lhs);
     }
     inline friend bool operator<=(const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
         return !operator> (lhs, rhs);
     }
     inline friend bool operator>=(const save_version& lhs,
-                                                    const save_version& rhs)
+                                  const save_version& rhs)
     {
-        return !operator< (lhs,rhs);
+        return !operator< (lhs, rhs);
     }
 
 

@@ -115,7 +115,6 @@ fake_mutations:
   - long: Your gigantic molten body glows in the dark.
     short: molten glow
 recommended_jobs:
-  - JOB_ARCANE_MARKSMAN
   - JOB_CONJURER
   - JOB_EARTH_ELEMENTALIST
   - JOB_FIGHTER
@@ -123,7 +122,6 @@ recommended_jobs:
   - JOB_GLADIATOR
   - JOB_HUNTER
   - JOB_PRIMALIST
-  - JOB_SKALD
   - JOB_WIZARD
 recommended_weapons:
   - SK_LONG_BLADES
