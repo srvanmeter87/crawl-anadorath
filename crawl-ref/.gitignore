@@ -99,6 +99,7 @@ chunk
 /source/dat/tiles/player.png
 /source/dat/tiles/gui.png
 /source/dat/tiles/icons.png
+/source/dat/tiles/*.ttf
 /source/webserver/game_data/static/dngn.png
 /source/webserver/game_data/static/floor.png
 /source/webserver/game_data/static/wall.png
