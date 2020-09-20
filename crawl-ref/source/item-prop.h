@@ -148,7 +148,7 @@ int get_vorpal_type(const item_def &item) PURE;
 int get_damage_type(const item_def &item) PURE;
 int single_damage_type(const item_def &item) PURE;
 
-bool is_brandable_armour(const item_def &arm, bool unknown = false);
+bool is_brandable_armour(const item_def &arm);
 bool is_brandable_weapon(const item_def &wpn, bool allow_ranged, bool divine = false);
 
 skill_type item_attack_skill(const item_def &item) PURE;

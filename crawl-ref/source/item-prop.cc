@@ -1849,7 +1849,7 @@ bool convert2bad(item_def &item)
     return false;
 }
 
-bool is_brandable_armour(const item_def &arm, bool unknown)
+bool is_brandable_armour(const item_def &arm)
 {
     if (arm.base_type != OBJ_ARMOUR)
         return false;

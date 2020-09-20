@@ -1114,10 +1114,10 @@ bool item_is_selected(const item_def &i, int selector)
         return item_is_evokable(i, true);
 
     case OSEL_BRANDABLE_ARMOUR:
-        return is_brandable_armour(i, true);
+        return is_brandable_armour(i);
 
     case OSEL_ENCHANTABLE_ARMOUR:
-        return is_enchantable_armour(i, true);
+        return is_enchantable_armour(i);
 
     case OSEL_CURSED_WORN:
         return i.cursed() && item_is_equipped(i)

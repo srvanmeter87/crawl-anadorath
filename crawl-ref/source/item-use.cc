@@ -2119,8 +2119,15 @@ bool puton_ring(int slot, bool allow_prompt, bool check_for_inscriptions)
     return puton_ring(*to_puton_ptr, allow_prompt, check_for_inscriptions);
 }
 
-// Remove the ring/amulet at given inventory slot (or, if slot is -1, prompt
-// for which piece of jewellery to remove)
+/**
+ * Remove the ring/amulet at given inventory slot (or, if slot is -1, prompt
+ * for which piece of jewellery to remove)
+ *
+ * @param slot          Inventory slot for jewellery piece, or prompt if -1.
+ * @param announce      Is the jewellery cursed?
+ *
+ * @return true if the jewellery was removed successfully.
+ */
 bool remove_ring(int slot, bool announce)
 {
     equipment_type hand_used = EQ_NONE;
@@ -2411,53 +2418,58 @@ static void _rebrand_armour(item_def& arm)
     {
         if (armtype == ARM_ROBE)
         {
-            new_ego = random_choose_weighted(8, SPARM_MAGIC_RESISTANCE,
-                                             4, SPARM_POSITIVE_ENERGY,
-                                             2, SPARM_FIRE_RESISTANCE,
-                                             2, SPARM_COLD_RESISTANCE,
-                                             2, SPARM_RESISTANCE,
-                                             1, SPARM_ARCHMAGI,
-                                             1, SPARM_FLYING);
+            new_ego = random_choose_weighted(
+                                    8, SPARM_MAGIC_RESISTANCE,
+                                    4, SPARM_POSITIVE_ENERGY,
+                                    2, SPARM_FIRE_RESISTANCE,
+                                    2, SPARM_COLD_RESISTANCE,
+                                    2, SPARM_RESISTANCE,
+                                    1, SPARM_ARCHMAGI,
+                                    1, SPARM_FLYING);
         }
         else if (armtype == ARM_LEATHER_ARMOUR
                  || armtype == ARM_RING_MAIL
                  || armtype == ARM_SCALE_MAIL
                  || armtype == ARM_CHAIN_MAIL)
         {
-            new_ego = random_choose_weighted(15, SPARM_FIRE_RESISTANCE,
-                                             15, SPARM_COLD_RESISTANCE,
-                                              7, SPARM_MAGIC_RESISTANCE,
-                                              7, SPARM_POSITIVE_ENERGY,
-                                              3, SPARM_RESISTANCE,
-                                              2, SPARM_FLYING,
-                                              1, SPARM_ARCHMAGI);
+            new_ego = random_choose_weighted(
+                                    15, SPARM_FIRE_RESISTANCE,
+                                    15, SPARM_COLD_RESISTANCE,
+                                    7, SPARM_MAGIC_RESISTANCE,
+                                    7, SPARM_POSITIVE_ENERGY,
+                                    3, SPARM_RESISTANCE,
+                                    2, SPARM_FLYING,
+                                    1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_PLATE_ARMOUR)
         {
-            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
-                                             25, SPARM_COLD_RESISTANCE,
-                                             18, SPARM_POISON_RESISTANCE,
-                                             14, SPARM_MAGIC_RESISTANCE,
-                                              9, SPARM_POSITIVE_ENERGY,
-                                              6, SPARM_PONDEROUSNESS,
-                                              2, SPARM_FLYING,
-                                              1, SPARM_ARCHMAGI);
+            new_ego = random_choose_weighted(
+                                    25, SPARM_FIRE_RESISTANCE,
+                                    25, SPARM_COLD_RESISTANCE,
+                                    18, SPARM_POISON_RESISTANCE,
+                                    14, SPARM_MAGIC_RESISTANCE,
+                                    9, SPARM_POSITIVE_ENERGY,
+                                    6, SPARM_PONDEROUSNESS,
+                                    2, SPARM_FLYING,
+                                    1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_CRYSTAL_PLATE_ARMOUR)
         {
-            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
-                                             25, SPARM_COLD_RESISTANCE,
-                                             18, SPARM_POISON_RESISTANCE,
-                                             14, SPARM_MAGIC_RESISTANCE,
-                                              9, SPARM_POSITIVE_ENERGY,
-                                              6, SPARM_PONDEROUSNESS,
-                                              2, SPARM_FLYING,
-                                              1, SPARM_ARCHMAGI);
+            new_ego = random_choose_weighted(
+                                    25, SPARM_FIRE_RESISTANCE,
+                                    25, SPARM_COLD_RESISTANCE,
+                                    18, SPARM_POISON_RESISTANCE,
+                                    14, SPARM_MAGIC_RESISTANCE,
+                                    9, SPARM_POSITIVE_ENERGY,
+                                    6, SPARM_PONDEROUSNESS,
+                                    2, SPARM_FLYING,
+                                    1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_CLOAK
                  || armtype == ARM_SCARF)
         {
-            new_ego = random_choose(SPARM_CLOUD_IMMUNE,
+            new_ego = random_choose(
+                                    SPARM_CLOUD_IMMUNE,
                                     SPARM_COLD_RESISTANCE,
                                     SPARM_FIRE_RESISTANCE,
                                     SPARM_INVISIBILITY,
@@ -2468,44 +2480,50 @@ static void _rebrand_armour(item_def& arm)
         }
         else if (armtype == ARM_HAT)
         {
-            new_ego = random_choose_weighted(11, SPARM_MAGIC_RESISTANCE,
-                                              7, SPARM_INTELLIGENCE,
-                                              5, SPARM_SEE_INVISIBLE);
+            new_ego = random_choose_weighted(
+                                    11, SPARM_MAGIC_RESISTANCE,
+                                    7, SPARM_INTELLIGENCE,
+                                    5, SPARM_SEE_INVISIBLE);
         }
         else if (armtype == ARM_HELMET)
         {
-            new_ego = random_choose_weighted(7, SPARM_INTELLIGENCE,
-                                             5, SPARM_SEE_INVISIBLE,
-                                             2, SPARM_MAGIC_RESISTANCE);
+            new_ego = random_choose_weighted(
+                                    7, SPARM_INTELLIGENCE,
+                                    5, SPARM_SEE_INVISIBLE,
+                                    2, SPARM_MAGIC_RESISTANCE);
         }
         else if (armtype == ARM_GLOVES)
         {
-            new_ego = random_choose_weighted(5, SPARM_ARCHERY,
-                                             3, SPARM_DEXTERITY,
-                                             2, SPARM_STRENGTH);
+            new_ego = random_choose_weighted(
+                                    5, SPARM_ARCHERY,
+                                    3, SPARM_DEXTERITY,
+                                    2, SPARM_STRENGTH);
         }
         else if (armtype == ARM_BOOTS)
         {
-            new_ego = random_choose_weighted(9, SPARM_RUNNING,
-                                             5, SPARM_STEALTH,
-                                             3, SPARM_DEXTERITY,
-                                             1, SPARM_FLYING);
+            new_ego = random_choose_weighted(
+                                    9, SPARM_RUNNING,
+                                    5, SPARM_STEALTH,
+                                    3, SPARM_DEXTERITY,
+                                    1, SPARM_FLYING);
         }
         else if (armtype == ARM_BUCKLER
                  || armtype == ARM_KITE_SHIELD
                  || armtype == ARM_TOWER_SHIELD)
         {
-            new_ego = random_choose_weighted(17, SPARM_PROTECTION,
-                                              9, SPARM_REFLECTION,
-                                              5, SPARM_POISON_RESISTANCE,
-                                              5, SPARM_COLD_RESISTANCE,
-                                              5, SPARM_FIRE_RESISTANCE,
-                                              4, SPARM_RESISTANCE,
-                                              4, SPARM_STRENGTH);
+            new_ego = random_choose_weighted(
+                                    17, SPARM_PROTECTION,
+                                    9, SPARM_REFLECTION,
+                                    5, SPARM_POISON_RESISTANCE,
+                                    5, SPARM_COLD_RESISTANCE,
+                                    5, SPARM_FIRE_RESISTANCE,
+                                    4, SPARM_RESISTANCE,
+                                    4, SPARM_STRENGTH);
         }
         else if (armtype == ARM_ANIMAL_SKIN)
         {
-            new_ego = random_choose(SPARM_FIRE_RESISTANCE,
+            new_ego = random_choose(
+                                    SPARM_FIRE_RESISTANCE,
                                     SPARM_COLD_RESISTANCE);
         }
         else if (armtype == ARM_TROLL_LEATHER_ARMOUR
@@ -2520,21 +2538,23 @@ static void _rebrand_armour(item_def& arm)
                  || armtype == ARM_SHADOW_DRAGON_ARMOUR
                  || armtype == ARM_QUICKSILVER_DRAGON_ARMOUR)
         {
-            new_ego = random_choose_weighted(25, SPARM_FIRE_RESISTANCE,
-                                             25, SPARM_COLD_RESISTANCE,
-                                             18, SPARM_POISON_RESISTANCE,
-                                             14, SPARM_MAGIC_RESISTANCE,
-                                              9, SPARM_POSITIVE_ENERGY,
-                                              6, SPARM_PONDEROUSNESS,
-                                              2, SPARM_FLYING,
-                                              1, SPARM_ARCHMAGI);
+            new_ego = random_choose_weighted(
+                                    25, SPARM_FIRE_RESISTANCE,
+                                    25, SPARM_COLD_RESISTANCE,
+                                    18, SPARM_POISON_RESISTANCE,
+                                    14, SPARM_MAGIC_RESISTANCE,
+                                    9, SPARM_POSITIVE_ENERGY,
+                                    6, SPARM_PONDEROUSNESS,
+                                    2, SPARM_FLYING,
+                                    1, SPARM_ARCHMAGI);
         }
         else if (armtype == ARM_BARDING)
         {
-            new_ego = random_choose_weighted(13, SPARM_STEALTH,
-                                              9, SPARM_COLD_RESISTANCE,
-                                              9, SPARM_FIRE_RESISTANCE,
-                                              2, SPARM_FLYING);
+            new_ego = random_choose_weighted(
+                                    13, SPARM_STEALTH,
+                                    9, SPARM_COLD_RESISTANCE,
+                                    9, SPARM_FIRE_RESISTANCE,
+                                    2, SPARM_FLYING);
         }
     }
 
@@ -3019,7 +3039,7 @@ static bool _handle_brand_weapon(bool alreadyknown, const string &pre_msg)
     return true;
 }
 
-static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
+static bool _handle_brand_armour(bool alreadyknown)
 {
     item_def* armour = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_ARMOUR,
                                                       "Brand which item?");
@@ -3031,7 +3051,7 @@ static bool _handle_brand_armour(bool alreadyknown, const string &pre_msg)
     return true;
 }
 
-static bool _handle_brand_ammunition(bool alreadyknown, const string &pre_msg)
+static bool _handle_brand_ammunition(bool alreadyknown)
 {
     item_def* ammunition = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_AMMUNITION,
                                                           "Brand which item?");
@@ -3775,7 +3795,7 @@ void read_scroll(item_def& scroll)
             mpr("It is a scroll of brand armour.");
         }
         cancel_scroll =
-            !_handle_brand_armour(alreadyknown, pre_succ_msg);
+            !_handle_brand_armour(alreadyknown);
         break;
     case SCR_BRAND_AMMUNITION:
         if (!alreadyknown)
@@ -3784,7 +3804,7 @@ void read_scroll(item_def& scroll)
             mpr("It is a scroll of brand ammunition.");
         }
         cancel_scroll =
-            !_handle_brand_ammunition(alreadyknown, pre_succ_msg);
+            !_handle_brand_ammunition(alreadyknown);
         break;
 #if TAG_MAJOR_VERSION == 34
     // Should always be identified by Ashenzari.
