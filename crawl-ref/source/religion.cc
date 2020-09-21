@@ -455,7 +455,8 @@ bool is_chaotic_god(god_type god)
     return god == GOD_XOM
            || god == GOD_MAKHLEB
            || god == GOD_LUGONU
-           || god == GOD_JIYVA;
+           || god == GOD_JIYVA
+           || god == GOD_ANADORATH;
 }
 
 bool is_unknown_god(god_type god)

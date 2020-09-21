@@ -3,26 +3,26 @@
  * @brief Zap definitions. See zap_info struct in beam.cc.
 **/
 
-/*
-struct zap_info
-{
-    zap_type ztype;
-    const char* name;
-    int player_power_cap;
-    dam_deducer* player_damage;
-    tohit_deducer* player_tohit;       // Enchantments have power modifier here
-    dam_deducer* monster_damage;
-    tohit_deducer* monster_tohit;      // Enchantments have power modifier here
-    colour_t colour;
-    bool is_enchantment;
-    beam_type flavour;
-    dungeon_char_type glyph;
-    bool always_obvious;
-    bool can_beam;
-    bool is_explosion;
-    int hit_loudness;
-}
-*/
+/**
+ * struct zap_info
+ * {
+ *     zap_type ztype;
+ *     const char* name;
+ *     int player_power_cap;
+ *     dam_deducer* player_damage;
+ *     tohit_deducer* player_tohit;   // Enchantments have power modifier here
+ *     dam_deducer* monster_damage;
+ *     tohit_deducer* monster_tohit;  // Enchantments have power modifier here
+ *     colour_t colour;
+ *     bool is_enchantment;
+ *     beam_type flavour;
+ *     dungeon_char_type glyph;
+ *     bool always_obvious;
+ *     bool can_beam;
+ *     bool is_explosion;
+ *     int hit_loudness;
+ * }
+ */
 
 /// Boilerplate monster hex.
 static zap_info _mon_hex_zap(zap_type ztype, beam_type beam,
@@ -1361,7 +1361,7 @@ _mon_hex_zap(ZAP_DRAIN_MAGIC, BEAM_DRAIN_MAGIC),
 {
     ZAP_ELEMENTAL_BLAST,                    // zap_type ztype
     "elemental blast",                      // const char* name
-    200,                                    // int player_power_cap
+    300,                                    // int player_power_cap
     new calcdice_calculator<20, 5, 1, 1>,   // dam_deducer* player_damage
     new tohit_calculator<AUTOMATIC_HIT>,    // tohit_deducer* player_tohit
     new dicedef_calculator<20, 5, 1, 9>,    // dam_deducer* monster_damage

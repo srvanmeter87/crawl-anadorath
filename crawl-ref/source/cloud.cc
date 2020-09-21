@@ -305,7 +305,6 @@ static const cloud_data clouds[] = {
       { TILE_CLOUD_CHAOS, CTVARY_RANDOM },                    // tile
       BEAM_ELEMENTAL_BLAST,                                   // beam_effect
       { 4, 25, true },                                        // base, random damage
-      false,                                                  // opacity
     },
 };
 COMPILE_CHECK(ARRAYSZ(clouds) == NUM_CLOUD_TYPES);

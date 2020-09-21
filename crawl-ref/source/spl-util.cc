@@ -51,29 +51,35 @@ struct spell_desc
     spell_flags flags;       // bitfield
     unsigned int level;
 
-    // Usually in the range 0..200 (0 means uncapped).
-    // Note that some spells are also capped through zap_type.
-    // See spell_power_cap below.
+    /**
+     * Usually in the range 0..200 (0 means uncapped).
+     * Note that some spells are also capped through zap_type.
+     * See spell_power_cap below.
+     */
     int power_cap;
 
     // At power 0, you get min_range. At power power_cap, you get max_range.
     int min_range;
     int max_range;
 
-    // Noise made directly by casting this spell.
-    // Noise used to be based directly on spell level:
-    //  * for conjurations: spell level
-    //  * for non-conj pois/air: spell level / 2 (rounded up)
-    //  * for others: spell level * 3/4 (rounded up)
-    // These are probably good guidelines for new spells.
+    /**
+     * Noise made directly by casting this spell.
+     * Noise used to be based directly on spell level:
+     * * for conjurations: spell level
+     * * for non-conj pois/air: spell level / 2 (rounded up)
+     * * for others: spell level * 3/4 (rounded up)
+     * These are probably good guidelines for new spells.
+     */
     int noise;
 
-    // Some spells have a noise at their place of effect, in addition
-    // to at the place of casting. effect_noise handles that, and is also
-    // used even if the spell is not casted directly (by Xom, for instance).
+    /**
+     * Some spells have a noise at their place of effect, in addition
+     * to at the place of casting. effect_noise handles that, and is also
+     * used even if the spell is not casted directly (by Xom, for instance).
+     */
     int effect_noise;
 
-    /// Icon for the spell in e.g. spellbooks, casting menus, etc.
+    // Icon for the spell in e.g. spellbooks, casting menus, etc.
     tileidx_t tile;
 };
 
@@ -85,9 +91,9 @@ static int spell_list[NUM_SPELLS];
 
 static const struct spell_desc *_seekspell(spell_type spellid);
 
-//
-//             BEGIN PUBLIC FUNCTIONS
-//
+/**
+ *                  BEGIN PUBLIC FUNCTIONS
+ */
 
 // All this does is merely refresh the internal spell list {dlb}:
 void init_spell_descs()
@@ -392,8 +398,13 @@ bool del_spell_from_memory(spell_type spell)
         return del_spell_from_memory_by_slot(i);
 }
 
-// Checks if the spell is an explosion that can be placed anywhere even without
-// an unobstructed beam path, such as fire storm.
+/**
+ * Checks if the spell is an explosion that can be placed anywhere even without
+ * an unobstructed beam path, such as fire storm.
+ *
+ * @param spell         Spell type.
+ * @return              Whether the spell is a direct explosion.
+ */
 bool spell_is_direct_explosion(spell_type spell)
 {
     return spell == SPELL_FIRE_STORM || spell == SPELL_CALL_DOWN_DAMNATION
@@ -426,15 +437,26 @@ bool spell_harms_area(spell_type spell)
     return false;
 }
 
-// applied to spell misfires (more power = worse) and triggers
-// for Xom acting (more power = more likely to grab his attention) {dlb}
+/**
+ * Applied to spell misfires (more power = worse) and triggers
+ * for Xom acting (more power = more likely to grab his attention) {dlb}
+ *
+ * @param which_spell       Spell type.
+ * @return                  MP required to cast spell.
+ */
 int spell_mana(spell_type which_spell)
 {
     return _seekspell(which_spell)->level;
 }
 
-// applied in naughties (more difficult = higher level knowledge = worse)
-// and triggers for Sif acting (same reasoning as above, just good) {dlb}
+/**
+ * Applied in naughties (more difficult = higher level knowledge = worse)
+ * and triggers for Sif acting (same reasoning as above, just good) {dlb}
+ * 
+ * @param which_spell   Spell type.
+ * 
+ * @return              Spell difficulty.
+ */
 int spell_difficulty(spell_type which_spell)
 {
     return _seekspell(which_spell)->level;
@@ -465,7 +487,7 @@ const char *get_spell_target_prompt(spell_type which_spell)
     }
 }
 
-/// What's the icon for the given spell?
+// What's the icon for the given spell?
 tileidx_t get_spell_tile(spell_type which_spell)
 {
     return _seekspell(which_spell)->tile;
@@ -476,7 +498,7 @@ bool spell_typematch(spell_type which_spell, spschool which_disc)
     return bool(get_spell_disciplines(which_spell) & which_disc);
 }
 
-//jmf: next two for simple bit handling
+// jmf: next two for simple bit handling
 spschools_type get_spell_disciplines(spell_type spell)
 {
     return _seekspell(spell)->disciplines;
@@ -499,14 +521,18 @@ const char *spell_title(spell_type spell)
     return _seekspell(spell)->title;
 }
 
-// FUNCTION APPLICATORS: Idea from Juho Snellman <jsnell@lyseo.edu.ouka.fi>
-//                       on the Roguelike News pages, Development section.
-//                       <URL:http://www.skoardy.demon.co.uk/rlnews/>
-// Here are some function applicators: sort of like brain-dead,
-// home-grown iterators for the container "dungeon".
-
-// Apply a function-pointer to all visible squares
-// Returns summation of return values from passed in function.
+/**
+ * FUNCTION APPLICATORS: Idea from Juho Snellman <jsnell@@lyseo.edu.ouka.fi>
+ *                       on the Roguelike News pages, Development section.
+ *                       URL: <http://www.skoardy.demon.co.uk/rlnews/>
+ *
+ * Here are some function applicators: sort of like brain-dead,
+ * home-grown iterators for the container "dungeon".
+ *
+ * Apply a function-pointer to all visible squares
+ *
+ * @return Summation of return values from passed in function.
+ */
 int apply_area_visible(cell_func cf, const coord_def &where)
 {
     int rv = 0;
@@ -517,8 +543,11 @@ int apply_area_visible(cell_func cf, const coord_def &where)
     return rv;
 }
 
-// Applies the effect to all nine squares around/including the target.
-// Returns summation of return values from passed in function.
+/**
+ * Applies the effect to all nine squares around/including the target.
+ *
+ * @return Summation of return values from passed in function.
+ */
 static int _apply_area_square(cell_func cf, const coord_def& where)
 {
     int rv = 0;
@@ -529,8 +558,11 @@ static int _apply_area_square(cell_func cf, const coord_def& where)
     return rv;
 }
 
-// Applies the effect to the eight squares beside the target.
-// Returns summation of return values from passed in function.
+/**
+ * Applies the effect to the eight squares beside the target.
+ *
+ * @return Summation of return values from passed in function.
+ */
 static int _apply_area_around_square(cell_func cf, const coord_def& where)
 {
     int rv = 0;
@@ -541,8 +573,11 @@ static int _apply_area_around_square(cell_func cf, const coord_def& where)
     return rv;
 }
 
-// Affect up to max_targs monsters around a point, chosen randomly.
-// Return varies with the function called; return values will be added up.
+/**
+ * Affect up to max_targs monsters around a point, chosen randomly.
+ *
+ * @return Varies with the function called; return values will be added up.
+ */
 int apply_random_around_square(cell_func cf, const coord_def& where,
                                bool exclude_center, int max_targs)
 {
@@ -569,73 +604,75 @@ int apply_random_around_square(cell_func cf, const coord_def& where,
         // Found target
         count++;
 
-        // Slight difference here over the basic algorithm...
-        //
-        // For cases where the number of choices <= max_targs it's
-        // obvious (all available choices will be selected).
-        //
-        // For choices > max_targs, here's a brief proof:
-        //
-        // Let m = max_targs, k = choices - max_targs, k > 0.
-        //
-        // Proof, by induction (over k):
-        //
-        // 1) Show n = m + 1 (k = 1) gives uniform distribution,
-        //    P(new one not chosen) = 1 / (m + 1).
-        //                                         m     1     1
-        //    P(specific previous one replaced) = --- * --- = ---
-        //                                        m+1    m    m+1
-        //
-        //    So the probablity is uniform (ie. any element has
-        //    a 1/(m+1) chance of being in the unchosen slot).
-        //
-        // 2) Assume the distribution is uniform at n = m+k.
-        //    (ie. the probablity that any of the found elements
-        //     was chosen = m / (m+k) (the slots are symmetric,
-        //     so it's the sum of the probabilities of being in
-        //     any of them)).
-        //
-        // 3) Show n = m + k + 1 gives a uniform distribution.
-        //    P(new one chosen) = m / (m + k + 1)
-        //    P(any specific previous choice remaining chosen)
-        //    = [1 - P(swapped into m+k+1 position)] * P(prev. chosen)
-        //              m      1       m
-        //    = [ 1 - ----- * --- ] * ---
-        //            m+k+1    m      m+k
-        //
-        //       m+k     m       m
-        //    = ----- * ---  = -----
-        //      m+k+1   m+k    m+k+1
-        //
-        // Therefore, it's uniform for n = m + k + 1. QED
-        //
-        // The important thing to note in calculating the last
-        // probability is that the chosen elements have already
-        // passed tests which verify that they *don't* belong
-        // in slots m+1...m+k, so the only positions an already
-        // chosen element can end up in are its original
-        // position (in one of the chosen slots), or in the
-        // new slot.
-        //
-        // The new item can, of course, be placed in any slot,
-        // swapping the value there into the new slot... we
-        // just don't care about the non-chosen slots enough
-        // to store them, so it might look like the item
-        // automatically takes the new slot when not chosen
-        // (although, by symmetry all the non-chosen slots are
-        // the same... and similarly, by symmetry, all chosen
-        // slots are the same).
-        //
-        // Yes, that's a long comment for a short piece of
-        // code, but I want people to have an understanding
-        // of why this works (or at least make them wary about
-        // changing it without proof and breaking this code). -- bwr
-
-        // Accept the first max_targs choices, then when
-        // new choices come up, replace one of the choices
-        // at random, max_targs/count of the time (the rest
-        // of the time it replaces an element in an unchosen
-        // slot -- but we don't care about them).
+        /**
+         * Slight difference here over the basic algorithm...
+         *
+         * For cases where the number of choices <= max_targs it's
+         * obvious (all available choices will be selected).
+         *
+         * For choices > max_targs, here's a brief proof:
+         *
+         * Let m = max_targs, k = choices - max_targs, k > 0.
+         *
+         * Proof, by induction (over k):
+         *
+         * 1) Show n = m + 1 (k = 1) gives uniform distribution,
+         *     P(new one not chosen) = 1 / (m + 1).
+         *                                          m     1     1
+         *     P(specific previous one replaced) = --- * --- = ---
+         *                                         m+1    m    m+1
+         *
+         *    So the probablity is uniform (ie. any element has
+         *     a 1/(m+1) chance of being in the unchosen slot).
+         *
+         * 2) Assume the distribution is uniform at n = m+k.
+         *    (ie. the probablity that any of the found elements
+         *     was chosen = m / (m+k) (the slots are symmetric,
+         *     so it's the sum of the probabilities of being in
+         *     any of them)).
+         *
+         * 3) Show n = m + k + 1 gives a uniform distribution.
+         *     P(new one chosen) = m / (m + k + 1)
+         *     P(any specific previous choice remaining chosen)
+         *     = [1 - P(swapped into m+k+1 position)] * P(prev. chosen)
+         *               m      1       m
+         *     = [ 1 - ----- * --- ] * ---
+         *             m+k+1    m      m+k
+         *
+         *        m+k     m       m
+         *     = ----- * ---  = -----
+         *       m+k+1   m+k    m+k+1
+         *
+         *   Therefore, it's uniform for n = m + k + 1. QED
+         *
+         * The important thing to note in calculating the last
+         * probability is that the chosen elements have already
+         * passed tests which verify that they *don't* belong
+         * in slots m+1...m+k, so the only positions an already
+         * chosen element can end up in are its original
+         * position (in one of the chosen slots), or in the
+         * new slot.
+         *
+         * The new item can, of course, be placed in any slot,
+         * swapping the value there into the new slot... we
+         * just don't care about the non-chosen slots enough
+         * to store them, so it might look like the item
+         * automatically takes the new slot when not chosen
+         * (although, by symmetry all the non-chosen slots are
+         * the same... and similarly, by symmetry, all chosen
+         * slots are the same).
+         *
+         * Yes, that's a long comment for a short piece of
+         * code, but I want people to have an understanding
+         * of why this works (or at least make them wary about
+         * changing it without proof and breaking this code). -- bwr
+         *
+         * Accept the first max_targs choices, then when
+         * new choices come up, replace one of the choices
+         * at random, max_targs/count of the time (the rest
+         * of the time it replaces an element in an unchosen
+         * slot -- but we don't care about them).
+         */
         if (count <= max_targs)
             targs[count - 1] = *ai;
         else if (x_chance_in_y(max_targs, count))
@@ -649,9 +686,11 @@ int apply_random_around_square(cell_func cf, const coord_def& where,
 
     if (targs_found)
     {
-        // Used to divide the power up among the targets here, but
-        // it's probably better to allow the full power through and
-        // balance the called function. -- bwr
+        /**
+         * Used to divide the power up among the targets here, but
+         * it's probably better to allow the full power through and
+         * balance the called function. -- bwr
+         */
         for (int i = 0; i < targs_found; i++)
         {
             ASSERT(!targs[i].origin());
@@ -681,8 +720,8 @@ int apply_random_around_square(cell_func cf, const coord_def& where,
  *                    cloud.
 */
 void apply_area_cloud(cloud_func func, const coord_def& where,
-                       int pow, int number, cloud_type ctype,
-                       const actor *agent, int spread_rate, int excl_rad)
+                      int pow, int number, cloud_type ctype,
+                      const actor *agent, int spread_rate, int excl_rad)
 {
     if (number <= 0)
         return;
@@ -713,7 +752,7 @@ void apply_area_cloud(cloud_func func, const coord_def& where,
  * Select a spell target and fill dist and pbolt appropriately.
  *
  * @param[out] spelld    the output of the direction() call.
- * @param[in, out] pbolt a beam; its range is used if none is set in args, and
+ * @param[in,out] pbolt  a beam; its range is used if none is set in args, and
  *                       its source and target are set if the direction() call
  *                       succeeds.
  * @param[in] args       The arguments for the direction() call. May be null,
@@ -857,12 +896,12 @@ spschool skill2spell_type(skill_type spell_skill)
     }
 }
 
-/*
- **************************************************
- *                                                *
- *              END PUBLIC FUNCTIONS              *
- *                                                *
- **************************************************
+/**
+ * *************************************************
+ * *                                               *
+ * *             END PUBLIC FUNCTIONS              *
+ * *                                               *
+ * *************************************************
  */
 
 //jmf: Simplified; moved init code to top function, init_spell_descs().
@@ -959,7 +998,7 @@ int spell_noise(spell_type spell)
  * This returns the usual spell noise for the effects of this spell.
  * Used for various noisy() calls, as well as the I screen; see effect_noise
  * comment above for more information.
- * @param spell  The spell being casted.
+ * @param spell  The spell being cast.
  * @return       The amount of noise generated by the effects of the spell.
  */
 int spell_effect_noise(spell_type spell, bool random)
@@ -1589,11 +1628,13 @@ const vector<spell_type> *soh_breath_spells(spell_type spell)
     return map_find(soh_breaths, spell);
 }
 
-/* How to regenerate this:
-   comm -2 -3 \
-    <(clang -P -E -nostdinc -nobuiltininc spell-type.h -DTAG_MAJOR_VERSION=34 | sort) \
-    <(clang -P -E -nostdinc -nobuiltininc spell-type.h -DTAG_MAJOR_VERSION=35 | sort) \
-    | grep SPELL
+/**
+ * How to regenerate this:
+ *
+ * comm -2 -3 \
+ * <(clang -P -E -nostdinc -nobuiltininc spell-type.h -DTAG_MAJOR_VERSION=34 | sort) \
+ * <(clang -P -E -nostdinc -nobuiltininc spell-type.h -DTAG_MAJOR_VERSION=35 | sort) \
+ * | grep SPELL
 */
 const set<spell_type> removed_spells =
 {

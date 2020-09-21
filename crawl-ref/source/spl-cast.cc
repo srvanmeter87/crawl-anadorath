@@ -1072,9 +1072,6 @@ static void _try_monster_cast(spell_type spell, int /*powc*/,
 }
 #endif // WIZARD
 
-static spret _do_cast(spell_type spell, int powc, const dist& spd,
-                           bolt& beam, god_type god, bool fail);
-
 /**
  * Should this spell be aborted before casting properly starts, either because
  * it can't legally be cast in this circumstance, or because the player opts
@@ -1136,7 +1133,7 @@ static bool _spellcasting_aborted(spell_type spell, bool fake_spell)
         if (failure_rate_to_int(raw_spell_fail(spell)) == 100)
         {
             mprf(MSGCH_WARN, "It is impossible to cast this spell "
-                    "(100%% risk of failure)!");
+                 "(100%% risk of failure)!");
             return true;
         }
 
@@ -1158,7 +1155,7 @@ static bool _spellcasting_aborted(spell_type spell, bool fake_spell)
 }
 
 static unique_ptr<targeter> _spell_targeter(spell_type spell, int pow,
-                                              int range)
+                                            int range)
 {
     switch (spell)
     {
@@ -1309,13 +1306,13 @@ vector<string> desc_success_chance(const monster_info& mi, int pow, bool evoked,
  *                      false if the spell is evoked or from an innate or divine ability
  *
  * @param evoked_item   The wand the spell was evoked from if applicable, or
-                        nullptr.
+ *                      nullptr.
  * @return spret::success if spell is successfully cast for purposes of
  * exercising, spret::fail otherwise, or spret::abort if the player cancelled
  * the casting.
- **/
+ */
 spret your_spells(spell_type spell, int powc, bool allow_fail,
-                       const item_def* const evoked_item)
+                  const item_def* const evoked_item)
 {
     ASSERT(!crawl_state.game_is_arena());
     ASSERT(!evoked_item || evoked_item->base_type == OBJ_WANDS);
@@ -1599,10 +1596,21 @@ spret your_spells(spell_type spell, int powc, bool allow_fail,
     return spret::success;
 }
 
-// Returns spret::success, spret::abort, spret::fail
-// or spret::none (not a player spell).
+/**
+ * Actually do the spellcasting.
+ *
+ * @param spell         The type of spell being cast.
+ * @param powc          Spellpower.
+ * @param spd           Spell's direction/distance vector.
+ * @param beam          Internal bolt type to fire.
+ * @param god           God is question.
+ * @param fail          Spell failure status.
+ *
+ * @return spret::success, spret::abort, spret::fail
+ * or spret::none (not a player spell).
+ */
 static spret _do_cast(spell_type spell, int powc, const dist& spd,
-                           bolt& beam, god_type god, bool fail)
+                      bolt& beam, god_type god, bool fail)
 {
     const coord_def target = spd.isTarget ? beam.target : you.pos() + spd.delta;
     if (spell == SPELL_FREEZE || spell == SPELL_VAMPIRIC_DRAINING)
@@ -1631,8 +1639,7 @@ static spret _do_cast(spell_type spell, int powc, const dist& spd,
     case SPELL_FREEZING_CLOUD:
         return cast_big_c(powc, spell, &you, beam, fail);
     case SPELL_ELEMENTAL_BLAST:
-        cast_big_c(powc, spell, &you, beam, fail);
-        return cast_elemental_blast(spell, powc, spd, beam, fail);
+        return cast_elemental_blast(powc, beam, fail);
 
     case SPELL_FIRE_STORM:
         return cast_fire_storm(powc, beam, fail);

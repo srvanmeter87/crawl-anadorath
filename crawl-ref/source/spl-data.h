@@ -3,21 +3,21 @@
  * @brief Spell definitions and descriptions. See spell_desc struct in
  *        spl-util.cc.
  * Flag descriptions are in spl-cast.h.
-**/
+ */
 
-/*
-struct spell_desc
-{
-    enum, spell name,
-    spell schools,
-    flags,
-    level,
-    power_cap,
-    min_range, max_range, (-1 if not applicable)
-    noise, effect_noise
-    tile
-}
-*/
+/**
+ * struct spell_desc
+ * {
+ *     enum, spell name,
+ *     spell schools,
+ *     flags,
+ *     level,
+ *     power_cap,
+ *     min_range, max_range, (-1 if not applicable)
+ *     noise, effect_noise
+ *     tile
+ * }
+ */
 
 static const struct spell_desc spelldata[] =
 {

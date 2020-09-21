@@ -60,7 +60,7 @@ spret conjure_flame(int pow, bool fail)
     else
     {
         you.props["cflame_dur"] = min(5 + (random2(pow)/2)
-                                               + (random2(pow)/2), 23);
+                                        + (random2(pow)/2), 23);
         place_cloud(CLOUD_EMBERS, you.pos(), 1, &you);
         // Create a cloud for the time it takes to cast plus 1 aut, so that no
         // matter what happens the flame tries to ignite after the next player
@@ -130,7 +130,7 @@ spret cast_poisonous_vapours(int pow, const dist &beam, bool fail)
 }
 
 spret cast_big_c(int pow, spell_type spl, const actor *caster, bolt &beam,
-                      bool fail)
+                 bool fail)
 {
     if (grid_distance(beam.target, you.pos()) > beam.range
         || !in_bounds(beam.target))

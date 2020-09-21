@@ -61,15 +61,15 @@ void end_searing_ray();
 spret cast_glaciate(actor *caster, int pow, coord_def aim,
                     bool fail = false);
 
-spret cast_random_bolt(int pow, bolt& beam, bool fail = false);
+spret cast_random_bolt(int pow, bolt &beam, bool fail = false);
 
 spret cast_ignition(const actor *caster, int pow, bool fail);
 
-spret cast_starburst(int pow, bool fail, bool tracer=false);
+spret cast_starburst(int pow, bool fail, bool tracer = false);
 
 void foxfire_attack(const monster *foxfire, const actor *target);
 
-spret cast_hailstorm(int pow, bool fail, bool tracer=false);
+spret cast_hailstorm(int pow, bool fail, bool tracer = false);
 
 spret cast_imb(int pow, bool fail);
 
@@ -79,5 +79,4 @@ spret cast_frozen_ramparts(int pow, bool fail);
 
 spret cast_absolute_zero(int pow, bool fail, bool tracer = false);
 
-spret cast_elemental_blast(const spell_type spell, int powc, dist spd,
-                           bolt& beam, bool fail);
+spret cast_elemental_blast(int pow, bolt &beam, bool fail);

@@ -170,11 +170,12 @@ skill_type invo_skill(god_type god)
     {
         case GOD_KIKUBAAQUDGHA:
             return SK_NECROMANCY;
-
 #if TAG_MAJOR_VERSION == 34
         case GOD_PAKELLAS:
             return SK_EVOCATIONS;
 #endif
+        case GOD_ANADORATH:
+            return SK_SPELLCASTING;
         case GOD_ASHENZARI:
         case GOD_JIYVA:
         case GOD_GOZAG:
@@ -644,9 +645,9 @@ static const ability_def Ability_List[] =
 
     // Anadorath
     { ABIL_ANADORATH_ELEMENTAL_BLAST, "Elemental Blast",
-      0, 10, 0, {fail_basis::invo, 60, 4, 20}, abflag::none },
-/*  { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
-      5, 0, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath }, */
+      10, 0, 0, {fail_basis::invo, 60, 4, 20}, abflag::none },
+    // { ABIL_ANADORATH_BLISTERING_COLD, "Blistering Cold",
+    //  5, 0, 0, {fail_basis::invo, 40, 4, 20}, abflag::breath },
 
     { ABIL_RENOUNCE_RELIGION, "Renounce Religion",
       0, 0, 0, {fail_basis::invo}, abflag::none },
@@ -1901,7 +1902,7 @@ static void _cause_vampire_bat_form_stat_drain()
  * @param abil The actual ability used.
  * @param fail If true, the ability is doomed to fail, and spret::fail will
  * be returned if the ability is not spret::aborted.
- * @returns Whether the spell succeeded (spret::success), failed (spret::fail),
+ * @return Whether the spell succeeded (spret::success), failed (spret::fail),
  *  or was canceled (spret::abort). Never returns spret::none.
  */
 static spret _do_ability(const ability_def& abil, bool fail)
@@ -3178,19 +3179,20 @@ static spret _do_ability(const ability_def& abil, bool fail)
         if (!spell_direction(spd, beam))
             return spret::abort;
 
-        int power = you.skill(SK_INVOCATIONS, 4)
-                    + random2(1 + you.skill(SK_INVOCATIONS, 1))
-                    + random2(1 + you.skill(SK_INVOCATIONS, 1));
+        int power = you.skill(SK_SPELLCASTING, 3)        // 27 * 3 = 81
+                    + random2(1 + you.skill(SK_AIR_MAGIC, 1))   // + 27 = 108
+                    + random2(1 + you.skill(SK_EARTH_MAGIC, 1)) // + 27 = 135
+                    + random2(1 + you.skill(SK_FIRE_MAGIC, 1))  // + 27 = 162
+                    + random2(1 + you.skill(SK_ICE_MAGIC, 1));  // + 27 = 189
 
-        if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, LOS_RADIUS))
+        if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, beam.range))
             return spret::abort;
 
         fail_check();
-        {
-            beam.origin_spell = SPELL_NO_SPELL; // let zapping reset this
-            zap_type ztype = ZAP_ELEMENTAL_BLAST;
-            zapping(ztype, power, beam);
-        }
+
+        beam.origin_spell = SPELL_NO_SPELL; // let zapping reset this
+        zap_type ztype = ZAP_ELEMENTAL_BLAST;
+        zapping(ztype, power, beam, true, nullptr, fail);
         break;
     }
 

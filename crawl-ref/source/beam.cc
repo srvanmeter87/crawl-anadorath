@@ -209,6 +209,7 @@ static void _ench_animation(int flavour, const monster* mon, bool force)
     case BEAM_MALMUTATE:
         elem = ETC_MUTAGENIC;
         break;
+    case BEAM_ELEMENTAL_BLAST:
     case BEAM_CHAOS:
         elem = ETC_RANDOM;
         break;
@@ -233,16 +234,19 @@ static void _ench_animation(int flavour, const monster* mon, bool force)
 // If needs_tracer is true, we need to check the beam path for friendly
 // monsters.
 spret zapping(zap_type ztype, int power, bolt &pbolt,
-                   bool needs_tracer, const char* msg, bool fail)
+              bool needs_tracer, const char* msg, bool fail)
 {
     dprf(DIAG_BEAM, "zapping: power=%d", power);
 
     pbolt.thrower = KILL_YOU_MISSILE;
 
-    // Check whether tracer goes through friendlies.
-    // NOTE: Whenever zapping() is called with a randomised value for power
-    // (or effect), player_tracer should be called directly with the highest
-    // power possible respecting current skill, experience level, etc.
+    /**
+     * Check whether tracer goes through friendlies.
+     *
+     * NOTE: Whenever zapping() is called with a randomised value for power
+     * (or effect), player_tracer should be called directly with the highest
+     * power possible respecting current skill, experience level, etc.
+     */
     if (needs_tracer && !player_tracer(ztype, power, pbolt))
         return spret::abort;
 
@@ -256,7 +260,7 @@ spret zapping(zap_type ztype, int power, bolt &pbolt,
     if (ztype == ZAP_LIGHTNING_BOLT)
     {
         noisy(spell_effect_noise(SPELL_LIGHTNING_BOLT),
-               you.pos(), "You hear a mighty clap of thunder!");
+              you.pos(), "You hear a mighty clap of thunder!");
         pbolt.heard = true;
     }
 
@@ -268,8 +272,16 @@ spret zapping(zap_type ztype, int power, bolt &pbolt,
     return spret::success;
 }
 
-// Returns true if the path is considered "safe", and false if there are
-// monsters in the way the player doesn't want to hit.
+/**
+ * Checks zap pathing to see if there are monsters in the way the
+ * player doesn't want to hit.
+ *
+ * @param ztype     Zap type.
+ * @param power     Spellpower.
+ * @param pbolt     Bolt pathing.
+ * @param range     Maximum range of zap.
+ * @return true if the path is considered "safe", and false
+ */
 bool player_tracer(zap_type ztype, int power, bolt &pbolt, int range)
 {
     // Non-controlleable during confusion.
@@ -284,7 +296,6 @@ bool player_tracer(zap_type ztype, int power, bolt &pbolt, int range)
     pbolt.source_id     = MID_PLAYER;
     pbolt.attitude      = ATT_FRIENDLY;
     pbolt.thrower       = KILL_YOU_MISSILE;
-
 
     // Init tracer variables.
     pbolt.friend_info.reset();
@@ -746,6 +757,12 @@ void bolt::apply_beam_conducts()
         case BEAM_STICKY_FLAME:
         case BEAM_INNER_FLAME:
             did_god_conduct(DID_FIRE,
+                            pierce || is_explosion ? 6 + random2(3)
+                                                   : 2 + random2(3),
+                            god_cares());
+            break;
+        case BEAM_ELEMENTAL_BLAST:
+            did_god_conduct(DID_CHAOS,
                             pierce || is_explosion ? 6 + random2(3)
                                                    : 2 + random2(3),
                             god_cares());
@@ -1238,8 +1255,9 @@ void bolt::do_fire()
         }
 
         // digging is taken care of in affect_cell
-        if (feat_is_solid(feat) && !can_affect_wall(pos())
-                                                    && flavour != BEAM_DIGGING)
+        if (feat_is_solid(feat)
+            && !can_affect_wall(pos())
+            && flavour != BEAM_DIGGING)
         {
             if (is_bouncy(feat))
             {
@@ -2292,6 +2310,7 @@ cloud_type bolt::get_cloud_type() const
 
     if (origin_spell == SPELL_SPECTRAL_CLOUD)
         return CLOUD_SPECTRAL;
+
     if (origin_spell == SPELL_ELEMENTAL_BLAST)
         return CLOUD_ELEMENTAL_CHAOS;
 
@@ -2376,7 +2395,7 @@ void bolt::affect_endpoint()
             return;
 
         targeter_cloud tgt(agent(), range, get_cloud_size(true),
-                            get_cloud_size(false, true));
+                           get_cloud_size(false, true));
         tgt.set_aim(pos());
         for (const auto &entry : tgt.seen)
         {
@@ -2570,8 +2589,8 @@ bool bolt::can_affect_wall(const coord_def& p, bool map_knowledge) const
     dungeon_feature_type wall = grd(p);
 
     // digging might affect unseen squares, as far as the player knows
-    if (map_knowledge && flavour == BEAM_DIGGING &&
-                                        !env.map_knowledge(pos()).seen())
+    if (map_knowledge && flavour == BEAM_DIGGING
+                      && !env.map_knowledge(pos()).seen())
     {
         return true;
     }
@@ -2675,7 +2694,8 @@ void bolt::affect_place_clouds()
         place_cloud(CLOUD_MIASMA, p, random2(4) + 4, agent());
 
     if (origin_spell == SPELL_ELEMENTAL_BLAST || flavour == BEAM_ELEMENTAL_BLAST)
-        place_cloud(CLOUD_ELEMENTAL_CHAOS, p, damage.num * damage.size / 20 + 1, agent());
+        place_cloud(CLOUD_ELEMENTAL_CHAOS, p,
+                    damage.num * damage.size / 20 + 1, agent());
 }
 
 void bolt::affect_place_explosion_clouds()
@@ -2932,7 +2952,7 @@ bool bolt::harmless_to_player() const
         // Normally we'd just ignore it, but we shouldn't let a player
         // kill themselves without a warning.
         return player_res_poison(false) > 0 || you.is_unbreathing()
-            || you.clarity(false) && you.hp > 2;
+               || you.clarity(false) && you.hp > 2;
 
     case BEAM_ELECTRICITY:
         return player_res_electricity(false);

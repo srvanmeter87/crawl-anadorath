@@ -2223,7 +2223,7 @@ bool setup_fragmentation_beam(bolt &beam, int pow, const actor *caster,
 }
 
 spret cast_fragmentation(int pow, const actor *caster,
-                              const coord_def target, bool fail)
+                         const coord_def target, bool fail)
 {
     bool hole                = true;
     const char *what         = nullptr;
@@ -2231,7 +2231,7 @@ spret cast_fragmentation(int pow, const actor *caster,
     bolt beam;
 
     if (!setup_fragmentation_beam(beam, pow, caster, target, false, &what,
-                hole))
+                                  hole))
     {
         return spret::abort;
     }
@@ -2937,7 +2937,7 @@ spret cast_glaciate(actor *caster, int pow, coord_def aim, bool fail)
     return spret::success;
 }
 
-spret cast_random_bolt(int pow, bolt& beam, bool fail)
+spret cast_random_bolt(int pow, bolt &beam, bool fail)
 {
     // Need to use a 'generic' tracer regardless of the actual beam type,
     // to account for the possibility of both bouncing and irresistible damage
@@ -2966,28 +2966,30 @@ spret cast_starburst(int pow, bool fail, bool tracer)
 {
     int range = spell_range(SPELL_STARBURST, pow);
 
-    vector<coord_def> offsets = { coord_def(range, 0),
-                                coord_def(range, range),
-                                coord_def(0, range),
-                                coord_def(-range, range),
-                                coord_def(-range, 0),
-                                coord_def(-range, -range),
-                                coord_def(0, -range),
-                                coord_def(range, -range) };
+    vector<coord_def> offsets = {
+        coord_def(range, 0),
+        coord_def(range, range),
+        coord_def(0, range),
+        coord_def(-range, range),
+        coord_def(-range, 0),
+        coord_def(-range, -range),
+        coord_def(0, -range),
+        coord_def(range, -range)
+    };
 
     bolt beam;
-    beam.range        = range;
-    beam.source       = you.pos();
-    beam.source_id    = MID_PLAYER;
-    beam.is_tracer    = tracer;
-    beam.is_targeting = tracer;
-    beam.dont_stop_player = true;
-    beam.friend_info.dont_stop = true;
-    beam.foe_info.dont_stop = true;
-    beam.attitude = ATT_FRIENDLY;
-    beam.thrower      = KILL_YOU;
-    beam.origin_spell = SPELL_STARBURST;
-    beam.draw_delay   = 5;
+    beam.range                  = range;
+    beam.source                 = you.pos();
+    beam.source_id              = MID_PLAYER;
+    beam.is_tracer              = tracer;
+    beam.is_targeting           = tracer;
+    beam.dont_stop_player       = true;
+    beam.friend_info.dont_stop  = true;
+    beam.foe_info.dont_stop     = true;
+    beam.attitude               = ATT_FRIENDLY;
+    beam.thrower                = KILL_YOU;
+    beam.origin_spell           = SPELL_STARBURST;
+    beam.draw_delay             = 5;
     zappy(ZAP_BOLT_OF_FIRE, pow, false, beam);
 
     for (const coord_def & offset : offsets)
@@ -3407,28 +3409,27 @@ spret cast_absolute_zero(int pow, bool fail, bool tracer)
     return spret::success;
 }
 
-spret cast_elemental_blast(const spell_type spell, int powc, dist spd,
-                           bolt& beam, bool fail)
+spret cast_elemental_blast(int pow, bolt &beam, bool fail)
 {
-    beam.range = LOS_RADIUS;
-    if (!spell_direction(spd, beam))
+    beam.range = spell_range(SPELL_ELEMENTAL_BLAST, pow);
+
+    if (!player_tracer(ZAP_ELEMENTAL_BLAST, pow, beam, beam.range))
         return spret::abort;
 
-    int power = random2avg((you.skill(SK_AIR_MAGIC, 2)
-                            + you.skill(SK_EARTH_MAGIC, 2)
-                            + you.skill(SK_FIRE_MAGIC, 2)
-                            + you.skill(SK_ICE_MAGIC, 2)), 7)
-                + random2(1 + you.skill(SK_SPELLCASTING, 1));
-
-    if (!player_tracer(ZAP_ELEMENTAL_BLAST, power, beam, LOS_RADIUS))
-        return spret::abort;
+    int power = random2avg((you.skill(SK_AIR_MAGIC, 2)        //   27 * 2 =  54
+                            + you.skill(SK_EARTH_MAGIC, 2)    // + 27 * 2 = 108
+                            + you.skill(SK_FIRE_MAGIC, 2)     // + 27 * 2 = 162
+                            + you.skill(SK_ICE_MAGIC, 2)), 7) // + 27 * 2 = 216
+                + random2(1 + you.skill(SK_SPELLCASTING, 1)); // + 27 * 1 = 243
 
     fail_check();
 
     beam.origin_spell = SPELL_ELEMENTAL_BLAST;
-    beam.ex_size = random_range(0, power > 100 ? 3 : 2);
-    zap_type ztype = ZAP_ELEMENTAL_BLAST;
-    zapping(ztype, power, beam);
+    beam.ex_size = random_range(0, power > 200 ? 4 :
+                                   power > 150 ? 3 :
+                                   power > 100 ? 2 : 1);
+
+    zapping(ZAP_ELEMENTAL_BLAST, power, beam, true);
 
     return spret::success;
 }
