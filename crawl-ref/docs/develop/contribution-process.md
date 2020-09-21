@@ -129,16 +129,16 @@ would prefer this to be limited to small changes like vaults or artwork.
   receive suggestions for alternative strategies for fixing the bug).
 * PRs that change gameplay in particular need to be carefully thought out, and
   ideally, discussed with members of the devteam ahead of time.
-    * Think carefully about what you want the change to accomplish, and provide
-      justification in the commit message(s).
-    * Think carefully about whether a change might lead to something surprising
-      being optimal.
-    * Think carefully about how the change will be received by both extremely
-      strong players and by new players.
-    * If the change is in response to a strong opinion or reaction that you
-      have to some aspect of crawl, consider whether your opinion is likely to
-      be universal or obvious. It's best if you can be dispassionate about proposed
-      changes.
+  * Think carefully about what you want the change to accomplish, and provide
+    justification in the commit message(s).
+  * Think carefully about whether a change might lead to something surprising
+    being optimal.
+  * Think carefully about how the change will be received by both extremely
+    strong players and by new players.
+  * If the change is in response to a strong opinion or reaction that you
+    have to some aspect of crawl, consider whether your opinion is likely to
+    be universal or obvious. It's best if you can be dispassionate about proposed
+    changes.
 
 Community members often talk about "the devteam" as if it's a single entity
 with one specific set of plans, beliefs, aesthetics, etc. This view is not
@@ -159,6 +159,7 @@ contribution to involve a process, with potentially many revision cycles.
 
 If your goal is getting something into stable (see below for a definition of
 "stable"):
+
 * We generally recommend against a new god, species, role, branch, or anything
   of this scope being your first contribution.
 * You will need to be responsive in a positive way to feedback, including
