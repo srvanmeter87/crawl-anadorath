@@ -452,9 +452,9 @@ int spell_mana(spell_type which_spell)
 /**
  * Applied in naughties (more difficult = higher level knowledge = worse)
  * and triggers for Sif acting (same reasoning as above, just good) {dlb}
- * 
+ *
  * @param which_spell   Spell type.
- * 
+ *
  * @return              Spell difficulty.
  */
 int spell_difficulty(spell_type which_spell)

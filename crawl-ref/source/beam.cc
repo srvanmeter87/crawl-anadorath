@@ -2694,8 +2694,10 @@ void bolt::affect_place_clouds()
         place_cloud(CLOUD_MIASMA, p, random2(4) + 4, agent());
 
     if (origin_spell == SPELL_ELEMENTAL_BLAST || flavour == BEAM_ELEMENTAL_BLAST)
+    {
         place_cloud(CLOUD_ELEMENTAL_CHAOS, p,
                     damage.num * damage.size / 20 + 1, agent());
+    }
 }
 
 void bolt::affect_place_explosion_clouds()
