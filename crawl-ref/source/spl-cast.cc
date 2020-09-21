@@ -691,7 +691,7 @@ static void _handle_wucad_mu(int cost)
  * @param check_range   If true, abort if no targets are in range. (z vs Z)
  * @param spell         The type of spell to be cast.
  * @return              Whether the spell was successfully cast.
- **/
+ */
 bool cast_a_spell(bool check_range, spell_type spell)
 {
     if (!can_cast_spells(false, you.divine_exegesis))
@@ -1071,6 +1071,9 @@ static void _try_monster_cast(spell_type spell, int /*powc*/,
     mon->reset();
 }
 #endif // WIZARD
+
+static spret _do_cast(spell_type spell, int powc, const dist& spd,
+                           bolt& beam, god_type god, bool fail);
 
 /**
  * Should this spell be aborted before casting properly starts, either because
