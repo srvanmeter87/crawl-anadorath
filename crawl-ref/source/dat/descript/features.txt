@@ -17,6 +17,10 @@ A glowing golden altar of the Shining One
 An altar to the Shining One, made from the purest gold and almost blinding in
 its radiance.
 %%%%
+An element-infused altar of Anadorath
+
+An altar directly composed of the primal elements of air, earth, fire, and ice.
+%%%%
 A broken altar of Ashenzari
 
 A crystal altar which shattered to pieces when Ashenzari was cursed. There is
