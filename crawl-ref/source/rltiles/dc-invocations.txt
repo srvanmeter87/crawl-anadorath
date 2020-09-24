@@ -1,5 +1,6 @@
 %sdir gui/invocations
 renounce ABILITY_RENOUNCE_RELIGION
+anadorath_elemental_blast ABILITY_ANADORATH_ELEMENTAL_BLAST
 ashenzari_curse ABILITY_ASHENZARI_CURSE
 ashenzari_scry ABILITY_ASHENZARI_SCRY
 ashenzari_transfer_knowledge_end ABILITY_ASHENZARI_TRANSFER_KNOWLEDGE_END

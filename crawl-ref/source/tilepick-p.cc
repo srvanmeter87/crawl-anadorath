@@ -742,6 +742,7 @@ void tilep_race_default(int sp, int level, dolls_data *doll)
         case SP_GNOLL:
         case SP_GARGOYLE:
         case SP_VINE_STALKER:
+        case SP_PYROLITH:
             hair = 0;
             break;
         default:
@@ -989,6 +990,12 @@ void tilep_job_default(int job, dolls_data *doll)
             parts[TILEP_PART_ARM]   = TILEP_ARM_GLOVE_WRIST_PURPLE;
             parts[TILEP_PART_CLOAK] = TILEP_CLOAK_GREEN;
             parts[TILEP_PART_BOOTS] = TILEP_BOOTS_MIDDLE_BROWN2;
+            break;
+
+        case JOB_PRIMALIST:
+            parts[TILEP_PART_HAND1] = TILEP_HAND1_STAFF_MAGE;
+            parts[TILEP_PART_HAND2] = TILEP_HAND2_BOOK_RED_DIM;
+            parts[TILEP_PART_BOOTS] = TILEP_BOOTS_MIDDLE_GRAY;
             break;
     }
 }

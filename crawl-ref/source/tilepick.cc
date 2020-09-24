@@ -3697,8 +3697,6 @@ tileidx_t tileidx_ability(const ability_type ability)
     // Anadorath
     case ABIL_ANADORATH_ELEMENTAL_BLAST:
         return TILEG_ABILITY_BREATHE_ENERGY;
-    // case ABIL_ANADORATH_ELEMENTAL_BLAST:
-    //     return TILEG_ABILITY_ANADORATH_ELEMENTAL_BLAST;
 
     // General divine (pseudo) abilities.
     case ABIL_RENOUNCE_RELIGION:
@@ -3837,6 +3835,8 @@ static tileidx_t _tileidx_player_job_base(const job_type job)
             return TILEG_JOB_ARCANE_MARKSMAN;
         case JOB_ABYSSAL_KNIGHT:
             return TILEG_JOB_ABYSSAL_KNIGHT;
+        case JOB_PRIMALIST:
+            return TILEG_JOB_PRIMALIST;
         default:
             return TILEG_ERROR;
     }
@@ -3900,6 +3900,8 @@ static tileidx_t _tileidx_player_species_base(const species_type species)
             return TILEG_SP_BARACHI;
         case SP_GNOLL:
             return TILEG_SP_GNOLL;
+        case SP_PYROLITH:
+            return TILEG_SP_PYROLITH;
         default:
             return TILEP_ERROR;
     }

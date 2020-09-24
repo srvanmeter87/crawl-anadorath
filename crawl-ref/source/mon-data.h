@@ -2,14 +2,14 @@
 
 #include "enum.h"
 
-/* ******************************************************************
+/********************************************************************
 
-   (see "mon-util.h" for the gory details)
+    (see "mon-util.h" for the gory details)
 
- - ordering does not matter, because seekmonster() searches the entire
-   array ... probably not to most efficient thing to do, but so it goes
+  - ordering does not matter, because seekmonster() searches the entire
+    array ... probably not to most efficient thing to do, but so it goes
 
- - Here are the rows:
+  - Here are the rows:
     - row 1: monster id, display character, display colour, name
     - row 2: monster flags
     - row 3: monster resistance flags
@@ -21,7 +21,7 @@
     - row 9: gmon_use class, body size, body shape
     - row 10: tile, corpse
 
- - Some further explanations:
+  - Some further explanations:
 
     - colour: if COLOUR_UNDEF, a random colour will be chosen upon
               creation. Some monsters set their colour during initialization,
@@ -31,90 +31,93 @@
     - genus: base monster "type" for a classed monsters (i.e. jackal as hound)
     - species: corpse type of monster (i.e. orc for orc wizard)
     - holiness: a bitwise OR of one or more of:
-       MH_HOLY       - irritates some gods when killed, immunity from
+        MH_HOLY       - irritates some gods when killed, immunity from
                         holy wrath weapons. Includes good priests.
-       MH_NATURAL    - baseline monster type
-       MH_UNDEAD     - immunity from draining, pain, torment; resistance
+        MH_NATURAL    - baseline monster type
+        MH_UNDEAD     - immunity from draining, pain, torment; resistance
                         to poison; extra damage from holy wrath;
                         affected by holy word
-       MH_DEMONIC    - similar to undead, but no poison resistance
+        MH_DEMONIC    - similar to undead, but no poison resistance
                         *no* automatic damnation resistance
-       MH_NONLIVING  - golems and other constructs
-       MH_PLANT      - plants
+        MH_NONLIVING  - golems and other constructs
+        MH_PLANT      - plants
 
       along with optional flags that affect some god conducts and abilities:
-       MH_EVIL       - inherently evil (and not MH_UNDEAD or MH_DEMONIC)
+        MH_EVIL       - inherently evil (and not MH_UNDEAD or MH_DEMONIC)
 
-   exp_mod: multiplies xp value after most other calculations.
-            see exper_value() in mon-util.cc
+    - exp_mod: multiplies xp value after most other calculations.
+               see exper_value() in mon-util.cc
 
-   resist_magic: see mons_resist_magic() in mon-util.cc
-   - If -x calculate (-x * hit dice * 4/3), else simply x.
+    - resist_magic: see mons_resist_magic() in mon-util.cc
+        If -x calculate (-x * hit dice * 4/3), else simply x.
 
-   damage [4]
-   - up to 4 different attacks
+    - damage [4]
+        up to 4 different attacks
 
-   HD: like player level, used for misc things
-   avg_hp_10x: average hp for the monster, * 10 for precision
-               (see hit_points() for details)
+    - HD: like player level, used for misc things
 
-   sec: if the monster has only one possible spellbook, sec is set to that book.
-     If a monster has multiple possible books, sec is set to MST_NO_SPELLS. Then
-     the function _mons_spellbook_list in mon-util.cc handles the books.
-   TODO: replace this system ^
+    - avg_hp_10x: average hp for the monster, * 10 for precision
+                    (see hit_points() for details)
 
-   corpse: whether the monster leaves a corpse or not
+    - sec: if the monster has only one possible spellbook,
+        sec is set to that book. If a monster has multiple possible books,
+        sec is set to MST_NO_SPELLS. Then the function _mons_spellbook_list
+        in mon-util.cc handles the books.
+            TODO: replace this system ^
 
-   shouts
-   - various things monsters can do upon seeing you
+    - corpse: whether the monster leaves a corpse or not
 
-   intel explanation:
-   - How smart it is:
-   I_BRAINLESS < I_ANIMAL < I_HUMAN.
-   Differences here have a wide variety of small effects; tracking distance,
-   behaviour around dangerous clouds, co-operation with allies, etc.
+    - shouts:
+        various things monsters can do upon seeing you
 
-   speed
-   - Increases the store of energy that the monster uses for doing things.
-   less = slower. 5 = half speed, 10 = normal, 20 = double speed.
+    - intel explanation:
+        How smart it is:
+            I_BRAINLESS < I_ANIMAL < I_HUMAN.
+        Differences here have a wide variety of small effects;
+        tracking distance, behaviour around dangerous clouds,
+        co-operation with allies, etc.
 
-   energy usage
-   - How quickly the energy granted by speed is used up. Most monsters
-   should just use DEFAULT_ENERGY, where all the different types of actions
-   use 10 energy units.
+    - speed
+        Increases the store of energy that the monster uses for doing things.
+            less = slower. 5 = half speed, 10 = normal, 20 = double speed.
 
-   gmon_use explanation:
-     MONUSE_NOTHING,
-     MONUSE_OPEN_DOORS,
-     MONUSE_STARTING_EQUIPMENT,
-     MONUSE_WEAPONS_ARMOUR
+    - energy usage
+        How quickly the energy granted by speed is used up. Most monsters
+        should just use DEFAULT_ENERGY, where all the different types of
+        actions use 10 energy units.
 
-    From MONUSE_STARTING_EQUIPMENT on, monsters are capable of handling
-    items. Contrary to what one might expect, MONUSE_WEAPONS_ARMOUR
-    also means a monster is capable of using wands and will also pick
-    them up, something that those with MONUSE_STARTING_EQUIPMENT won't
-    do.
+    - gmon_use explanation:
+        MONUSE_NOTHING,
+        MONUSE_OPEN_DOORS,
+        MONUSE_STARTING_EQUIPMENT,
+        MONUSE_WEAPONS_ARMOUR
 
-   size:
-     SIZE_TINY,              // rats/bats
-     SIZE_LITTLE,            // spriggans
-     SIZE_SMALL,             // halflings/kobolds
-     SIZE_MEDIUM,            // humans/elves/dwarves
-     SIZE_LARGE,             // trolls/ogres/centaurs/nagas
-     SIZE_BIG,               // large quadrupeds
-     SIZE_GIANT,             // giants
+        From MONUSE_STARTING_EQUIPMENT on, monsters are capable of handling
+        items. Contrary to what one might expect, MONUSE_WEAPONS_ARMOUR
+        also means a monster is capable of using wands and will also pick
+        them up, something that those with MONUSE_STARTING_EQUIPMENT won't
+        do.
 
-   tile:
-    - a struct with up to two elements.
-      - the first is the enum for the corresponding sprite in tiles builds;
-        TILEP_MONS_PROGRAM_BUG for special cases.
-      - the second is the way in which the tile may vary; e.g. over time,
-        per-monster-instance, etc.
+    - size:
+        SIZE_TINY,              // rats/bats
+        SIZE_LITTLE,            // spriggans
+        SIZE_SMALL,             // halflings/kobolds
+        SIZE_MEDIUM,            // humans/elves/dwarves
+        SIZE_LARGE,             // trolls/ogres/centaurs/nagas
+        SIZE_BIG,               // large quadrupeds
+        SIZE_GIANT,             // giants
 
-   corpse:
-     - The enum for the corresponding sprite in tiles builds;
-       TILE_ERROR for monsters without corpses. Only relevant for species mons.
-*/
+    - tile:
+        a struct with up to two elements.
+        - the first is the enum for the corresponding sprite in tiles builds;
+          TILEP_MONS_PROGRAM_BUG for special cases.
+        - the second is the way in which the tile may vary; e.g. over time,
+          per-monster-instance, etc.
+
+    - corpse:
+        The enum for the corresponding sprite in tiles builds;
+        TILE_ERROR for monsters without corpses. Only relevant for species mons.
+ */
 
 #define MOVE_ENERGY(x)     { x,  x, 10, 10, 10, 10, 10, 100}
 #define ACTION_ENERGY(x)   {10, 10,  x,  x,  x,  x,  x, x * 10}
@@ -3419,6 +3422,19 @@ DUMMY(MONS_FROG, 'F', LIGHTGREEN, "giant frog", TILEP_MONS_BULLFROG)
     I_HUMAN, HT_LAND, 10, DEFAULT_ENERGY,
     MONUSE_WEAPONS_ARMOUR, SIZE_BIG, MON_SHAPE_HUMANOID,
     {TILEP_MONS_PORCUPINE}, TILE_CORPSE_PORCUPINE
+},
+
+{
+    MONS_PYROLITH, 'H', MAGENTA, "pyrolith",
+    M_SPEAKS | M_NO_POLY_TO,
+    MR_RES_POISON,
+    15, MONS_PYROLITH, MONS_PYROLITH, MH_NATURAL, 12,
+    { {AT_HIT, AF_PLAIN, 31}, {AT_HIT, AF_PLAIN, 29}, AT_NO_ATK, AT_NO_ATK },
+    17, 1155,
+    13, 1, MST_GARGOYLE, false, S_VERY_LOUD,
+    I_HUMAN, HT_LAND, 10, DEFAULT_ENERGY,
+    MONUSE_OPEN_DOORS, SIZE_BIG, MON_SHAPE_HUMANOID_WINGED,
+    {TILEP_BASE_GARGOYLE}, TILE_ERROR
 },
 
 // Mutant beasts - variable traits

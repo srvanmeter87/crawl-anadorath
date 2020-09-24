@@ -849,3 +849,8 @@ Hop ability
 Hops toward a chosen destination, landing somewhere nearby. After using this
 ability, you will be unable to hop again until you have spent some time not
 moving. (Other actions, such as casting spells and attacking, are fine.)
+%%%%
+Elemental Blast ability
+
+Conjures a blast of fire, ice, earth, and air and forcefully impacts the
+targeted location, causing a cloud of chaotic energy.

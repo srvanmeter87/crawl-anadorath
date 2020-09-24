@@ -1,5 +1,5 @@
 enum: SP_PYROLITH
-monster: MONS_MOLTEN_GARGOYLE
+monster: MONS_PYROLITH
 name: Pyrolith
 short_name: Py
 adjective: Pyrolithic
@@ -43,7 +43,7 @@ aptitudes:
   evocations: 2
   stealth: false
 can_swim: false
-size: giant
+size: big
 str: 12
 int: 12
 dex: 3
