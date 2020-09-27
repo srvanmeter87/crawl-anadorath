@@ -426,28 +426,12 @@ static struct timed_effect timed_effects[] =
 {
     { rot_corpses,               200,   200, true  },
     { _hell_effects,                 200,   600, false },
-#if TAG_MAJOR_VERSION == 34
-    { nullptr,                         0,     0, false },
-#endif
     { _check_contamination_effects,   70,   200, false },
-#if TAG_MAJOR_VERSION == 34
-    { nullptr,                         0,     0, false },
-#endif
     { handle_god_time,               100,   300, false },
-#if TAG_MAJOR_VERSION == 34
-    { nullptr,                                0,     0, false },
-    { nullptr,            0,   0, false },
-#endif
     { _wait_practice,                100,   300, false },
-#if TAG_MAJOR_VERSION == 34
-    { nullptr,                         0,     0, false },
-#endif
     { _abyss_speed,                  100,   300, false },
     { _jiyva_effects,                100,   300, false },
     { _evolve,                      5000, 15000, false },
-#if TAG_MAJOR_VERSION == 34
-    { nullptr,                         0,     0, false },
-#endif
 };
 
 // Do various time related actions...

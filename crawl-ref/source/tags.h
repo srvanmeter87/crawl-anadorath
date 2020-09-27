@@ -171,9 +171,6 @@ void unmarshallMapCell (reader &, map_cell& cell);
 FixedVector<spell_type, MAX_KNOWN_SPELLS> unmarshall_player_spells(reader &th);
 
 void unmarshallSpells(reader &, monster_spells &
-#if TAG_MAJOR_VERSION == 34
-                             , unsigned hd
-#endif
 );
 
 void unmarshall_vehumet_spells(reader &th, set<spell_type>& old_gifts,

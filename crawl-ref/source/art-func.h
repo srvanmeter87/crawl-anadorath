@@ -776,15 +776,6 @@ static void _DRAGONSKIN_unequip(item_def */*item*/, bool *show_msgs)
     _equip_mpr(show_msgs, "You no longer feel protected from the elements.");
 }
 
-#if TAG_MAJOR_VERSION == 34
-///////////////////////////////////////////////////
-static void _BLACK_KNIGHT_HORSE_world_reacts(item_def */*item*/)
-{
-    if (one_chance_in(10))
-        did_god_conduct(DID_EVIL, 1);
-}
-#endif
-
 ///////////////////////////////////////////////////
 static void _NIGHT_equip(item_def */*item*/, bool *show_msgs, bool /*unmeld*/)
 {
@@ -1062,77 +1053,6 @@ static void _FIRESTARTER_melee_effects(item_def* /*weapon*/, actor* attacker,
 
 ///////////////////////////////////////////////////
 
-#if TAG_MAJOR_VERSION == 34
-static void _CHILLY_DEATH_equip(item_def */*item*/, bool *show_msgs,
-                                bool /*unmeld*/)
-{
-    _equip_mpr(show_msgs, "The dagger glows with an icy blue light!");
-}
-
-static void _CHILLY_DEATH_unequip(item_def */*item*/, bool *show_msgs)
-{
-    _equip_mpr(show_msgs, "The dagger stops glowing.");
-}
-
-static void _CHILLY_DEATH_melee_effects(item_def* /*weapon*/, actor* attacker,
-                                   actor* defender, bool mondied, int dam)
-{
-    if (dam)
-    {
-        if (defender->is_monster()
-            && !mondied
-            && !defender->as_monster()->has_ench(ENCH_FROZEN))
-        {
-            mprf("%s is flash-frozen.",
-                 defender->name(DESC_THE).c_str());
-            defender->as_monster()->add_ench(
-                mon_enchant(ENCH_FROZEN, 0, attacker,
-                            (5 + random2(dam)) * BASELINE_DELAY));
-        }
-        else if (defender->is_player()
-            && !you.duration[DUR_FROZEN])
-        {
-            mprf(MSGCH_WARN, "You are encased in ice.");
-            you.increase_duration(DUR_FROZEN, 5 + random2(dam));
-        }
-    }
-}
-#endif
-
-///////////////////////////////////////////////////
-
-#if TAG_MAJOR_VERSION == 34
-static void _FLAMING_DEATH_equip(item_def */*item*/, bool *show_msgs,
-                                 bool /*unmeld*/)
-{
-    _equip_mpr(show_msgs, "The scimitar bursts into red hot flame!");
-}
-
-static void _FLAMING_DEATH_unequip(item_def */*item*/, bool *show_msgs)
-{
-    _equip_mpr(show_msgs, "The scimitar stops flaming.");
-}
-
-static void _FLAMING_DEATH_melee_effects(item_def* /*weapon*/, actor* attacker,
-                                   actor* defender, bool mondied, int dam)
-{
-    if (!mondied && (dam > 2 && one_chance_in(3)))
-    {
-        if (defender->is_player())
-            napalm_player(random2avg(7, 3) + 1, attacker->name(DESC_A, true));
-        else
-        {
-            napalm_monster(
-                defender->as_monster(),
-                attacker,
-                min(4, 1 + random2(attacker->get_hit_dice())/2));
-        }
-    }
-}
-#endif
-
-///////////////////////////////////////////////////
-
 static void _MAJIN_equip(item_def *item, bool *show_msgs, bool /*unmeld*/)
 {
     if (!you.max_magic_points)
@@ -1228,47 +1148,6 @@ static void _FENCERS_equip(item_def */*item*/, bool *show_msgs, bool /*unmeld*/)
 {
     _equip_mpr(show_msgs, "En garde!");
 }
-
-#if TAG_MAJOR_VERSION == 34
-///////////////////////////////////////////////////
-
-static void _ETHERIC_CAGE_equip(item_def */*item*/, bool *show_msgs,
-                                bool /*unmeld*/)
-{
-    _equip_mpr(show_msgs, "You sense a greater flux of ambient magical fields.");
-}
-
-static void _ETHERIC_CAGE_world_reacts(item_def */*item*/)
-{
-    const int delay = you.time_taken;
-    ASSERT(delay > 0);
-
-    // coinflip() chance of 1 MP per turn. Be sure to change
-    // _get_overview_resistances to match!
-    if (player_regenerates_mp())
-        inc_mp(binomial(div_rand_round(delay, BASELINE_DELAY), 1, 2));
-}
-
-///////////////////////////////////////////////////
-
-static void _ETERNAL_TORMENT_equip(item_def */*item*/, bool */*show_msgs*/,
-                                   bool /*unmeld*/)
-{
-    calc_hp();
-}
-
-static void _ETERNAL_TORMENT_world_reacts(item_def */*item*/)
-{
-    if (one_chance_in(10))
-        did_god_conduct(DID_EVIL, 1);
-}
-
-
-static void _ETERNAL_TORMENT_unequip(item_def */*item*/, bool */*show_msgs*/)
-{
-    calc_hp();
-}
-#endif
 
 ///////////////////////////////////////////////////
 

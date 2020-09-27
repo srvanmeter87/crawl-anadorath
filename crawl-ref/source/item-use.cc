@@ -467,8 +467,7 @@ bool can_wield(const item_def *weapon, bool say_reason,
     }
 
     if (you.get_mutation_level(MUT_NO_THROWING)
-        && ((*weapon).is_type(OBJ_WEAPONS, WPN_BLOWGUN)
-            || (*weapon).is_type(OBJ_WEAPONS, WPN_THROWN)))
+        && ((*weapon).is_type(OBJ_WEAPONS, WPN_THROWN)))
     {
         SAY(mpr("You can't use throwing weapons."));
         return false;
@@ -1031,14 +1030,6 @@ bool can_wear_armour(const item_def &item, bool verbose, bool ignore_temporary)
 
     size_type player_size = you.body_size(PSIZE_TORSO, ignore_temporary);
     int bad_size = fit_armour_size(item, player_size);
-#if TAG_MAJOR_VERSION == 34
-    if (is_unrandom_artefact(item, UNRAND_TALOS))
-    {
-        // adjust bad_size for the oversized plate armour
-        // negative means levels too small, positive means levels too large
-        bad_size = SIZE_LARGE - player_size;
-    }
-#endif
 
     if (bad_size)
     {
@@ -2468,9 +2459,7 @@ static void _rebrand_armour(item_def& arm)
         else if (armtype == ARM_CLOAK
                  || armtype == ARM_SCARF)
         {
-            new_ego = random_choose(
-                                    SPARM_CLOUD_IMMUNE,
-                                    SPARM_COLD_RESISTANCE,
+            new_ego = random_choose(SPARM_COLD_RESISTANCE,
                                     SPARM_FIRE_RESISTANCE,
                                     SPARM_INVISIBILITY,
                                     SPARM_MAGIC_RESISTANCE,
@@ -2522,8 +2511,7 @@ static void _rebrand_armour(item_def& arm)
         }
         else if (armtype == ARM_ANIMAL_SKIN)
         {
-            new_ego = random_choose(
-                                    SPARM_FIRE_RESISTANCE,
+            new_ego = random_choose(SPARM_FIRE_RESISTANCE,
                                     SPARM_COLD_RESISTANCE);
         }
         else if (armtype == ARM_TROLL_LEATHER_ARMOUR
@@ -2619,7 +2607,6 @@ static void _rebrand_ammunition(item_def& msl)
                                     20, SPMSL_FROST,
                                     15, SPMSL_POISONED,
                                     15, SPMSL_SILVER,
-                                    15, SPMSL_STEEL,
                                      6, SPMSL_CHAOS,
                                      6, SPMSL_DISPERSAL,
                                      3, SPMSL_EXPLODING);
@@ -2630,8 +2617,6 @@ static void _rebrand_ammunition(item_def& msl)
                                     24, SPMSL_FLAME,
                                     24, SPMSL_FROST,
                                     18, SPMSL_SILVER,
-                                    18, SPMSL_STEEL,
-                                     7, SPMSL_PENETRATION,
                                      7, SPMSL_DISPERSAL,
                                      2, SPMSL_CHAOS);
         }
@@ -2642,31 +2627,16 @@ static void _rebrand_ammunition(item_def& msl)
                                     15, SPMSL_FROST,
                                     15, SPMSL_POISONED,
                                     12, SPMSL_SILVER,
-                                    12, SPMSL_STEEL,
-                                     9, SPMSL_PENETRATION,
                                      7, SPMSL_EXPLODING,
-                                     7, SPMSL_RETURNING,
                                      5, SPMSL_DISPERSAL,
                                      3, SPMSL_CHAOS);
         }
-#if TAG_MAJOR_VERSION == 34
-        else if (msltype == MI_NEEDLE)
-        {
-            new_brand = random_choose_weighted(
-                                    30, SPMSL_POISONED,
-                                    25, SPMSL_CURARE,
-                                    15, SPMSL_CONFUSION,
-                                    15, SPMSL_PARALYSIS,
-                                    15, SPMSL_FRENZY);
-        }
-#endif
         else if (msltype == MI_SLING_BULLET)
         {
             new_brand = random_choose_weighted(
                                     24, SPMSL_FLAME,
                                     24, SPMSL_FROST,
                                     18, SPMSL_SILVER,
-                                    18, SPMSL_STEEL,
                                      8, SPMSL_CHAOS,
                                      8, SPMSL_DISPERSAL);
         }
@@ -2677,12 +2647,9 @@ static void _rebrand_ammunition(item_def& msl)
                                     15, SPMSL_FLAME,
                                     15, SPMSL_FROST,
                                      9, SPMSL_SILVER,
-                                     9, SPMSL_STEEL,
                                      8, SPMSL_EXPLODING,
-                                     8, SPMSL_RETURNING,
                                      8, SPMSL_DISPERSAL,
-                                     6, SPMSL_CHAOS,
-                                     4, SPMSL_PENETRATION);
+                                     6, SPMSL_CHAOS);
         }
     }
 
@@ -2712,10 +2679,6 @@ static void _brand_armour(item_def &arm)
     case SPARM_ARCHMAGI:
         flash_colour = MAGENTA;
         mprf("%s emits a brilliant flash of light!",itname.c_str());
-        break;
-    case SPARM_CLOUD_IMMUNE:
-        flash_colour = LIGHTBLUE;
-        mprf("%s emits a cloud barrier!",itname.c_str());
         break;
     case SPARM_COLD_RESISTANCE:
         flash_colour = BLUE;
@@ -2912,10 +2875,6 @@ static void _brand_ammunition(item_def &msl)
         flash_colour = random_colour();
         mprf("%s erupts in a glittering mayhem of colour.",itname.c_str());
         break;
-    case SPMSL_CONFUSION:
-        flash_colour = YELLOW;
-        mprf("%s gains a dusting of a befuddling drug.",itname.c_str());
-        break;
     case SPMSL_CURARE:
         flash_colour = GREEN;
         mprf("%s drips with highly lethal poison.",itname.c_str());
@@ -2940,29 +2899,13 @@ static void _brand_ammunition(item_def &msl)
         flash_colour = BLUE;
         mprf("%s is covered with a thin layer of ice!",itname.c_str());
         break;
-    case SPMSL_PARALYSIS:
-        flash_colour = BROWN;
-        mprf("%s looks stunning.",itname.c_str());
-        break;
-    case SPMSL_PENETRATION:
-        flash_colour = CYAN;
-        mprf("%s sharpens into a penetrating point!",itname.c_str());
-        break;
     case SPMSL_POISONED:
         flash_colour = LIGHTGREEN;
         mprf("%s drips with poison.",itname.c_str());
         break;
-    case SPMSL_RETURNING:
-        flash_colour = BROWN;
-        mprf("%s feels perfect in your hand.",itname.c_str());
-        break;
     case SPMSL_SILVER:
         flash_colour = LIGHTGREY;
         mprf("%s shines like silver!",itname.c_str());
-        break;
-    case SPMSL_STEEL:
-        flash_colour = DARKGREY;
-        mprf("%s feels extremely heavy.",itname.c_str());
         break;
     default:
         success = false;
@@ -3015,7 +2958,8 @@ static item_def* _scroll_choose_weapon(bool alreadyknown, const string &pre_msg,
 {
     const bool branding = scroll == SCR_BRAND_WEAPON;
 
-    item_def* target = _choose_target_item_for_scroll(alreadyknown, _enchant_selector(scroll),
+    item_def* target = _choose_target_item_for_scroll(alreadyknown,
+                                                      _enchant_selector(scroll),
                                                       branding ? "Brand which weapon?"
                                                                : "Enchant which weapon?");
     if (!target)
@@ -3041,7 +2985,8 @@ static bool _handle_brand_weapon(bool alreadyknown, const string &pre_msg)
 
 static bool _handle_brand_armour(bool alreadyknown)
 {
-    item_def* armour = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_ARMOUR,
+    item_def* armour = _choose_target_item_for_scroll(alreadyknown,
+                                                      OSEL_BRANDABLE_ARMOUR,
                                                       "Brand which item?");
 
     if (!armour)
@@ -3053,7 +2998,8 @@ static bool _handle_brand_armour(bool alreadyknown)
 
 static bool _handle_brand_ammunition(bool alreadyknown)
 {
-    item_def* ammunition = _choose_target_item_for_scroll(alreadyknown, OSEL_BRANDABLE_AMMUNITION,
+    item_def* ammunition = _choose_target_item_for_scroll(alreadyknown,
+                                                          OSEL_BRANDABLE_AMMUNITION,
                                                           "Brand which item?");
 
     if (!ammunition)
@@ -3191,7 +3137,8 @@ bool enchant_armour(int &ac_change, bool quiet, item_def &arm)
 
 static int _handle_enchant_armour(bool alreadyknown, const string &pre_msg)
 {
-    item_def* target = _choose_target_item_for_scroll(alreadyknown, OSEL_ENCHANTABLE_ARMOUR,
+    item_def* target = _choose_target_item_for_scroll(alreadyknown,
+                                                      OSEL_ENCHANTABLE_ARMOUR,
                                                       "Enchant which item?");
 
     if (!target)
@@ -3292,11 +3239,6 @@ static bool _is_cancellable_scroll(scroll_type scroll)
            || scroll == SCR_ENCHANT_ARMOUR
            || scroll == SCR_AMNESIA
            || scroll == SCR_REMOVE_CURSE
-#if TAG_MAJOR_VERSION == 34
-           || scroll == SCR_CURSE_ARMOUR
-           || scroll == SCR_CURSE_JEWELLERY
-           || scroll == SCR_RECHARGING
-#endif
            || scroll == SCR_BRAND_WEAPON
            || scroll == SCR_ENCHANT_WEAPON
            || scroll == SCR_MAGIC_MAPPING
@@ -3408,26 +3350,6 @@ string cannot_read_item_reason(const item_def &item)
 
         case SCR_REMOVE_CURSE:
             return _no_items_reason(OSEL_CURSED_WORN);
-
-#if TAG_MAJOR_VERSION == 34
-        case SCR_CURSE_WEAPON:
-            if (!you.weapon())
-                return "This scroll only affects a wielded weapon!";
-
-            // assumption: wielded weapons always have their curse & brand known
-            if (you.weapon()->cursed())
-                return "Your weapon is already cursed!";
-
-            if (get_weapon_brand(*you.weapon()) == SPWPN_HOLY_WRATH)
-                return "Holy weapons cannot be cursed!";
-            return "";
-
-        case SCR_CURSE_ARMOUR:
-            return _no_items_reason(OSEL_UNCURSED_WORN_ARMOUR);
-
-        case SCR_CURSE_JEWELLERY:
-            return _no_items_reason(OSEL_UNCURSED_WORN_JEWELLERY);
-#endif
 
         default:
             return "";
@@ -3718,31 +3640,6 @@ void read_scroll(item_def& scroll)
         break;
     }
 
-#if TAG_MAJOR_VERSION == 34
-    case SCR_CURSE_WEAPON:
-    {
-        // Not you.weapon() because we want to handle melded weapons too.
-        item_def * const weapon = you.slot_item(EQ_WEAPON, true);
-        if (!weapon || !is_weapon(*weapon) || weapon->cursed())
-        {
-            bool plural = false;
-            const string weapon_name =
-                weapon ? weapon->name(DESC_YOUR)
-                       : "Your " + you.hand_name(true, &plural);
-            mprf("%s very briefly gain%s a black sheen.",
-                 weapon_name.c_str(), plural ? "" : "s");
-        }
-        else
-        {
-            // Also sets wield_change.
-            do_curse_item(*weapon, false);
-            learned_something_new(HINT_YOU_CURSED);
-            bad_effect = true;
-        }
-        break;
-    }
-#endif
-
     case SCR_ENCHANT_WEAPON:
         if (!alreadyknown)
         {
@@ -3806,23 +3703,6 @@ void read_scroll(item_def& scroll)
         cancel_scroll =
             !_handle_brand_ammunition(alreadyknown);
         break;
-#if TAG_MAJOR_VERSION == 34
-    // Should always be identified by Ashenzari.
-    case SCR_CURSE_ARMOUR:
-    case SCR_CURSE_JEWELLERY:
-    {
-        const bool armour = which_scroll == SCR_CURSE_ARMOUR;
-        cancel_scroll = !curse_item(armour, pre_succ_msg);
-        break;
-    }
-
-    case SCR_RECHARGING:
-    {
-        mpr("This item has been removed, sorry!");
-        cancel_scroll = true;
-        break;
-    }
-#endif
 
     case SCR_HOLY_WORD:
     {
@@ -3898,9 +3778,6 @@ void read_scroll(item_def& scroll)
         && which_scroll != SCR_ENCHANT_WEAPON
         && which_scroll != SCR_IDENTIFY
         && which_scroll != SCR_ENCHANT_ARMOUR
-#if TAG_MAJOR_VERSION == 34
-        && which_scroll != SCR_RECHARGING
-#endif
         && which_scroll != SCR_BRAND_ARMOUR
         && which_scroll != SCR_BRAND_AMMUNITION
         && which_scroll != SCR_AMNESIA

@@ -1183,20 +1183,12 @@ static void _mimic_vanish(const coord_def& pos, const string& name)
  */
 static void _destroy_mimic_feature(const coord_def &pos)
 {
-#if TAG_MAJOR_VERSION == 34
-    const dungeon_feature_type feat = grd(pos);
-#endif
 
     unnotice_feature(level_pos(level_id::current(), pos));
     grd(pos) = DNGN_FLOOR;
     env.level_map_mask(pos) &= ~MMT_MIMIC;
     set_terrain_changed(pos);
     remove_markers_and_listeners_at(pos);
-
-#if TAG_MAJOR_VERSION == 34
-    if (feat_is_door(feat))
-        env.level_map_mask(pos) |= MMT_WAS_DOOR_MIMIC;
-#endif
 }
 
 void discover_mimic(const coord_def& pos)
@@ -1292,11 +1284,7 @@ bool mons_is_base_draconian(monster_type mc)
 
 bool mons_is_demonspawn(monster_type mc)
 {
-    return
-#if TAG_MAJOR_VERSION == 34
-        mc == MONS_DEMONSPAWN ||
-#endif
-        mc >= MONS_FIRST_DEMONSPAWN && mc <= MONS_LAST_DEMONSPAWN;
+    return mc >= MONS_FIRST_DEMONSPAWN && mc <= MONS_LAST_DEMONSPAWN;
 }
 
 // Conjured (as opposed to summoned) monsters are actually here, even
@@ -1736,18 +1724,6 @@ monster_type mons_zombie_base(const monster& mon)
 
 bool mons_class_is_zombified(monster_type mc)
 {
-#if TAG_MAJOR_VERSION == 34
-    switch (mc)
-    {
-        case MONS_ZOMBIE_SMALL:     case MONS_ZOMBIE_LARGE:
-        case MONS_SKELETON_SMALL:   case MONS_SKELETON_LARGE:
-        case MONS_SIMULACRUM_SMALL: case MONS_SIMULACRUM_LARGE:
-            return true;
-        default:
-            break;
-    }
-#endif
-
     return mc == MONS_ZOMBIE
         || mc == MONS_SKELETON
         || mc == MONS_SIMULACRUM
@@ -2146,18 +2122,8 @@ string mon_attack_name(attack_type attack, bool with_object)
         "constrict",
         "trample",
         "trunk-slap",
-#if TAG_MAJOR_VERSION == 34
-        "snap closed at",
-        "splash",
-#endif
         "pounce on",
-#if TAG_MAJOR_VERSION == 34
-        "sting",
-#endif
         "hit, bite, peck, or gore", // AT_CHERUB
-#if TAG_MAJOR_VERSION == 34
-        "hit", // AT_SHOOT
-#endif
         "hit", // AT_WEAP_ONLY,
         "hit or gore", // AT_RANDOM
     };
@@ -3164,11 +3130,7 @@ void ugly_thing_apply_uniform_band_colour(mgen_data &mg,
 
 static const char *drac_colour_names[] =
 {
-    "black",
-#if TAG_MAJOR_VERSION == 34
-    "",
-#endif
-    "yellow", "green", "purple", "red", "white", "grey", "pale"
+    "black", "yellow", "green", "purple", "red", "white", "grey", "pale"
 };
 
 string draconian_colour_name(monster_type mon_type)
@@ -3200,9 +3162,6 @@ monster_type draconian_colour_by_name(const string &name)
 static const char *demonspawn_base_names[] =
 {
     "monstrous", "gelid", "infernal",
-#if TAG_MAJOR_VERSION == 34
-    "putrid",
-#endif
     "torturous",
 };
 
@@ -4000,10 +3959,6 @@ bool mons_has_incapacitating_ranged_attack(const monster& mon, const actor& foe)
             break;
 
         case SPMSL_BLINDING:
-#if TAG_MAJOR_VERSION == 34
-        case SPMSL_CONFUSION:
-        case SPMSL_PARALYSIS:
-#endif
             return true;
 
         default:
@@ -4313,9 +4268,6 @@ mon_inv_type item_to_mslot(const item_def &item)
     {
     case OBJ_WEAPONS:
     case OBJ_STAVES:
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:
-#endif
         return MSLOT_WEAPON;
     case OBJ_MISSILES:
         return MSLOT_MISSILE;

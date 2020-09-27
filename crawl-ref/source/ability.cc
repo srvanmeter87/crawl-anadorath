@@ -170,10 +170,6 @@ skill_type invo_skill(god_type god)
     {
         case GOD_KIKUBAAQUDGHA:
             return SK_NECROMANCY;
-#if TAG_MAJOR_VERSION == 34
-        case GOD_PAKELLAS:
-            return SK_EVOCATIONS;
-#endif
         case GOD_ANADORATH:
             return SK_SPELLCASTING;
         case GOD_ASHENZARI:
@@ -343,10 +339,6 @@ static const ability_def Ability_List[] =
 
     { ABIL_EVOKE_TURN_INVISIBLE, "Evoke Invisibility",
       2, 0, 0, {fail_basis::evo, 60, 2}, abflag::none },
-#if TAG_MAJOR_VERSION == 34
-    { ABIL_EVOKE_TURN_VISIBLE, "Turn Visible",
-      0, 0, 0, {}, abflag::none },
-#endif
     { ABIL_EVOKE_FLIGHT, "Evoke Flight",
       1, 0, 0, {fail_basis::evo, 40, 2}, abflag::none },
     { ABIL_EVOKE_THUNDER, "Evoke Thunderclouds",
@@ -593,12 +585,6 @@ static const ability_def Ability_List[] =
       6, 0, 6, {fail_basis::invo, 60, 5, 20}, abflag::none },
     { ABIL_QAZLAL_DISASTER_AREA, "Disaster Area",
       7, 0, 10, {fail_basis::invo, 70, 4, 25}, abflag::none },
-
-#if TAG_MAJOR_VERSION == 34
-    // Pakellas
-    { ABIL_PAKELLAS_DEVICE_SURGE, "Device Surge",
-      0, 0, generic_cost::fixed(1), {fail_basis::invo, 40, 5, 20}, abflag::variable_mp | abflag::instant },
-#endif
 
     // Uskayaw
     { ABIL_USKAYAW_STOMP, "Stomp",
@@ -1632,17 +1618,6 @@ static bool _check_ability_possible(const ability_def& abil, bool quiet = false)
         }
         return true;
 
-#if TAG_MAJOR_VERSION == 34
-    case ABIL_PAKELLAS_DEVICE_SURGE:
-        if (you.magic_points == 0)
-        {
-            if (!quiet)
-                mpr("You have no magic power.");
-            return false;
-        }
-        return true;
-#endif
-
         // only available while your ancestor is alive.
     case ABIL_HEPLIAKLQANA_IDEALISE:
     case ABIL_HEPLIAKLQANA_RECALL:
@@ -2164,23 +2139,11 @@ static spret _do_ability(const ability_def& abil, bool fail)
         if (!invis_allowed())
             return spret::abort;
         fail_check();
-#if TAG_MAJOR_VERSION == 34
-        surge_power(you.spec_evoke());
-#endif
         potionlike_effect(POT_INVISIBILITY,
                           player_adjust_evoc_power(
                               you.skill(SK_EVOCATIONS, 2) + 5));
         contaminate_player(1000 + random2(2000), true);
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case ABIL_EVOKE_TURN_VISIBLE:
-        fail_check();
-        ASSERT(!you.attribute[ATTR_INVIS_UNCANCELLABLE]);
-        mpr("You feel less transparent.");
-        you.duration[DUR_INVIS] = 1;
-        break;
-#endif
 
     case ABIL_EVOKE_FLIGHT:             // ring, boots, randarts
         fail_check();
@@ -2196,9 +2159,6 @@ static spret _do_ability(const ability_def& abil, bool fail)
         }
         else
         {
-#if TAG_MAJOR_VERSION == 34
-            surge_power(you.spec_evoke());
-#endif
             fly_player(
                 player_adjust_evoc_power(you.skill(SK_EVOCATIONS, 2) + 30));
         }
@@ -3088,18 +3048,6 @@ static spret _do_ability(const ability_def& abil, bool fail)
             return spret::abort;
         you.increase_duration(DUR_EXHAUSTED, 30 + random2(20));
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case ABIL_PAKELLAS_DEVICE_SURGE:
-    {
-        fail_check();
-
-        mprf(MSGCH_DURATION, "You feel a buildup of energy.");
-        you.increase_duration(DUR_DEVICE_SURGE,
-                              random2avg(you.piety / 4, 2) + 3, 100);
-        break;
-    }
-#endif
 
     case ABIL_USKAYAW_STOMP:
         fail_check();

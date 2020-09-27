@@ -197,10 +197,6 @@ FEATFN_MEMOIZED(feat_is_portal_entrance, feat)
             return true;
         }
     }
-#if TAG_MAJOR_VERSION == 34
-    if (feat == DNGN_ENTER_PORTAL_VAULT)
-        return true;
-#endif
 
     return false;
 }
@@ -220,10 +216,6 @@ FEATFN_MEMOIZED(feat_is_portal_exit, feat)
             return true;
         }
     }
-#if TAG_MAJOR_VERSION == 34
-    if (feat == DNGN_EXIT_PORTAL_VAULT)
-        return true;
-#endif
 
     return false;
 }
@@ -542,14 +534,11 @@ static const pair<god_type, dungeon_feature_type> _god_altars[] =
     { GOD_GOZAG, DNGN_ALTAR_GOZAG },
     { GOD_QAZLAL, DNGN_ALTAR_QAZLAL },
     { GOD_RU, DNGN_ALTAR_RU },
-#if TAG_MAJOR_VERSION == 34
-    { GOD_PAKELLAS, DNGN_ALTAR_PAKELLAS },
-#endif
     { GOD_USKAYAW, DNGN_ALTAR_USKAYAW },
     { GOD_HEPLIAKLQANA, DNGN_ALTAR_HEPLIAKLQANA },
     { GOD_WU_JIAN, DNGN_ALTAR_WU_JIAN },
-    { GOD_ECUMENICAL, DNGN_ALTAR_ECUMENICAL },
     { GOD_ANADORATH, DNGN_ALTAR_ANADORATH },
+    { GOD_ECUMENICAL, DNGN_ALTAR_ECUMENICAL },
 };
 
 COMPILE_CHECK(ARRAYSZ(_god_altars) == NUM_GODS );
@@ -1677,13 +1666,6 @@ void init_feat_desc_cache()
 dungeon_feature_type feat_by_desc(string desc)
 {
     lowercase(desc);
-
-#if TAG_MAJOR_VERSION == 34
-    // hard-coded because all the dry fountain variants match this description,
-    // and they have a lower enum value, so the first is incorrectly returned
-    if (desc == "a dry fountain")
-        return DNGN_DRY_FOUNTAIN;
-#endif
 
     return lookup(feat_desc_cache, desc, DNGN_UNSEEN);
 }

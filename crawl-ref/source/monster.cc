@@ -4685,11 +4685,6 @@ bool monster::is_trap_safe(const coord_def& where, bool just_check) const
     if (trap.type == TRAP_SHAFT)
         return true;
 
-#if TAG_MAJOR_VERSION == 34
-    if (trap.type == TRAP_SHADOW_DORMANT || trap.type == TRAP_SHADOW)
-        return true;
-#endif
-
     // No friendly or good neutral monsters will ever enter a trap that harms
     // the player when triggered.
     if (wont_attack() && trap.is_bad_for_player())

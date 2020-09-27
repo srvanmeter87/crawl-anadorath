@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Functions used to print information about various game objects.
-**/
+ */
 
 #pragma once
 
@@ -25,9 +25,6 @@ enum item_description_type
     IDESC_POTIONS,
     IDESC_SCROLLS,                      // special field (like the others)
     IDESC_RINGS,
-#if TAG_MAJOR_VERSION == 34
-    IDESC_SCROLLS_II,
-#endif
     IDESC_STAVES,
     NUM_IDESC
 };

@@ -172,11 +172,6 @@ const char* card_name(card_type card)
     case CARD_ORB:             return "the Orb";
     case CARD_ILLUSION:        return "the Illusion";
     case CARD_DEGEN:           return "Degeneration";
-
-#if TAG_MAJOR_VERSION == 34
-    case CARD_FAMINE_REMOVED:
-    case CARD_SHAFT_REMOVED:
-#endif
     case NUM_CARDS:            return "a buggy card";
     }
     return "a very buggy card";
@@ -1717,11 +1712,6 @@ void card_effect(card_type which_card,
         else
             mpr("You feel a momentary urge to oink.");
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case CARD_FAMINE_REMOVED:
-    case CARD_SHAFT_REMOVED:
-#endif
     case NUM_CARDS:
         // The compiler will complain if any card remains unhandled.
         mprf("You have %s a buggy card!", participle);
@@ -1744,38 +1734,3 @@ string deck_name(deck_type deck)
     const string name = deck_data ? deck_data->name : "bugginess";
     return "deck of " + name;
 }
-
-#if TAG_MAJOR_VERSION == 34
-bool is_deck_type(uint8_t sub_type)
-{
-    return (MISC_FIRST_DECK <= sub_type && sub_type <= MISC_LAST_DECK)
-        || sub_type == MISC_DECK_OF_ODDITIES
-        || sub_type == MISC_DECK_UNKNOWN;
-}
-
-bool is_deck(const item_def &item)
-{
-    return item.base_type == OBJ_MISCELLANY
-           && is_deck_type(item.sub_type);
-}
-
-void reclaim_decks_on_level()
-{
-    for (auto &item : mitm)
-        if (item.defined() && is_deck(item))
-            destroy_item(item.index());
-}
-
-static void _reclaim_inventory_decks()
-{
-    for (auto &item : you.inv)
-        if (item.defined() && is_deck(item))
-            dec_inv_item_quantity(item.link, 1);
-}
-
-void reclaim_decks()
-{
-    add_daction(DACT_RECLAIM_DECKS);
-    _reclaim_inventory_decks();
-}
-#endif

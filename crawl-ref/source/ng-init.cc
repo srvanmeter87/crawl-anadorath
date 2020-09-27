@@ -1,11 +1,12 @@
 /**
  * @file
  * @brief Initializing non-player-related parts of a new game.
-**/
-/* TODO: 'you' shouldn't occur here.
- *       Some of these might fit better elsewhere.
  */
 
+/**
+ * TODO: 'you' shouldn't occur here.
+ * Some of these might fit better elsewhere.
+ */
 #include "AppHdr.h"
 
 #include "ng-init.h"
@@ -39,11 +40,6 @@ static uint8_t _random_potion_description()
 
     // nature and colour correspond to primary and secondary in
     // item-name.cc.
-
-#if TAG_MAJOR_VERSION == 34
-    if (PCOLOUR(desc) == PDC_CLEAR) // only water can be clear, re-roll
-        return _random_potion_description();
-#endif
 
     return desc;
 }
@@ -409,11 +405,6 @@ void initialise_item_descriptions()
                 case IDESC_POTIONS: // potions
                     you.item_description[i][j] = _random_potion_description();
                     break;
-
-
-#if TAG_MAJOR_VERSION == 34
-                case IDESC_SCROLLS_II: // unused but validated
-#endif
                 case IDESC_SCROLLS: // scrolls: random seed for the name
                 {
                     // this is very weird and probably a linleyism.

@@ -706,9 +706,6 @@ static const acquirement_subtype_finder _subtype_finders[] =
     _acquirement_missile_subtype,
     _acquirement_armour_subtype,
     _acquirement_wand_subtype,
-#if TAG_MAJOR_VERSION == 34
-    0, // no food
-#endif
     0, // no scrolls
     _acquirement_jewellery_subtype,
     0, // no potions
@@ -718,9 +715,6 @@ static const acquirement_subtype_finder _subtype_finders[] =
     _acquirement_misc_subtype,
     0, // no corpses
     0, // gold handled elsewhere, and doesn't have subtypes anyway
-#if TAG_MAJOR_VERSION == 34
-    0, // no rods
-#endif
     0, // no runes either
 };
 
@@ -1205,9 +1199,6 @@ int acquirement_create_item(object_class_type class_wanted,
 
     const bool divine = (agent == GOD_OKAWARU || agent == GOD_XOM
                          || agent == GOD_TROG
-#if TAG_MAJOR_VERSION == 34
-                         || agent == GOD_PAKELLAS
-#endif
                         );
     int thing_created = NON_ITEM;
     int quant = 1;

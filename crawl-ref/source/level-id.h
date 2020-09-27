@@ -36,9 +36,6 @@ public:
 
     /// @throws bad_level_id if s could not be parsed.
     static level_id parse_level_id(const string &s);
-#if TAG_MAJOR_VERSION == 34
-    static level_id from_packed_place(const unsigned short place);
-#endif
 
     string describe(bool long_name = false, bool with_number = true) const;
 

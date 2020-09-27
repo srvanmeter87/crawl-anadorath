@@ -945,12 +945,7 @@ level_id stair_destination(coord_def pos, bool for_real)
 level_id stair_destination(dungeon_feature_type feat, const string &dst,
                            bool for_real)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (feat == DNGN_ESCAPE_HATCH_UP && player_in_branch(BRANCH_LABYRINTH))
-        feat = DNGN_EXIT_LABYRINTH;
-#else
     UNUSED(dst); // see below in the switch
-#endif
     if (branches[you.where_are_you].exit_stairs == feat
         && parent_branch(you.where_are_you) < NUM_BRANCHES
         && feat != DNGN_EXIT_ZIGGURAT)
@@ -1020,25 +1015,6 @@ level_id stair_destination(dungeon_feature_type feat, const string &dst,
     case DNGN_EXIT_THROUGH_ABYSS:
         return level_id(BRANCH_ABYSS);
 
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_ENTER_PORTAL_VAULT:
-        if (dst.empty())
-        {
-            if (for_real)
-                die("portal without a destination");
-            else
-                return level_id();
-        }
-        try
-        {
-            return level_id::parse_level_id(dst);
-        }
-        catch (const bad_level_id &err)
-        {
-            die("Invalid destination for portal: %s", err.what());
-        }
-#endif
-
     case DNGN_ENTER_HELL:
         if (for_real && !player_in_hell())
             brentry[BRANCH_VESTIBULE] = level_id::current();
@@ -1047,9 +1023,6 @@ level_id stair_destination(dungeon_feature_type feat, const string &dst,
     case DNGN_EXIT_ABYSS:
         if (you.chapter == CHAPTER_POCKET_ABYSS)
             return level_id(BRANCH_DUNGEON, 1);
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_EXIT_PORTAL_VAULT:
-#endif
     case DNGN_EXIT_PANDEMONIUM:
         if (you.level_stack.empty())
         {
@@ -1110,34 +1083,13 @@ static void _update_level_state()
                   + mon_it->get_ench(ENCH_AWAKEN_FOREST).duration;
         }
     }
-
-#if TAG_MAJOR_VERSION == 34
-    const bool have_ramparts = you.duration[DUR_FROZEN_RAMPARTS];
-    const auto &ramparts_pos = you.props[FROZEN_RAMPARTS_KEY].get_coord();
-#endif
     for (rectangle_iterator ri(0); ri; ++ri)
     {
         if (grd(*ri) == DNGN_SLIMY_WALL)
             env.level_state |= LSTATE_SLIMY_WALL;
 
         if (is_icecovered(*ri))
-#if TAG_MAJOR_VERSION == 34
-        {
-            // Buggy versions of Frozen Ramparts didn't properly clear
-            // FPROP_ICY from walls in some cases, so we detect invalid walls
-            // and remove the flag.
-            if (have_ramparts
-                && ramparts_pos.distance_from(*ri) <= 3
-                && cell_see_cell(*ri, ramparts_pos, LOS_NO_TRANS))
-            {
-#endif
             env.level_state |= LSTATE_ICY_WALL;
-#if TAG_MAJOR_VERSION == 34
-            }
-            else
-                env.pgrid(*ri) &= ~FPROP_ICY;
-        }
-#endif
     }
 
     env.orb_pos = coord_def();

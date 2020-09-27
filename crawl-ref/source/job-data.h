@@ -1,24 +1,24 @@
 enum weapon_choice
 {
-    WCHOICE_NONE,   ///< No weapon choice
-    WCHOICE_PLAIN,  ///< Normal weapon choice
-    WCHOICE_GOOD,   ///< Chooses from "good" weapons
-    WCHOICE_RANGED, ///< Choice of ranged weapon
+    WCHOICE_NONE,   // No weapon choice
+    WCHOICE_PLAIN,  // Normal weapon choice
+    WCHOICE_GOOD,   // Chooses from "good" weapons
+    WCHOICE_RANGED, // Choice of ranged weapon
 };
 
 struct job_def
 {
-    const char* abbrev; ///< Two-letter abbreviation
-    const char* name; ///< Long name
-    int s, i, d; ///< Starting Str, Dex, and Int
-    /// Which species are good at it
-    /// No recommended species = job is disabled
+    const char* abbrev; // Two-letter abbreviation
+    const char* name; // Long name
+    int s, i, d; // Starting Str, Dex, and Int
+    // Which species are good at it
+    // No recommended species = job is disabled
     vector<species_type> recommended_species;
-    /// Guaranteed starting equipment. Uses vault spec syntax, with the plus:,
-    /// charges:, q:, and ego: tags supported.
+    // Guaranteed starting equipment. Uses vault spec syntax, with the plus:,
+    // charges:, q:, and ego: tags supported.
     vector<string> equipment;
-    weapon_choice wchoice; ///< how the weapon is chosen, if any
-    vector<pair<skill_type, int>> skills; ///< starting skills
+    weapon_choice wchoice; // how the weapon is chosen, if any
+    vector<pair<skill_type, int>> skills; // starting skills
 };
 
 static const map<job_type, job_def> job_data =
@@ -290,59 +290,4 @@ static const map<job_type, job_def> job_data =
     { { SK_SPELLCASTING, 3 }, { SK_TRANSLOCATIONS, 1 }, { SK_CONJURATIONS, 1 },
       { SK_SUMMONINGS, 1 }, },
 } },
-#if TAG_MAJOR_VERSION == 34
-{ JOB_SKALD, {
-    "Sk", "Skald",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-
-{ JOB_DEATH_KNIGHT, {
-    "DK", "Death Knight",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-
-{ JOB_HEALER, {
-    "He", "Healer",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-
-{ JOB_JESTER, {
-    "Jr", "Jester",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-
-{ JOB_PRIEST, {
-    "Pr", "Priest",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-
-{ JOB_STALKER, {
-    "St", "Stalker",
-    0, 0, 0,
-    { },
-    { },
-    WCHOICE_NONE,
-    { },
-} },
-#endif
 };

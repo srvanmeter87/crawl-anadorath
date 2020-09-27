@@ -57,9 +57,6 @@ bool trap_def::type_has_ammo() const
 {
     switch (type)
     {
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_NEEDLE:
-#endif
     case TRAP_ARROW:  case TRAP_BOLT:
     case TRAP_DART: case TRAP_SPEAR:
         return true;
@@ -156,11 +153,6 @@ bool trap_def::is_safe(actor* act) const
     // and the messages get old very quickly
     if (type == TRAP_WEB) // && act->is_web_immune()
         return true;
-
-#if TAG_MAJOR_VERSION == 34
-    if (type == TRAP_SHADOW_DORMANT || type == TRAP_SHADOW)
-        return true;
-#endif
 
     if (!act->is_player())
         return is_bad_for_player();
@@ -820,21 +812,9 @@ void trap_def::trigger(actor& triggerer)
         }
         break;
 
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_GAS:
-        mpr("The gas trap seems to be inoperative.");
-        trap_destroyed = true;
-        break;
-#endif
-
     case TRAP_PLATE:
         dungeon_events.fire_position_event(DET_PRESSURE_PLATE, pos);
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_SHADOW:
-    case TRAP_SHADOW_DORMANT:
-#endif
     default:
         break;
     }
@@ -1100,9 +1080,6 @@ item_def trap_def::generate_trap_item()
 
     switch (type)
     {
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_NEEDLE: base = OBJ_MISSILES; sub = MI_NEEDLE;       break;
-#endif
     case TRAP_ARROW:  base = OBJ_MISSILES; sub = MI_ARROW;        break;
     case TRAP_BOLT:   base = OBJ_MISSILES; sub = MI_BOLT;         break;
     case TRAP_SPEAR:  base = OBJ_WEAPONS;  sub = WPN_SPEAR;       break;
@@ -1247,10 +1224,6 @@ bool trap_def::is_mechanical() const
     case TRAP_BOLT:
     case TRAP_NET:
     case TRAP_PLATE:
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_NEEDLE:
-    case TRAP_GAS:
-#endif
         return true;
     default:
         return false;
@@ -1282,12 +1255,6 @@ dungeon_feature_type trap_feature(trap_type type)
         return DNGN_TRAP_ZOT;
     case TRAP_GOLUBRIA:
         return DNGN_PASSAGE_OF_GOLUBRIA;
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_SHADOW:
-        return DNGN_TRAP_SHADOW;
-    case TRAP_SHADOW_DORMANT:
-        return DNGN_TRAP_SHADOW_DORMANT;
-#endif
 
     case TRAP_ARROW:
         return DNGN_TRAP_ARROW;
@@ -1303,12 +1270,6 @@ dungeon_feature_type trap_feature(trap_type type)
         return DNGN_TRAP_NET;
     case TRAP_PLATE:
         return DNGN_TRAP_PLATE;
-
-#if TAG_MAJOR_VERSION == 34
-    case TRAP_NEEDLE:
-    case TRAP_GAS:
-        return DNGN_TRAP_MECHANICAL;
-#endif
 
     default:
         die("placeholder trap type %d used", type);
@@ -1660,9 +1621,5 @@ bool ensnare(actor *fly)
 // Whether this trap type can be placed in vaults by the ^ glphy
 bool is_regular_trap(trap_type trap)
 {
-#if TAG_MAJOR_VERSION == 34
-    return trap <= TRAP_MAX_REGULAR || trap == TRAP_DISPERSAL;
-#else
     return trap <= TRAP_MAX_REGULAR;
-#endif
 }

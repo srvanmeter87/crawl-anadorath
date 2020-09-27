@@ -72,14 +72,14 @@ class Species(MutableMapping):
             weapons.remove('SK_SHORT_BLADES')
             weapons.remove('SK_UNARMED_COMBAT')
         self.backing_dict['recommended_weapons'] = ', '.join(
-                        validate_string(weap, 'Weapon Skill', 'SK_[A-Z_]+')
-                                                        for weap in weapons)
+                validate_string(weap, 'Weapon Skill', 'SK_[A-Z_]+')
+                for weap in weapons)
 
     def print_unknown_warnings(self, s):
         for key in s:
             if key not in self.YAML_MAIN_FIELDS:
                 print("species_gen.py warning: Unknown field '%s' in species %s"
-                                    % (key, self['enum']), file=sys.stderr)
+                      % (key, self['enum']), file=sys.stderr)
 
     def levelup_stats_from_yaml(self, s):
         self['levelup_stats'] = levelup_stats(s.get('levelup_stats', "default"))
@@ -87,13 +87,13 @@ class Species(MutableMapping):
                 s['levelup_stat_frequency'], 'levelup_stat_frequency', 0, 28)
 
         if (self['levelup_stats'] == empty_set("stat_type")
-                                    and self['levelup_stat_frequency'] < 28):
+            and self['levelup_stat_frequency'] < 28):
             print("species_gen.py warning: species %s has empty levelup_stats"
                   " but a <28 levelup_stat_frequency."
                   % (self['enum']), file=sys.stderr)
 
         if (self['levelup_stats'] != empty_set("stat_type")
-                                    and self['levelup_stat_frequency'] > 27):
+            and self['levelup_stat_frequency'] > 27):
             print("species_gen.py warning: species %s has non-empty"
                   " levelup_stats but a levelup_stat_frequency that is > 27."
                   % (self['enum']), file=sys.stderr)
@@ -109,12 +109,12 @@ class Species(MutableMapping):
         has_recommended_jobs = bool(s.get('recommended_jobs'))
         if self.starting_species != has_recommended_jobs:
             raise ValueError('recommended_jobs must not be empty (or'
-                                                ' difficulty must be False)')
+                             ' difficulty must be False)')
 
         # Set attributes
         self['enum'] = validate_string(s['enum'], 'enum', 'SP_[A-Z_]+$')
         self['monster_name'] = validate_string(s['monster'], 'monster',
-                                                'MONS_[A-Z_]+$')
+                                               'MONS_[A-Z_]+$')
         self['name'] = validate_string(s['name'], 'name', '..+')
         self['short_name'] = s.get('short_name', s['name'][:2])
         self['adjective'] = quote_or_nullptr('adjective', s)
@@ -123,7 +123,7 @@ class Species(MutableMapping):
         self['xp'] = validate_int_range(s['aptitudes']['xp'], 'xp', -10, 10)
         self['hp'] = validate_int_range(s['aptitudes']['hp'], 'hp', -10, 10)
         self['mp'] = validate_int_range(s['aptitudes']['mp_mod'], 'mp_mod',
-                                                                        -5, 20)
+                                        -5, 20)
         self['mr'] = validate_int_range(s['aptitudes']['mr'], 'mr', 0, 20)
         self['aptitudes'] = aptitudes(s['aptitudes'])
         self['habitat'] = 'HT_LAND' if not s.get('can_swim') else 'HT_WATER'
@@ -135,23 +135,23 @@ class Species(MutableMapping):
         self.levelup_stats_from_yaml(s)
         self['mutations'] = mutations(s.get('mutations', {}))
         self['fake_mutations_long'] = fake_mutations_long(
-                                            s.get('fake_mutations', []))
+            s.get('fake_mutations', []))
         self['fake_mutations_short'] = fake_mutations_short(
-                                            s.get('fake_mutations', []))
+            s.get('fake_mutations', []))
         self['recommended_jobs'] = recommended_jobs(
-                                            s.get('recommended_jobs', []))
+            s.get('recommended_jobs', []))
         self.set_recommended_weapons(s.get('recommended_weapons', []))
         self['difficulty'] = difficulty(s.get('difficulty'))
         self['difficulty_priority'] = validate_int_range(difficulty_priority(
             s.get('difficulty_priority', 0)), 'difficulty_priority', 0, 1000)
         self['create_enum'] = validate_bool(
-                                    s.get('create_enum', True), 'create_enum')
+            s.get('create_enum', True), 'create_enum')
         self['walking_verb'] = quote_or_nullptr('walking_verb', s)
         self['altar_action'] = quote_or_nullptr('altar_action', s)
 
         if 'TAG_MAJOR_VERSION' in s:
             self['tag_major_version_opener'] = (
-                        "#if TAG_MAJOR_VERSION == %s" % s['TAG_MAJOR_VERSION'])
+                "#if TAG_MAJOR_VERSION == %s" % s['TAG_MAJOR_VERSION'])
             self['tag_major_version_closer'] = "#endif"
         else:
             self['tag_major_version_opener'] = ''
@@ -159,9 +159,9 @@ class Species(MutableMapping):
         self.print_unknown_warnings(s)
 
 SpeciesGroup = collections.namedtuple('SpeciesGroup',
-                                            ['position', 'width', 'species'])
+                                      ['position', 'width', 'species'])
 SpeciesGroupEntry = collections.namedtuple('SpeciesGroupEntry',
-                                            ['priority', 'enum'])
+                                           ['priority', 'enum'])
 SPECIES_GROUPS_TEMPLATE = collections.OrderedDict()
 SPECIES_GROUPS_TEMPLATE['Simple'] = SpeciesGroup('coord_def(0, 0)', '50', [])
 SPECIES_GROUPS_TEMPLATE['Intermediate'] = SpeciesGroup('coord_def(1, 0)', '20', [])
@@ -305,7 +305,7 @@ def mutations(mut_def):
         validate_int_range(xl, 'Mutation Level', 1, 27)
         if not isinstance(muts, dict):
             raise ValueError('Mutation key %s doesn\'t seem to have a valid '
-                                        'map of {name: amount} entries' % xl)
+                             'map of {name: amount} entries' % xl)
         for mut_name, amt in sorted(muts.items()):
             validate_string(mut_name, 'Mutation Name', 'MUT_[A-Z_]+')
             validate_int_range(amt, 'Mutation Amount', -3, 3)
@@ -343,7 +343,7 @@ def difficulty_priority(prio):
         return int(prio)
     except ValueError:
         raise ValueError('difficulty_priority value "%s" is not an integer' %
-                                prio)
+                         prio)
 
 
 def generate_aptitudes_data(s, template):
@@ -404,11 +404,11 @@ def main():
     parser = argparse.ArgumentParser(description='Generate species-data.h')
     parser.add_argument('datadir', help='dat/species source dir')
     parser.add_argument('templatedir',
-                    help='util/species-gen template source dir')
+                        help='util/species-gen template source dir')
     parser.add_argument('species_data', help='species-data.h output file path')
     parser.add_argument('aptitudes', help='aptitudes.h output file path')
     parser.add_argument('species_groups',
-                    help='species-groups.h output file path')
+                        help='species-groups.h output file path')
     parser.add_argument('species_type', help='species-type.h output file path')
     args = parser.parse_args()
 
@@ -442,13 +442,13 @@ def main():
 
     # Generate code
     species_data_out_text = load_template(args.templatedir,
-                                                'species-data-header.txt')
+                                          'species-data-header.txt')
     aptitudes_out_text = load_template(args.templatedir, 'aptitudes-header.txt')
     species_type_out_text = load_template(args.templatedir,
-                                                'species-type-header.txt')
+                                          'species-type-header.txt')
 
     species_data_template = load_template(args.templatedir,
-                                                'species-data-species.txt')
+                                          'species-data-species.txt')
     aptitude_template = load_template(args.templatedir, 'aptitude-species.txt')
     species_groups = SPECIES_GROUPS_TEMPLATE
     for species in all_species:
@@ -456,16 +456,17 @@ def main():
         species_data_out_text += species_data_template.format(**species)
         # aptitudes.h
         aptitudes_out_text += generate_aptitudes_data(species,
-                                                            aptitude_template)
+                                                      aptitude_template)
         # species-type.h
         species_type_out_text += generate_species_type_data(species)
         # species-groups.h
         species_groups = update_species_group(species_groups, species)
 
+    species_data_out_text += load_template(
+        args.templatedir,
+        'species-data-deprecated-species.txt')
     species_data_out_text += load_template(args.templatedir,
-                                        'species-data-deprecated-species.txt')
-    species_data_out_text += load_template(args.templatedir,
-                                        'species-data-footer.txt')
+                                           'species-data-footer.txt')
     with open(args.species_data, 'w') as f:
         f.write(species_data_out_text)
 
@@ -477,16 +478,16 @@ def main():
         f.write(aptitudes_out_text)
 
     species_type_out_text += load_template(args.templatedir,
-                                        'species-type-footer.txt')
+                                           'species-type-footer.txt')
     with open(args.species_type, 'w') as f:
         f.write(species_type_out_text)
 
     species_groups_out_text = ''
     species_groups_out_text += load_template(args.templatedir,
-                                        'species-groups-header.txt')
+                                             'species-groups-header.txt')
     species_groups_out_text += generate_species_groups(species_groups)
     species_groups_out_text += load_template(args.templatedir,
-                                        'species-groups-footer.txt')
+                                             'species-groups-footer.txt')
     with open(args.species_groups, 'w') as f:
         f.write(species_groups_out_text)
 

@@ -124,11 +124,3 @@ void replace_boris();
 extern band_type active_monster_band;
 
 #define MON_OOD_KEY "mons_is_ood"
-
-#if TAG_MAJOR_VERSION == 34
-#define VAULT_MON_TYPES_KEY   "vault_mon_types"
-#define VAULT_MON_BASES_KEY   "vault_mon_bases"
-#define VAULT_MON_PLACES_KEY  "vault_mon_places"
-#define VAULT_MON_WEIGHTS_KEY "vault_mon_weights"
-#define VAULT_MON_BANDS_KEY   "vault_mon_bands"
-#endif

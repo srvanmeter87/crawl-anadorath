@@ -330,9 +330,6 @@ static bool _missile_brand_is_prefix(special_missile_type brand)
     case SPMSL_BLINDING:
     case SPMSL_FRENZY:
     case SPMSL_EXPLODING:
-#if TAG_MAJOR_VERSION == 34
-    case SPMSL_STEEL:
-#endif
     case SPMSL_SILVER:
         return true;
     default:
@@ -351,40 +348,12 @@ const char* missile_brand_name(const item_def &item, mbn_type t)
         = static_cast<special_missile_type>(item.brand);
     switch (brand)
     {
-#if TAG_MAJOR_VERSION == 34
-    case SPMSL_FLAME:
-        return "flame";
-    case SPMSL_FROST:
-        return "frost";
-#endif
     case SPMSL_POISONED:
         return t == MBN_NAME ? "poisoned" : "poison";
     case SPMSL_CURARE:
         return t == MBN_NAME ? "curare-tipped" : "curare";
-#if TAG_MAJOR_VERSION == 34
-    case SPMSL_EXPLODING:
-        return t == MBN_TERSE ? "explode" : "exploding";
-    case SPMSL_STEEL:
-        return "steel";
-    case SPMSL_RETURNING:
-        return t == MBN_TERSE ? "return" : "returning";
-    case SPMSL_PENETRATION:
-        return t == MBN_TERSE ? "penet" : "penetration";
-#endif
     case SPMSL_SILVER:
         return "silver";
-#if TAG_MAJOR_VERSION == 34
-    case SPMSL_PARALYSIS:
-        return "paralysis";
-    case SPMSL_SLOW:
-        return t == MBN_TERSE ? "slow" : "slowing";
-    case SPMSL_SLEEP:
-        return t == MBN_TERSE ? "sleep" : "sleeping";
-    case SPMSL_CONFUSION:
-        return t == MBN_TERSE ? "conf" : "confusion";
-    case SPMSL_SICKNESS:
-        return t == MBN_TERSE ? "sick" : "sickness";
-#endif
     case SPMSL_FRENZY:
         return t == MBN_NAME ? "datura-tipped" : "datura";
     case SPMSL_CHAOS:
@@ -403,76 +372,28 @@ const char* missile_brand_name(const item_def &item, mbn_type t)
 static const char *weapon_brands_terse[] =
 {
     "", "flame", "freeze", "holy", "elec",
-#if TAG_MAJOR_VERSION == 34
-    "obsolete", "obsolete",
-#endif
     "venom", "protect", "drain", "speed", "vorpal",
-#if TAG_MAJOR_VERSION == 34
-    "obsolete", "obsolete",
-#endif
-    "vamp", "pain", "antimagic", "distort",
-#if TAG_MAJOR_VERSION == 34
-    "obsolete", "obsolete",
-#endif
-    "chaos",
-#if TAG_MAJOR_VERSION == 34
-    "evade", "confuse",
-#endif
+    "vamp", "pain", "antimagic", "distort", "chaos",
     "penet", "reap", "spect", "vorpal", "acid",
-#if TAG_MAJOR_VERSION > 34
-    "confuse",
-#endif
-    "debug",
+    "confuse", "debug",
 };
 
 static const char *weapon_brands_verbose[] =
 {
     "", "flaming", "freezing", "holy wrath", "electrocution",
-#if TAG_MAJOR_VERSION == 34
-    "orc slaying", "dragon slaying",
-#endif
     "venom", "protection", "draining", "speed", "vorpality",
-#if TAG_MAJOR_VERSION == 34
-    "flame", "frost",
-#endif
-    "vampirism", "pain", "antimagic", "distortion",
-#if TAG_MAJOR_VERSION == 34
-    "reaching", "returning",
-#endif
-    "chaos",
-#if TAG_MAJOR_VERSION == 34
-    "evasion", "confusion",
-#endif
+    "vampirism", "pain", "antimagic", "distortion", "chaos",
     "penetration", "reaping", "spectralizing", "vorpal", "acid",
-#if TAG_MAJOR_VERSION > 34
-    "confusion",
-#endif
-    "debug",
+    "confusion", "debug",
 };
 
 static const char *weapon_brands_adj[] =
 {
     "", "flaming", "freezing", "holy", "electric",
-#if TAG_MAJOR_VERSION == 34
-    "orc-killing", "dragon-slaying",
-#endif
     "venomous", "protective", "draining", "fast", "vorpal",
-#if TAG_MAJOR_VERSION == 34
-    "flaming", "freezing",
-#endif
-    "vampiric", "painful", "antimagic", "distorting",
-#if TAG_MAJOR_VERSION == 34
-    "reaching", "returning",
-#endif
-    "chaotic",
-#if TAG_MAJOR_VERSION == 34
-    "evasive", "confusing",
-#endif
+    "vampiric", "painful", "antimagic", "distorting", "chaotic",
     "penetrating", "reaping", "spectral", "vorpal", "acidic",
-#if TAG_MAJOR_VERSION > 34
-    "confusing",
-#endif
-    "debug",
+    "confusing", "debug",
 };
 
 static const set<brand_type> brand_prefers_adj =
@@ -554,17 +475,11 @@ const char* armour_ego_name(const item_def& item, bool terse)
         case SPARM_RESISTANCE:        return "resistance";
         case SPARM_POSITIVE_ENERGY:   return "positive energy";
         case SPARM_ARCHMAGI:          return "the Archmagi";
-#if TAG_MAJOR_VERSION == 34
-        case SPARM_JUMPING:           return "jumping";
-#endif
         case SPARM_PRESERVATION:      return "preservation";
         case SPARM_REFLECTION:        return "reflection";
         case SPARM_SPIRIT_SHIELD:     return "spirit shield";
         case SPARM_ARCHERY:           return "archery";
         case SPARM_REPULSION:         return "repulsion";
-#if TAG_MAJOR_VERSION == 34
-        case SPARM_CLOUD_IMMUNE:      return "cloud immunity";
-#endif
         case SPARM_HARM:              return "harm";
         case SPARM_SHADOWS:           return "shadows";
         case SPARM_RAMPAGING:         return "rampaging";
@@ -593,17 +508,11 @@ const char* armour_ego_name(const item_def& item, bool terse)
         case SPARM_RESISTANCE:        return "rC+ rF+";
         case SPARM_POSITIVE_ENERGY:   return "rN+";
         case SPARM_ARCHMAGI:          return "Archmagi";
-#if TAG_MAJOR_VERSION == 34
-        case SPARM_JUMPING:           return "obsolete";
-#endif
         case SPARM_PRESERVATION:      return "rCorr";
         case SPARM_REFLECTION:        return "reflect";
         case SPARM_SPIRIT_SHIELD:     return "Spirit";
         case SPARM_ARCHERY:           return "archery";
         case SPARM_REPULSION:         return "repulsion";
-#if TAG_MAJOR_VERSION == 34
-        case SPARM_CLOUD_IMMUNE:      return "obsolete";
-#endif
         case SPARM_HARM:              return "harm";
         case SPARM_SHADOWS:           return "shadows";
         case SPARM_RAMPAGING:         return "rampage";
@@ -706,11 +615,6 @@ static const char* scroll_type_name(int scrolltype)
     case SCR_VULNERABILITY:      return "vulnerability";
     case SCR_SILENCE:            return "silence";
     case SCR_AMNESIA:            return "amnesia";
-#if TAG_MAJOR_VERSION == 34
-    case SCR_CURSE_WEAPON:       return "curse weapon";
-    case SCR_CURSE_ARMOUR:       return "curse armour";
-    case SCR_CURSE_JEWELLERY:    return "curse jewellery";
-#endif
     case SCR_BRAND_ARMOUR:       return "brand armour";
     case SCR_BRAND_AMMUNITION:   return "brand ammunition";
     default:                     return item_type_removed(OBJ_SCROLLS,
@@ -733,9 +637,6 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
     {
         switch (static_cast<jewellery_type>(jeweltype))
         {
-#if TAG_MAJOR_VERSION == 34
-        case RING_REGENERATION:          return "obsoleteness";
-#endif
         case RING_PROTECTION:            return "protection";
         case RING_PROTECTION_FROM_FIRE:  return "protection from fire";
         case RING_POISON_RESISTANCE:     return "poison resistance";
@@ -747,9 +648,6 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case RING_ATTENTION:             return "attention";
         case RING_TELEPORTATION:         return "teleportation";
         case RING_EVASION:               return "evasion";
-#if TAG_MAJOR_VERSION == 34
-        case RING_SUSTAIN_ATTRIBUTES:    return "sustain attributes";
-#endif
         case RING_STEALTH:               return "stealth";
         case RING_DEXTERITY:             return "dexterity";
         case RING_INTELLIGENCE:          return "intelligence";
@@ -760,25 +658,15 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case RING_PROTECTION_FROM_MAGIC: return "protection from magic";
         case RING_FIRE:                  return "fire";
         case RING_ICE:                   return "ice";
-#if TAG_MAJOR_VERSION == 34
-        case RING_TELEPORT_CONTROL:      return "teleport control";
-#endif
-        case AMU_MANA_REGENERATION: return "magic regeneration";
-        case AMU_ACROBAT:           return "the acrobat";
-#if TAG_MAJOR_VERSION == 34
-        case AMU_RAGE:              return "rage";
-        case AMU_THE_GOURMAND:      return "gourmand";
-        case AMU_HARM:              return "harm";
-        case AMU_CONSERVATION:      return "conservation";
-        case AMU_CONTROLLED_FLIGHT: return "controlled flight";
-#endif
-        case AMU_INACCURACY:        return "inaccuracy";
-        case AMU_NOTHING:           return "nothing";
-        case AMU_GUARDIAN_SPIRIT:   return "guardian spirit";
-        case AMU_FAITH:             return "faith";
-        case AMU_REFLECTION:        return "reflection";
-        case AMU_REGENERATION:      return "regeneration";
-        default: return "buggy jewellery";
+        case AMU_MANA_REGENERATION:      return "magic regeneration";
+        case AMU_ACROBAT:                return "the acrobat";
+        case AMU_INACCURACY:             return "inaccuracy";
+        case AMU_NOTHING:                return "nothing";
+        case AMU_GUARDIAN_SPIRIT:        return "guardian spirit";
+        case AMU_FAITH:                  return "faith";
+        case AMU_REFLECTION:             return "reflection";
+        case AMU_REGENERATION:           return "regeneration";
+        default:                         return "buggy jewellery";
         }
     }
     else
@@ -787,9 +675,6 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
             return jewellery_base_ability_string(jeweltype);
         switch (static_cast<jewellery_type>(jeweltype))
         {
-#if TAG_MAJOR_VERSION == 34
-        case RING_REGENERATION:          return "obsoleteness";
-#endif
         case RING_PROTECTION:            return "AC";
         case RING_PROTECTION_FROM_FIRE:  return "rF+";
         case RING_POISON_RESISTANCE:     return "rPois";
@@ -808,9 +693,6 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
         case RING_LIFE_PROTECTION:       return "rN+";
         case RING_PROTECTION_FROM_MAGIC: return "MR+";
         case AMU_REGENERATION:           return "Regen";
-#if TAG_MAJOR_VERSION == 34
-        case AMU_RAGE:                   return "+Rage";
-#endif
         case AMU_ACROBAT:                return "Acrobat";
         case AMU_NOTHING:                return "";
         default: return "buggy";
@@ -826,10 +708,6 @@ const char* jewellery_effect_name(int jeweltype, bool terse)
  */
 static const char* _jewellery_class_name(int jeweltype)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (jeweltype == RING_REGENERATION)
-        return "ring of";
-#endif
 
     if (jeweltype < RING_FIRST_RING || jeweltype >= NUM_JEWELLERY
         || jeweltype >= NUM_RINGS && jeweltype < AMU_FIRST_AMULET)
@@ -936,40 +814,16 @@ const char* rune_type_name(short p)
 
 static string misc_type_name(int type)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (is_deck_type(type))
-        return "removed deck";
-#endif
 
     switch (static_cast<misc_item_type>(type))
     {
-#if TAG_MAJOR_VERSION == 34
-    case MISC_CRYSTAL_BALL_OF_ENERGY:    return "removed crystal ball";
-#endif
     case MISC_BOX_OF_BEASTS:             return "box of beasts";
-#if TAG_MAJOR_VERSION == 34
-    case MISC_BUGGY_EBONY_CASKET:        return "removed ebony casket";
-    case MISC_FAN_OF_GALES:              return "removed fan of gales";
-    case MISC_LAMP_OF_FIRE:              return "removed lamp of fire";
-    case MISC_BUGGY_LANTERN_OF_SHADOWS:  return "removed lantern of shadows";
-#endif
     case MISC_HORN_OF_GERYON:            return "horn of Geryon";
     case MISC_LIGHTNING_ROD:             return "lightning rod";
-#if TAG_MAJOR_VERSION == 34
-    case MISC_BOTTLED_EFREET:            return "empty flask";
-    case MISC_RUNE_OF_ZOT:               return "obsolete rune of zot";
-    case MISC_STONE_OF_TREMORS:          return "removed stone of tremors";
-#endif
     case MISC_QUAD_DAMAGE:               return "quad damage";
     case MISC_PHIAL_OF_FLOODS:           return "phial of floods";
-#if TAG_MAJOR_VERSION == 34
-    case MISC_SACK_OF_SPIDERS:           return "removed sack of spiders";
-#endif
     case MISC_PHANTOM_MIRROR:            return "phantom mirror";
     case MISC_ZIGGURAT:                  return "figurine of a ziggurat";
-#if TAG_MAJOR_VERSION == 34
-    case MISC_XOMS_CHESSBOARD:           return "removed chess piece";
-#endif
     case MISC_TIN_OF_TREMORSTONES:       return "tin of tremorstones";
     case MISC_CONDENSER_VANE:            return "condenser vane";
 
@@ -1023,9 +877,6 @@ static const char* _book_type_name(int booktype)
     case BOOK_MISFORTUNE:             return "Misfortune";
     case BOOK_CHANGES:                return "Changes";
     case BOOK_TRANSFIGURATIONS:       return "Transfigurations";
-#if TAG_MAJOR_VERSION == 34
-    case BOOK_BATTLE:                 return "Battle";
-#endif
     case BOOK_CLOUDS:                 return "Clouds";
     case BOOK_NECROMANCY:             return "Necromancy";
     case BOOK_CALLINGS:               return "Callings";
@@ -1033,19 +884,10 @@ static const char* _book_type_name(int booktype)
     case BOOK_AIR:                    return "Air";
     case BOOK_SKY:                    return "the Sky";
     case BOOK_WARP:                   return "the Warp";
-#if TAG_MAJOR_VERSION == 34
-    case BOOK_ENVENOMATIONS:          return "Envenomations";
-#endif
     case BOOK_ANNIHILATIONS:          return "Annihilations";
     case BOOK_UNLIFE:                 return "Unlife";
-#if TAG_MAJOR_VERSION == 34
-    case BOOK_CONTROL:                return "Control";
-#endif
     case BOOK_GEOMANCY:               return "Geomancy";
     case BOOK_EARTH:                  return "the Earth";
-#if TAG_MAJOR_VERSION == 34
-    case BOOK_WIZARDRY:               return "Wizardry";
-#endif
     case BOOK_POWER:                  return "Power";
     case BOOK_CANTRIPS:               return "Cantrips";
     case BOOK_PARTY_TRICKS:           return "Party Tricks";
@@ -1054,9 +896,6 @@ static const char* _book_type_name(int booktype)
     case BOOK_BURGLARY:               return "Burglary";
     case BOOK_DREAMS:                 return "Dreams";
     case BOOK_ALCHEMY:                return "Alchemy";
-#if TAG_MAJOR_VERSION == 34
-    case BOOK_BEASTS:                 return "Beasts";
-#endif
     case BOOK_PRIMALIST:              return "the Primalist";
     case BOOK_ELEMENTAL_POWER:        return "Elemental Power";
     case BOOK_RANDART_LEVEL:          return "Fixed Level";
@@ -1110,24 +949,21 @@ const char *base_type_string(object_class_type type)
 {
     switch (type)
     {
-    case OBJ_WEAPONS: return "weapon";
-    case OBJ_MISSILES: return "missile";
-    case OBJ_ARMOUR: return "armour";
-    case OBJ_WANDS: return "wand";
-    case OBJ_SCROLLS: return "scroll";
-    case OBJ_JEWELLERY: return "jewellery";
-    case OBJ_POTIONS: return "potion";
-    case OBJ_BOOKS: return "book";
-    case OBJ_STAVES: return "staff";
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS: return "removed rod";
-#endif
-    case OBJ_ORBS: return "orb";
+    case OBJ_WEAPONS:    return "weapon";
+    case OBJ_MISSILES:   return "missile";
+    case OBJ_ARMOUR:     return "armour";
+    case OBJ_WANDS:      return "wand";
+    case OBJ_SCROLLS:    return "scroll";
+    case OBJ_JEWELLERY:  return "jewellery";
+    case OBJ_POTIONS:    return "potion";
+    case OBJ_BOOKS:      return "book";
+    case OBJ_STAVES:     return "staff";
+    case OBJ_ORBS:       return "orb";
     case OBJ_MISCELLANY: return "miscellaneous";
-    case OBJ_CORPSES: return "corpse";
-    case OBJ_GOLD: return "gold";
-    case OBJ_RUNES: return "rune";
-    default: return "";
+    case OBJ_CORPSES:    return "corpse";
+    case OBJ_GOLD:       return "gold";
+    case OBJ_RUNES:      return "rune";
+    default:             return "";
     }
 }
 
@@ -1160,25 +996,14 @@ string sub_type_string(const item_def &item, bool known)
             return "Necronomicon";
         else if (sub_type == BOOK_GRAND_GRIMOIRE)
             return "Grand Grimoire";
-#if TAG_MAJOR_VERSION == 34
-        else if (sub_type == BOOK_BUGGY_DESTRUCTION)
-            return "tome of obsoleteness";
-#endif
         else if (sub_type == BOOK_YOUNG_POISONERS)
             return "Young Poisoner's Handbook";
         else if (sub_type == BOOK_FEN)
             return "Fen Folio";
-#if TAG_MAJOR_VERSION == 34
-        else if (sub_type == BOOK_AKASHIC_RECORD)
-            return "Akashic Record";
-#endif
 
         return string("book of ") + _book_type_name(sub_type);
     }
     case OBJ_STAVES: return staff_type_name(static_cast<stave_type>(sub_type));
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:   return "removed rod";
-#endif
     case OBJ_MISCELLANY: return misc_type_name(sub_type);
     // these repeat as base_type_string
     case OBJ_ORBS: return "orb of Zot";
@@ -1696,9 +1521,6 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
 
             static const char *potion_colours[] =
             {
-#if TAG_MAJOR_VERSION == 34
-                "clear",
-#endif
                 "blue", "black", "silvery", "cyan", "purple", "orange",
                 "inky", "red", "yellow", "green", "brown", "ruby", "white",
                 "emerald", "grey", "pink", "coppery", "golden", "dark", "puce",
@@ -1716,12 +1538,6 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
             buff << qualifier << clr << " potion";
         }
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_FOOD:
-        buff << "removed food"; break;
-        break;
-#endif
 
     case OBJ_SCROLLS:
         buff << "scroll";
@@ -1835,12 +1651,6 @@ string item_def::name_aux(description_level_type desc, bool terse, bool ident,
         else
             buff << sub_type_string(*this, !dbname);
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:
-        buff << "removed rod";
-        break;
-#endif
 
     case OBJ_STAVES:
         if (know_curse && !terse)
@@ -1963,9 +1773,6 @@ bool item_type_has_ids(object_class_type base_type)
     COMPILE_CHECK(NUM_BOOKS      < MAX_SUBTYPES);
     COMPILE_CHECK(NUM_STAVES     < MAX_SUBTYPES);
     COMPILE_CHECK(NUM_MISCELLANY < MAX_SUBTYPES);
-#if TAG_MAJOR_VERSION == 34
-    COMPILE_CHECK(NUM_RODS       < MAX_SUBTYPES);
-#endif
 
     return base_type == OBJ_WANDS || base_type == OBJ_SCROLLS
         || base_type == OBJ_JEWELLERY || base_type == OBJ_POTIONS
@@ -1994,11 +1801,6 @@ bool item_type_known(const item_def& item)
 
     if (item.base_type == OBJ_MISCELLANY)
         return true;
-
-#if TAG_MAJOR_VERSION == 34
-    if (item.is_type(OBJ_BOOKS, BOOK_BUGGY_DESTRUCTION))
-        return true;
-#endif
 
     if (item.is_type(OBJ_BOOKS, BOOK_MANUAL))
         return false;
@@ -2678,14 +2480,6 @@ bool is_bad_item(const item_def &item)
     case OBJ_SCROLLS:
         switch (item.sub_type)
         {
-#if TAG_MAJOR_VERSION == 34
-        case SCR_CURSE_ARMOUR:
-        case SCR_CURSE_WEAPON:
-            if (you.species == SP_FELID)
-                return false;
-        case SCR_CURSE_JEWELLERY:
-            return !have_passive(passive_t::want_curses);
-#endif
         case SCR_NOISE:
             return true;
         default:
@@ -2937,10 +2731,6 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
             return you.species == SP_FORMICID;
         case SCR_AMNESIA:
             return you_worship(GOD_TROG);
-#if TAG_MAJOR_VERSION == 34
-        case SCR_CURSE_WEAPON: // for non-Ashenzari, already handled
-        case SCR_CURSE_ARMOUR:
-#endif
         case SCR_ENCHANT_WEAPON:
         case SCR_ENCHANT_ARMOUR:
         case SCR_BRAND_WEAPON:
@@ -2957,11 +2747,6 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
     case OBJ_WANDS:
         if (you.get_mutation_level(MUT_NO_ARTIFICE))
             return true;
-
-#if TAG_MAJOR_VERSION == 34
-        if (is_known_empty_wand(item))
-            return true;
-#endif
         if (!ident && !item_type_known(item))
             return false;
 
@@ -3051,11 +2836,6 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
                            || you.species == SP_VAMPIRE)
                        && regeneration_is_inhibited());
 
-#if TAG_MAJOR_VERSION == 34
-        case AMU_MANA_REGENERATION:
-            return you_worship(GOD_PAKELLAS);
-#endif
-
         case RING_SEE_INVISIBLE:
             return you.innate_sinv();
 
@@ -3080,11 +2860,6 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
         default:
             return false;
         }
-
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:
-            return true;
-#endif
 
     case OBJ_STAVES:
         if (you.species == SP_FELID)
@@ -3115,14 +2890,7 @@ bool is_useless_item(const item_def &item, bool temp, bool ident)
     case OBJ_MISCELLANY:
         switch (item.sub_type)
         {
-#if TAG_MAJOR_VERSION == 34
-        case MISC_BUGGY_EBONY_CASKET:
-            return item_type_known(item);
-#endif
         // These can always be used.
-#if TAG_MAJOR_VERSION == 34
-        case MISC_BUGGY_LANTERN_OF_SHADOWS:
-#endif
         case MISC_ZIGGURAT:
             return false;
 

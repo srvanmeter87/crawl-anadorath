@@ -132,4 +132,3 @@ recommended_weapons:
   - SK_THROWING
 walking_verb: thump
 altar_action: tower over
-create_enum: true

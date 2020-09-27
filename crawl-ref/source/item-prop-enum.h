@@ -19,18 +19,10 @@ enum armour_type
     ARM_CHAIN_MAIL,
     ARM_PLATE_ARMOUR,
     ARM_LAST_MUNDANE_BODY = ARM_PLATE_ARMOUR,
-#if TAG_MAJOR_VERSION > 34
     ARM_CRYSTAL_PLATE_ARMOUR,
-#endif
 
     ARM_CLOAK,
-#if TAG_MAJOR_VERSION > 34
     ARM_SCARF,
-#endif
-
-#if TAG_MAJOR_VERSION == 34
-    ARM_CAP,
-#endif
     ARM_HAT,
     ARM_HELMET,
 
@@ -44,66 +36,19 @@ enum armour_type
     ARM_TOWER_SHIELD,
     ARM_LAST_SHIELD = ARM_TOWER_SHIELD,
 
-#if TAG_MAJOR_VERSION == 34
-    ARM_CRYSTAL_PLATE_ARMOUR,
-#endif
-
     ARM_ANIMAL_SKIN,
-
-#if TAG_MAJOR_VERSION == 34
-    ARM_TROLL_HIDE,
-#endif
     ARM_TROLL_LEATHER_ARMOUR,
-
-#if TAG_MAJOR_VERSION == 34
-    ARM_FIRE_DRAGON_HIDE,
-#endif
     ARM_FIRE_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_ICE_DRAGON_HIDE,
-#endif
     ARM_ICE_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_STEAM_DRAGON_HIDE,
-#endif
     ARM_STEAM_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_ACID_DRAGON_HIDE,
-#endif
     ARM_ACID_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_STORM_DRAGON_HIDE,
-#endif
     ARM_STORM_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_GOLD_DRAGON_HIDE,
-#endif
     ARM_GOLD_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_SWAMP_DRAGON_HIDE,
-#endif
     ARM_SWAMP_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION == 34
-    ARM_PEARL_DRAGON_HIDE,
-#endif
     ARM_PEARL_DRAGON_ARMOUR,
-#if TAG_MAJOR_VERSION > 34
     ARM_SHADOW_DRAGON_ARMOUR,
     ARM_QUICKSILVER_DRAGON_ARMOUR,
-#endif
-
-#if TAG_MAJOR_VERSION == 34
-    ARM_CENTAUR_BARDING,
-#endif
     ARM_BARDING,
-
-#if TAG_MAJOR_VERSION == 34
-    ARM_SHADOW_DRAGON_HIDE,
-    ARM_SHADOW_DRAGON_ARMOUR,
-    ARM_QUICKSILVER_DRAGON_HIDE,
-    ARM_QUICKSILVER_DRAGON_ARMOUR,
-    ARM_SCARF,
-#endif
 
     NUM_ARMOURS
 };
@@ -127,38 +72,17 @@ enum brand_type // item_def.special
     SPWPN_FREEZING,
     SPWPN_HOLY_WRATH,
     SPWPN_ELECTROCUTION,
-#if TAG_MAJOR_VERSION == 34
-    SPWPN_ORC_SLAYING,
-    SPWPN_DRAGON_SLAYING,
-#endif
     SPWPN_VENOM,
     SPWPN_PROTECTION,
     SPWPN_DRAINING,
     SPWPN_SPEED,
     SPWPN_VORPAL,
-#if TAG_MAJOR_VERSION == 34
-    SPWPN_FLAME,   // ranged, only
-    SPWPN_FROST,   // ranged, only
-#endif
     SPWPN_VAMPIRISM,
     SPWPN_PAIN,
     SPWPN_ANTIMAGIC,
     SPWPN_DISTORTION,
-#if TAG_MAJOR_VERSION == 34
-    SPWPN_REACHING,
-    SPWPN_RETURNING,
-#endif
     SPWPN_CHAOS,
-#if TAG_MAJOR_VERSION == 34
-    SPWPN_EVASION,
-    MAX_GHOST_BRAND = SPWPN_EVASION,
-#else
     MAX_GHOST_BRAND = SPWPN_CHAOS,
-#endif
-
-#if TAG_MAJOR_VERSION == 34
-    SPWPN_CONFUSE, // XXX not a real weapon brand, only for Confusing Touch
-#endif
     SPWPN_PENETRATION,
     SPWPN_REAPING,
     SPWPN_SPECTRAL,
@@ -167,9 +91,7 @@ enum brand_type // item_def.special
     NUM_REAL_SPECIAL_WEAPONS,
 
     SPWPN_ACID,    // acid bite and Punk
-#if TAG_MAJOR_VERSION > 34
     SPWPN_CONFUSE, // Confusing Touch only for the moment
-#endif
     SPWPN_DEBUG_RANDART,
     NUM_SPECIAL_WEAPONS,
 };
@@ -189,9 +111,6 @@ enum hands_reqd_type
 
 enum jewellery_type
 {
-#if TAG_MAJOR_VERSION == 34
-    RING_REGENERATION,
-#endif
     RING_PROTECTION,
     RING_FIRST_RING = RING_PROTECTION,
     RING_PROTECTION_FROM_FIRE,
@@ -204,9 +123,6 @@ enum jewellery_type
     RING_ATTENTION,
     RING_TELEPORTATION,
     RING_EVASION,
-#if TAG_MAJOR_VERSION == 34
-    RING_SUSTAIN_ATTRIBUTES,
-#endif
     RING_STEALTH,
     RING_DEXTERITY,
     RING_INTELLIGENCE,
@@ -217,33 +133,15 @@ enum jewellery_type
     RING_PROTECTION_FROM_MAGIC,
     RING_FIRE,
     RING_ICE,
-#if TAG_MAJOR_VERSION == 34
-    RING_TELEPORT_CONTROL,
-#endif
     NUM_RINGS,                         //   keep as last ring; should not overlap
                                        //   with amulets!
     // RINGS after num_rings are for unique types for artefacts
     //   (no non-artefact version).
     // Currently none.
     // XXX: trying to add one doesn't actually work
-
-#if TAG_MAJOR_VERSION == 34
-    AMU_RAGE = 35,
-    AMU_FIRST_AMULET = AMU_RAGE,
-    AMU_HARM,
-#endif
-#if TAG_MAJOR_VERSION > 34
     AMU_ACROBAT = 35,
     AMU_FIRST_AMULET = AMU_ACROBAT,
-#elif TAG_MAJOR_VERSION == 34
-    AMU_ACROBAT,
-#endif
     AMU_MANA_REGENERATION,
-#if TAG_MAJOR_VERSION == 34
-    AMU_THE_GOURMAND,
-    AMU_CONSERVATION,
-    AMU_CONTROLLED_FLIGHT,
-#endif
     AMU_INACCURACY,
     AMU_NOTHING,
     AMU_GUARDIAN_SPIRIT,
@@ -264,50 +162,16 @@ enum class launch_retval
 
 enum misc_item_type
 {
-#if TAG_MAJOR_VERSION == 34
-    MISC_BOTTLED_EFREET,
-    MISC_FAN_OF_GALES,
-    MISC_LAMP_OF_FIRE,
-    MISC_STONE_OF_TREMORS,
-    MISC_BUGGY_LANTERN_OF_SHADOWS,
-#endif
     MISC_HORN_OF_GERYON,
     MISC_BOX_OF_BEASTS,
-#if TAG_MAJOR_VERSION == 34
-    MISC_CRYSTAL_BALL_OF_ENERGY,
-    MISC_BUGGY_EBONY_CASKET,
-#endif
     MISC_LIGHTNING_ROD,
-
-#if TAG_MAJOR_VERSION == 34
-    MISC_DECK_OF_ESCAPE,
-    MISC_FIRST_DECK = MISC_DECK_OF_ESCAPE,
-    MISC_DECK_OF_DESTRUCTION,
-    MISC_DECK_OF_DUNGEONS,
-    MISC_DECK_OF_SUMMONING,
-    MISC_DECK_OF_WONDERS,
-    MISC_DECK_OF_PUNISHMENT,
-    MISC_DECK_OF_WAR,
-    MISC_DECK_OF_CHANGES,
-    MISC_DECK_OF_DEFENCE,
-    MISC_LAST_DECK = MISC_DECK_OF_DEFENCE,
-
-    MISC_RUNE_OF_ZOT,
-#endif
 
     MISC_QUAD_DAMAGE, // Sprint only
 
     MISC_PHIAL_OF_FLOODS,
-#if TAG_MAJOR_VERSION == 34
-    MISC_SACK_OF_SPIDERS,
-#endif
     MISC_ZIGGURAT,
 
     MISC_PHANTOM_MIRROR,
-#if TAG_MAJOR_VERSION == 34
-    MISC_DECK_OF_ODDITIES,
-    MISC_XOMS_CHESSBOARD,
-#endif
     MISC_TIN_OF_TREMORSTONES,
     MISC_CONDENSER_VANE,
 
@@ -318,29 +182,13 @@ enum misc_item_type
 // in no particular order (but we need *a* fixed order for dbg-scan)
 const vector<misc_item_type> misc_types =
 {
-#if TAG_MAJOR_VERSION == 34
-    MISC_FAN_OF_GALES,
-    MISC_LAMP_OF_FIRE,
-    MISC_STONE_OF_TREMORS,
-    MISC_BUGGY_LANTERN_OF_SHADOWS,
-#endif
-    MISC_HORN_OF_GERYON, MISC_BOX_OF_BEASTS,
-#if TAG_MAJOR_VERSION == 34
-    MISC_CRYSTAL_BALL_OF_ENERGY,
-#endif
-    MISC_LIGHTNING_ROD, MISC_PHIAL_OF_FLOODS,
+    MISC_HORN_OF_GERYON,
+    MISC_BOX_OF_BEASTS,
+    MISC_LIGHTNING_ROD,
+    MISC_PHIAL_OF_FLOODS,
     MISC_QUAD_DAMAGE,
-#if TAG_MAJOR_VERSION == 34
-    MISC_SACK_OF_SPIDERS,
-#endif
     MISC_PHANTOM_MIRROR,
-#if TAG_MAJOR_VERSION == 34
-    MISC_XOMS_CHESSBOARD,
-#endif
     MISC_ZIGGURAT,
-#if TAG_MAJOR_VERSION == 34
-    MISC_BOTTLED_EFREET, MISC_BUGGY_EBONY_CASKET,
-#endif
     MISC_TIN_OF_TREMORSTONES,
     MISC_CONDENSER_VANE,
 };
@@ -348,9 +196,6 @@ const vector<misc_item_type> misc_types =
 enum missile_type
 {
     MI_DART,
-#if TAG_MAJOR_VERSION == 34
-    MI_NEEDLE,
-#endif
     MI_ARROW,
     MI_BOLT,
     MI_JAVELIN,
@@ -407,30 +252,16 @@ enum scroll_type
     SCR_ENCHANT_ARMOUR,
     SCR_TORMENT,
     SCR_RANDOM_USELESSNESS,
-#if TAG_MAJOR_VERSION == 34
-    SCR_CURSE_WEAPON,
-    SCR_CURSE_ARMOUR,
-#endif
     SCR_IMMOLATION,
     SCR_BLINKING,
     SCR_MAGIC_MAPPING,
     SCR_FOG,
     SCR_ACQUIREMENT,
-#if TAG_MAJOR_VERSION == 34
-    SCR_ENCHANT_WEAPON_II,
-#endif
     SCR_BRAND_WEAPON,
-#if TAG_MAJOR_VERSION == 34
-    SCR_RECHARGING,
-    SCR_ENCHANT_WEAPON_III,
-#endif
     SCR_HOLY_WORD,
     SCR_VULNERABILITY,
     SCR_SILENCE,
     SCR_AMNESIA,
-#if TAG_MAJOR_VERSION == 34
-    SCR_CURSE_JEWELLERY,
-#endif
     SCR_BRAND_ARMOUR,
     SCR_BRAND_AMMUNITION,
     NUM_SCROLLS
@@ -462,13 +293,7 @@ enum special_armour_type
     SPARM_REFLECTION,
     SPARM_SPIRIT_SHIELD,
     SPARM_ARCHERY,
-#if TAG_MAJOR_VERSION == 34
-    SPARM_JUMPING,
-#endif
     SPARM_REPULSION,
-#if TAG_MAJOR_VERSION == 34
-    SPARM_CLOUD_IMMUNE,
-#endif
     SPARM_HARM,
     SPARM_SHADOWS,
     SPARM_RAMPAGING,
@@ -486,27 +311,11 @@ enum special_missile_type // to separate from weapons in general {dlb}
     SPMSL_FLAME,
     SPMSL_FROST,
     SPMSL_POISONED,
-    SPMSL_CURARE,                      // Needle-only brand
-#if TAG_MAJOR_VERSION == 34
-    SPMSL_RETURNING,
-#endif
+    SPMSL_CURARE,                      // XXX: Needle-only brand?
     SPMSL_CHAOS,
-#if TAG_MAJOR_VERSION == 34
-    SPMSL_PENETRATION,
-#endif
     SPMSL_DISPERSAL,
     SPMSL_EXPLODING,                   // Only used by Damnation crossbow
-#if TAG_MAJOR_VERSION == 34
-    SPMSL_STEEL,
-#endif
     SPMSL_SILVER,
-#if TAG_MAJOR_VERSION == 34
-    SPMSL_PARALYSIS,                   // dart only from here on
-    SPMSL_SLOW,
-    SPMSL_SLEEP,
-    SPMSL_CONFUSION,
-    SPMSL_SICKNESS,
-#endif
     SPMSL_FRENZY,                      // Datura
     SPMSL_BLINDING,                    // Atropa
     NUM_REAL_SPECIAL_MISSILES,
@@ -521,60 +330,23 @@ enum special_ring_type // jewellery mitm[].special values
 
 enum stave_type
 {
-#if TAG_MAJOR_VERSION == 34
-    STAFF_WIZARDRY,
-    STAFF_POWER,
-#endif
     STAFF_FIRE,
     STAFF_COLD,
     STAFF_POISON,
-#if TAG_MAJOR_VERSION == 34
-    STAFF_ENERGY,
-#endif
     STAFF_DEATH,
     STAFF_CONJURATION,
-#if TAG_MAJOR_VERSION == 34
-    STAFF_ENCHANTMENT,
-    STAFF_SUMMONING,
-#endif
     STAFF_AIR,
     STAFF_EARTH,
-#if TAG_MAJOR_VERSION == 34
-    STAFF_CHANNELING,
-#endif
     NUM_STAVES,
 };
-
-#if TAG_MAJOR_VERSION == 34
-enum rod_type
-{
-    ROD_LIGHTNING,
-    ROD_SWARM,
-    ROD_IGNITION,
-    ROD_CLOUDS,
-    ROD_DESTRUCTION,
-    ROD_INACCURACY,
-    ROD_WARDING,
-    ROD_SHADOWS,
-    ROD_IRON,
-    ROD_VENOM,
-    NUM_RODS,
-};
-#endif
 
 enum weapon_type
 {
     WPN_CLUB,
     WPN_WHIP,
-#if TAG_MAJOR_VERSION == 34
-    WPN_HAMMER,
-#endif
     WPN_MACE,
     WPN_FLAIL,
     WPN_MORNINGSTAR,
-#if TAG_MAJOR_VERSION == 34
-    WPN_SPIKED_FLAIL,
-#endif
     WPN_DIRE_FLAIL,
     WPN_EVENINGSTAR,
     WPN_GREAT_MACE,
@@ -600,26 +372,14 @@ enum weapon_type
     WPN_HALBERD,
     WPN_GLAIVE,
     WPN_BARDICHE,
-
-#if TAG_MAJOR_VERSION == 34
-    WPN_BLOWGUN,
-#endif
-
-#if TAG_MAJOR_VERSION > 34
     WPN_HAND_CROSSBOW,
-#endif
     WPN_ARBALEST,
-#if TAG_MAJOR_VERSION > 34
     WPN_TRIPLE_CROSSBOW,
-#endif
 
     WPN_SHORTBOW,
     WPN_LONGBOW,
-
-#if TAG_MAJOR_VERSION > 34
     WPN_HUNTING_SLING,
     WPN_FUSTIBALUS,
-#endif
 
     WPN_DEMON_WHIP,
     WPN_GIANT_CLUB,
@@ -635,30 +395,9 @@ enum weapon_type
     WPN_STAFF,          // Just used for the weapon stats for magical staves.
     WPN_QUARTERSTAFF,
     WPN_LAJATANG,
-
-#if TAG_MAJOR_VERSION == 34
-    WPN_HUNTING_SLING,
-
-    WPN_BLESSED_FALCHION,
-    WPN_BLESSED_LONG_SWORD,
-    WPN_BLESSED_SCIMITAR,
-    WPN_BLESSED_GREAT_SWORD,
-#endif
     WPN_EUDEMON_BLADE,
-#if TAG_MAJOR_VERSION == 34
-    WPN_BLESSED_DOUBLE_SWORD,
-    WPN_BLESSED_TRIPLE_SWORD,
-#endif
     WPN_SACRED_SCOURGE,
     WPN_TRISHULA,
-
-#if TAG_MAJOR_VERSION == 34
-    WPN_FUSTIBALUS,
-    WPN_HAND_CROSSBOW,
-    WPN_TRIPLE_CROSSBOW,
-
-    WPN_CUTLASS,
-#endif
 
     NUM_WEAPONS,
 
@@ -719,68 +458,19 @@ enum vorpal_damage_type
 enum wand_type
 {
     WAND_FLAME,
-#if TAG_MAJOR_VERSION == 34
-    WAND_FROST_REMOVED,
-    WAND_SLOWING_REMOVED,
-    WAND_HASTING_REMOVED,
-    WAND_MAGIC_DARTS_REMOVED,
-    WAND_HEAL_WOUNDS_REMOVED,
-#endif
     WAND_PARALYSIS,
-#if TAG_MAJOR_VERSION == 34
-    WAND_FIRE_REMOVED,
-    WAND_COLD_REMOVED,
-    WAND_CONFUSION_REMOVED,
-    WAND_INVISIBILITY_REMOVED,
-#endif
     WAND_DIGGING,
     WAND_ICEBLAST,
-#if TAG_MAJOR_VERSION == 34
-    WAND_TELEPORTATION_REMOVED,
-    WAND_LIGHTNING_REMOVED,
-#endif
     WAND_POLYMORPH,
     WAND_ENSLAVEMENT,
     WAND_ACID,
     WAND_RANDOM_EFFECTS,
     WAND_DISINTEGRATION,
-#if TAG_MAJOR_VERSION == 34
-    WAND_CLOUDS_REMOVED,
-    WAND_SCATTERSHOT_REMOVED,
-#endif
     NUM_WANDS
 };
 
 enum food_type
 {
-#if TAG_MAJOR_VERSION == 34
-    FOOD_RATION,
-    FOOD_BREAD_RATION,
-    FOOD_PEAR,
-    FOOD_APPLE,
-    FOOD_CHOKO,
-#endif
-#if TAG_MAJOR_VERSION == 34
-    FOOD_ROYAL_JELLY,   // was: royal jelly
-    FOOD_UNUSED, // was: royal jelly and/or pizza
-    FOOD_FRUIT,  // was: snozzcumber
-    FOOD_PIZZA,
-    FOOD_APRICOT,
-    FOOD_ORANGE,
-    FOOD_BANANA,
-    FOOD_STRAWBERRY,
-    FOOD_RAMBUTAN,
-    FOOD_LEMON,
-    FOOD_GRAPE,
-    FOOD_SULTANA,
-    FOOD_LYCHEE,
-    FOOD_BEEF_JERKY,
-    FOOD_CHEESE,
-    FOOD_SAUSAGE,
-#endif
     FOOD_CHUNK,
-#if TAG_MAJOR_VERSION == 34
-    FOOD_AMBROSIA,
-#endif
     NUM_FOODS
 };

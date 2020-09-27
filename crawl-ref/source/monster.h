@@ -79,38 +79,39 @@ public:
     union
     {
         // These must all be the same size!
-        unsigned int number;   ///< General purpose number variable
-        int blob_size;         ///< num of slimes/masses in this one
-        int num_heads;         ///< Hydra-like head number
-        int ballisto_activity; ///< How active is this ballistomycete?
-        int spore_cooldown;    ///< Can this make ballistos (if 0)
-        int mangrove_pests;    ///< num of animals in shambling mangrove
-        int prism_charge;      ///< Turns this prism has existed
-        int battlecharge;      ///< Charges of battlesphere
-        int move_spurt;        ///< Sixfirhy/jiangshi/kraken black magic
-        int steps_remaining;   ///< Foxfire remaining moves
-        mid_t tentacle_connect;///< mid of monster this tentacle is
-                               //   connected to: for segments, this is the
-                               //   tentacle; for tentacles, the head.
+        unsigned int number;    // General purpose number variable
+        int blob_size;          // num of slimes/masses in this one
+        int num_heads;          // Hydra-like head number
+        int ballisto_activity;  // How active is this ballistomycete?
+        int spore_cooldown;     // Can this make ballistos (if 0)
+        int mangrove_pests;     // num of animals in shambling mangrove
+        int prism_charge;       // Turns this prism has existed
+        int battlecharge;       // Charges of battlesphere
+        int move_spurt;         // Sixfirhy/jiangshi/kraken black magic
+        int steps_remaining;    // Foxfire remaining moves
+        mid_t tentacle_connect; // mid of monster this tentacle is
+                                //  connected to: for segments, this is the
+                                //  tentacle; for tentacles, the head.
     };
     int           colour;
     mid_t         summoner;
 
-    int foe_memory;                    // how long to 'remember' foe x,y
-                                       // once they go out of sight.
+    int foe_memory;                     // how long to 'remember' foe x,y
+                                        //  once they go out of sight.
 
-    god_type god;                      // What god the monster worships, if
-                                       // any.
+    god_type god;                       // What god the monster worships,
+                                        //  if any.
 
-    unique_ptr<ghost_demon> ghost;     // Ghost information.
+    unique_ptr<ghost_demon> ghost;      // Ghost information.
 
-    seen_context_type seen_context;    // Non-standard context for
-                                       // activity_interrupt::see_monster
+    seen_context_type seen_context;     // Non-standard context for
+                                        //  activity_interrupt::see_monster
 
-    int damage_friendly;               // Damage taken, x2 you, x1 pets, x0 else.
+    int damage_friendly;                // Damage taken:
+                                        //  x2 you, x1 pets, x0 else.
     int damage_total;
 
-    uint32_t client_id;                // for ID of monster_info between turns
+    uint32_t client_id;                 // for ID of monster_info between turns
     static uint32_t last_client_id;
 
     bool went_unseen_this_turn;

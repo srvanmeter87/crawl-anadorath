@@ -16,7 +16,7 @@
 
 #include "species-data.h"
 
-/*
+/**
  * Get the species_def for the given species type. Asserts if the species_type
  * is not less than NUM_SPECIES.
  *
@@ -527,10 +527,6 @@ species_type random_draconian_colour()
 
 bool species_is_removed(species_type species)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (species == SP_MOTTLED_DRACONIAN)
-        return true;
-#endif
     // all other derived Dr are ok and don't have recommended jobs
     if (species_is_draconian(species))
         return false;

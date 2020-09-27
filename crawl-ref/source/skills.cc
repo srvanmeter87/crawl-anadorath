@@ -78,22 +78,13 @@ static const char *skill_titles[NUM_SKILLS][6] =
     {"Armour",         "Covered",       "Protected",       "Tortoise",        "Impregnable",    "Invulnerable"},
     {"Dodging",        "Ducker",        "Nimble",          "Spry",            "Acrobat",        "Intangible"},
     {"Stealth",        "Sneak",         "Covert",          "Unseen",          "Imperceptible",  "Ninja"},
-#if TAG_MAJOR_VERSION == 34
-    {"Stabbing",       "Miscreant",     "Blackguard",      "Backstabber",     "Cutthroat",      "Politician"},
-#endif
     {"Shields",        "Shield-Bearer", "Blocker",         "Peltast",         "Hoplite",        "@Adj@ Barricade"},
-#if TAG_MAJOR_VERSION == 34
-    {"Traps",          "Scout",         "Disarmer",        "Vigilant",        "Perceptive",     "Dungeon Master"},
-#endif
     // STR based fighters, for DEX/martial arts titles see below. Felids get their own category, too.
     {"Unarmed Combat", "Ruffian",       "Grappler",        "Brawler",         "Wrestler",       "@Weight@weight Champion"},
 
     {"Spellcasting",   "Magician",      "Thaumaturge",     "Eclecticist",     "Sorcerer",       "Archmage"},
     {"Conjurations",   "Conjurer",      "Destroyer",       "Devastator",      "Ruinous",        "Annihilator"},
     {"Hexes",          "Vexing",        "Jinx",            "Bewitcher",       "Maledictor",     "Spellbinder"},
-#if TAG_MAJOR_VERSION == 34
-    {"Charms",         "Charmwright",   "Infuser",         "Anointer",        "Gracecrafter",   "Miracle Worker"},
-#endif
     {"Summonings",     "Caller",        "Summoner",        "Convoker",        "Demonologist",   "Hellbinder"},
     {"Necromancy",     "Grave Robber",  "Reanimator",      "Necromancer",     "Thanatomancer",  "@Genus_Short@ of Death"},
     {"Translocations", "Grasshopper",   "Placeless @Genus@", "Blinker",       "Portalist",      "Plane @Walker@"},
@@ -1747,13 +1738,6 @@ string skill_title_by_rank(skill_type best_skill, uint8_t skill_rank,
                 result = god_title(god, species, piety);
             break;
 
-#if TAG_MAJOR_VERSION == 34
-        case SK_EVOCATIONS:
-            if (god == GOD_PAKELLAS)
-                result = god_title(god, species, piety);
-            break;
-#endif
-
         default:
             break;
         }
@@ -1864,12 +1848,7 @@ void init_skill_order()
 
 bool is_removed_skill(skill_type skill)
 {
-#if TAG_MAJOR_VERSION == 34
-    if (skill == SK_STABBING || skill == SK_TRAPS || skill == SK_CHARMS)
-        return true;
-#else
     UNUSED(skill);
-#endif
     return false;
 }
 

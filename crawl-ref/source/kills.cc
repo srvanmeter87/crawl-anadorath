@@ -570,21 +570,9 @@ void kill_def::load(reader& inf)
     short place_count = unmarshallShort(inf);
     for (short i = 0; i < place_count; ++i)
     {
-#if TAG_MAJOR_VERSION == 34
-        if (inf.getMinorVersion() < TAG_MINOR_PLACE_UNPACK)
-        {
-            places.push_back(level_id::from_packed_place(
-                                (unsigned short) unmarshallShort(inf)));
-        }
-        else
-        {
-#endif
         level_id tmp;
         tmp.load(inf);
         places.push_back(tmp);
-#if TAG_MAJOR_VERSION == 34
-        }
-#endif
     }
 }
 
@@ -622,11 +610,6 @@ void kill_ghost::load(reader& inf)
 {
     unmarshallString4(inf, ghost_name);
     exp = unmarshallShort(inf);
-#if TAG_MAJOR_VERSION == 34
-    if (inf.getMinorVersion() < TAG_MINOR_PLACE_UNPACK)
-        place = level_id::from_packed_place((unsigned short) unmarshallShort(inf));
-    else
-#endif
     place.load(inf);
 }
 
@@ -637,21 +620,12 @@ kill_monster_desc::kill_monster_desc(const monster* mon)
     switch (mon->type)
     {
         case MONS_ZOMBIE:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_ZOMBIE_LARGE: case MONS_ZOMBIE_SMALL:
-#endif
             modifier = M_ZOMBIE;
             break;
         case MONS_SKELETON:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_SKELETON_LARGE: case MONS_SKELETON_SMALL:
-#endif
             modifier = M_SKELETON;
             break;
         case MONS_SIMULACRUM:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_SIMULACRUM_LARGE: case MONS_SIMULACRUM_SMALL:
-#endif
             modifier = M_SIMULACRUM;
             break;
         case MONS_SPECTRAL_THING:
@@ -674,21 +648,12 @@ kill_monster_desc::kill_monster_desc(const monster_info& mon)
     switch (mon.type)
     {
         case MONS_ZOMBIE:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_ZOMBIE_LARGE: case MONS_ZOMBIE_SMALL:
-#endif
             modifier = M_ZOMBIE;
             break;
         case MONS_SKELETON:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_SKELETON_LARGE: case MONS_SKELETON_SMALL:
-#endif
             modifier = M_SKELETON;
             break;
         case MONS_SIMULACRUM:
-#if TAG_MAJOR_VERSION == 34
-        case MONS_SIMULACRUM_LARGE: case MONS_SIMULACRUM_SMALL:
-#endif
             modifier = M_SIMULACRUM;
             break;
         case MONS_SPECTRAL_THING:

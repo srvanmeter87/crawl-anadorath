@@ -256,9 +256,6 @@ static branch_type single_portals[] =
     BRANCH_VOLCANO,
     BRANCH_WIZLAB,
     BRANCH_DESOLATION,
-#if TAG_MAJOR_VERSION == 34
-    BRANCH_LABYRINTH,
-#endif
 };
 
 static void _sdump_visits(dump_params &par)
@@ -1228,10 +1225,6 @@ static string _describe_action(caction_type type)
         return "  Use";
     case CACT_STAB:
         return " Stab";
-#if TAG_MAJOR_VERSION == 34
-    case CACT_EAT:
-        return "  Eat";
-#endif
     case CACT_RIPOSTE:
         return "Rpst.";
     default:
@@ -1356,16 +1349,6 @@ static string _describe_action_subtype(caction_type type, int compound_subtype)
         {
         case EVOC_WAND:
             return "Wand";
-#if TAG_MAJOR_VERSION == 34
-        case EVOC_ROD:
-            return "Rod";
-        case EVOC_DECK:
-            return "Deck";
-        case EVOC_MISC:
-            return "Miscellaneous";
-        case EVOC_BUGGY_TOME:
-            return "tome";
-#endif
         default:
             return "Error";
         }
@@ -1375,10 +1358,6 @@ static string _describe_action_subtype(caction_type type, int compound_subtype)
         COMPILE_CHECK(ARRAYSZ(_stab_names) == NUM_STABS);
         ASSERT_RANGE(subtype, 1, NUM_STABS);
         return _stab_names[subtype];
-#if TAG_MAJOR_VERSION == 34
-    case CACT_EAT:
-        return "Removed food";
-#endif
     default:
         return "Error";
     }

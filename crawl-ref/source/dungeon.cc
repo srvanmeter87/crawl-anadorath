@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Functions used when building new levels.
-**/
+ */
 
 #include "AppHdr.h"
 
@@ -241,9 +241,11 @@ set<string> &get_uniq_map_names()
         return you.uniq_map_names;
 }
 
-/**********************************************************************
+/**
+ *********************************************************************
  * builder() - kickoff for the dungeon generator.
- *********************************************************************/
+ *********************************************************************
+ */
 bool builder(bool enable_random_maps)
 {
 #ifndef DEBUG_FULL_DUNGEON_SPAM
@@ -437,7 +439,7 @@ static void _builder_assertions()
  *
  * @param pos     The position of the transporter
  * @param dest    The position the transporter destination.
- **/
+ */
 void dgn_place_transporter(const coord_def &pos, const coord_def &dest)
 {
     ASSERT(pos != dest);
@@ -455,7 +457,7 @@ void dgn_place_transporter(const coord_def &pos, const coord_def &dest)
  *
  * @returns True if no transporter placement errors were found, false
  *          otherwise.
- **/
+ */
 bool dgn_make_transporters_from_markers()
 {
     bool no_errors = true;
@@ -912,40 +914,41 @@ static bool _is_exit_stair(const coord_def &c)
     }
 }
 
-// Counts the number of mutually unreachable areas in the map,
-// excluding isolated zones within vaults (we assume the vault author
-// knows what she's doing). This is an easy way to check whether a map
-// has isolated parts of the level that were not formerly isolated.
-//
-// All squares within vaults are treated as non-reachable, to simplify
-// life, because vaults may change the level layout and isolate
-// different areas without changing the number of isolated areas.
-// Here's a before and after example of such a vault that would cause
-// problems if we considered floor in the vault as non-isolating (the
-// vault is represented as V for walls and o for floor squares in the
-// vault).
-//
-// Before:
-//
-//   xxxxx    xxxxx
-//   x<..x    x.2.x
-//   x.1.x    xxxxx  3 isolated zones
-//   x>..x    x.3.x
-//   xxxxx    xxxxx
-//
-// After:
-//
-//   xxxxx    xxxxx
-//   x<1.x    x.2.x
-//   VVVVVVVVVVoooV  3 isolated zones, but the isolated zones are different.
-//   x>3.x    x...x
-//   xxxxx    xxxxx
-//
-// If count_stairless is true, returns the number of regions that have no
-// stairs in them.
-//
-// If fill is non-zero, it fills any disconnected regions with fill.
-//
+/**
+ * Counts the number of mutually unreachable areas in the map,
+ * excluding isolated zones within vaults (we assume the vault author
+ * knows what she's doing). This is an easy way to check whether a map
+ * has isolated parts of the level that were not formerly isolated.
+ *
+ * All squares within vaults are treated as non-reachable, to simplify
+ * life, because vaults may change the level layout and isolate
+ * different areas without changing the number of isolated areas.
+ * Here's a before and after example of such a vault that would cause
+ * problems if we considered floor in the vault as non-isolating (the
+ * vault is represented as V for walls and o for floor squares in the
+ * vault).
+ *
+ * Before:
+ *
+ *   xxxxx    xxxxx
+ *   x<..x    x.2.x
+ *   x.1.x    xxxxx  3 isolated zones
+ *   x>..x    x.3.x
+ *   xxxxx    xxxxx
+ *
+ * After:
+ *
+ *   xxxxx    xxxxx
+ *   x<1.x    x.2.x
+ *   VVVVVVVVVVoooV  3 isolated zones, but the isolated zones are different.
+ *   x>3.x    x...x
+ *   xxxxx    xxxxx
+ *
+ * If count_stairless is true, returns the number of regions that have no
+ * stairs in them.
+ *
+ * If fill is non-zero, it fills any disconnected regions with fill.
+ */
 static int _process_disconnected_zones(int x1, int y1, int x2, int y2,
                 bool choose_stairless,
                 dungeon_feature_type fill,
@@ -2745,21 +2748,6 @@ static const map_def *_dgn_random_map_for_place(bool minivault)
     }
 
     const level_id lid = level_id::current();
-
-#if TAG_MAJOR_VERSION == 34
-    if (!minivault
-        && player_in_branch(BRANCH_TOMB)
-        && you.props[TOMB_STONE_STAIRS_KEY])
-    {
-        const map_def *vault = random_map_for_tag("tomb_stone_stairs", true);
-
-        if (vault)
-            return vault;
-
-        end(1, false, "Couldn't find map with tag tomb_stone_stairs for level "
-            "%s.", lid.describe().c_str());
-    }
-#endif
 
     const map_def *vault = 0;
 
@@ -4773,10 +4761,6 @@ static bool _should_veto_unique(monster_type type)
 monster* dgn_place_monster(mons_spec &mspec, coord_def where,
                            bool force_pos, bool generate_awake, bool patrolling)
 {
-#if TAG_MAJOR_VERSION == 34
-    if ((int)mspec.type == -1) // or rebuild the des cache
-        return 0;
-#endif
     if (mspec.type == MONS_NO_MONSTER)
         return 0;
 
@@ -5967,10 +5951,6 @@ static void _place_specific_trap(const coord_def& where, trap_spec* spec,
             spec_type = static_cast<trap_type>(random2(NUM_TRAPS));
         }
         while (!is_regular_trap(spec_type)
-#if TAG_MAJOR_VERSION == 34
-               || spec_type == TRAP_NEEDLE || spec_type == TRAP_GAS
-               || spec_type == TRAP_SHADOW || spec_type == TRAP_SHADOW_DORMANT
-#endif
                || !is_valid_shaft_level() && spec_type == TRAP_SHAFT);
     }
 

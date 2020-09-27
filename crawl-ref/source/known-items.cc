@@ -115,10 +115,6 @@ public:
 
         if (item->base_type == OBJ_MISCELLANY)
             name = pluralise(item->name(DESC_DBNAME));
-#if TAG_MAJOR_VERSION == 34
-        else if (item->base_type == OBJ_FOOD)
-            name = "removed food";
-#endif
         else if (item->is_type(OBJ_BOOKS, BOOK_MANUAL))
             name = "manuals";
         else if (item->base_type == OBJ_GOLD)
@@ -301,10 +297,6 @@ void check_item_knowledge(bool unknown_items)
         // Missiles
         for (int i = 0; i < NUM_MISSILES; i++)
         {
-#if TAG_MAJOR_VERSION == 34
-            if (i == MI_NEEDLE)
-                continue;
-#endif
             _add_fake_item(OBJ_MISSILES, i, selected_items, items_missile);
         }
 
@@ -312,19 +304,6 @@ void check_item_knowledge(bool unknown_items)
         {
             if (i == MISC_HORN_OF_GERYON
                 || i == MISC_ZIGGURAT
-#if TAG_MAJOR_VERSION == 34
-                || is_deck_type(i)
-                || i == MISC_BUGGY_EBONY_CASKET
-                || i == MISC_BUGGY_LANTERN_OF_SHADOWS
-                || i == MISC_BOTTLED_EFREET
-                || i == MISC_RUNE_OF_ZOT
-                || i == MISC_STONE_OF_TREMORS
-                || i == MISC_XOMS_CHESSBOARD
-                || i == MISC_FAN_OF_GALES
-                || i == MISC_SACK_OF_SPIDERS
-                || i == MISC_LAMP_OF_FIRE
-                || i == MISC_CRYSTAL_BALL_OF_ENERGY
-#endif
                 || (i == MISC_QUAD_DAMAGE && !crawl_state.game_is_sprint()))
             {
                 continue;

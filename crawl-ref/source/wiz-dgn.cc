@@ -398,11 +398,7 @@ bool debug_make_trap(const coord_def& pos)
         trap = TRAP_RANDOM;
 
     for (int t =
-#if TAG_MAJOR_VERSION == 34
-            TRAP_DART
-#else
             TRAP_ARROW
-#endif
             ; t < NUM_TRAPS; ++t)
     {
         const trap_type tr = static_cast<trap_type>(t);

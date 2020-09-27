@@ -114,10 +114,7 @@ class item_def_printer:
             'OBJ_STAVES':    'stave_type',
             'OBJ_ORBS':      'orb_type',
             'OBJ_MISCELLANY':'misc_item_type',
-            'OBJ_CORPSES':   'corpse_type',
-            # 'OBJ_GOLD':
-            # Remove when TAG_MAJOR_VERSION > 34:
-            'OBJ_RODS':      'rod_type'
+            'OBJ_CORPSES':   'corpse_type'
             }.get(ty, 'uint8_t')
         sub_ty = str(self.val['sub_type'].cast(gdb.lookup_type(sub_type_type)))
 

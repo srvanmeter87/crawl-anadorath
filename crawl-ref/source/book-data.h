@@ -183,31 +183,12 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_DISJUNCTION,
 },
 
-#if TAG_MAJOR_VERSION == 34
-{   // Book of Envenomations
-    SPELL_SPIDER_FORM,
-    SPELL_OLGREBS_TOXIC_RADIANCE,
-    SPELL_INTOXICATE,
-},
-#endif
-
 {   // Book of Unlife
     SPELL_ANIMATE_DEAD,
     SPELL_BORGNJORS_VILE_CLUTCH,
     SPELL_DEATH_CHANNEL,
     SPELL_SIMULACRUM,
 },
-
-#if TAG_MAJOR_VERSION == 34
-{   // Book of Control
-    SPELL_ENGLACIATION,
-},
-
-{   // Book of Battle
-    SPELL_WEREBLOOD,
-    SPELL_OZOCUBUS_ARMOUR,
-},
-#endif
 
 {   // Book of Geomancy
     SPELL_SANDBLAST,
@@ -224,14 +205,6 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_IRON_SHOT,
     SPELL_SHATTER,
 },
-
-#if TAG_MAJOR_VERSION == 34
-{   // Book of Wizardry
-    SPELL_AGONY,
-    SPELL_INVISIBILITY,
-    SPELL_SPELLFORGED_SERVITOR,
-},
-#endif
 
 {   // Book of Power
     SPELL_BATTLESPHERE,
@@ -255,14 +228,6 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_INTOXICATE,
     SPELL_INVISIBILITY
 },
-
-#if TAG_MAJOR_VERSION == 34
-{   // Akashic Record
-    SPELL_DISPERSAL,
-    SPELL_MALIGN_GATEWAY,
-    SPELL_DISJUNCTION,
-},
-#endif
 
 {   // Book of Debilitation
     SPELL_CORONA,
@@ -303,15 +268,6 @@ static const vector<spell_type> spellbook_templates[] =
     SPELL_IRRADIATE,
     SPELL_NOXIOUS_BOG,
 },
-
-#if TAG_MAJOR_VERSION == 34
-{   // Book of Beasts
-    SPELL_CALL_CANINE_FAMILIAR,
-    SPELL_SUMMON_ICE_BEAST,
-    SPELL_SUMMON_MANA_VIPER,
-    SPELL_SUMMON_HYDRA,
-},
-#endif
 
 {   // Book of Annihilations
     SPELL_CHAIN_LIGHTNING,

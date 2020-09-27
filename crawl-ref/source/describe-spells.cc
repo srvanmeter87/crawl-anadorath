@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Functions used to print information about spells, spellbooks, etc.
- **/
+ */
 
 #include "AppHdr.h"
 
@@ -572,10 +572,6 @@ static void _describe_book(const spellbook_contents &book,
         }
 
         string schools =
-#if TAG_MAJOR_VERSION == 34
-            source_item->base_type == OBJ_RODS ? "Evocations"
-                                               :
-#endif
                          _spell_schools(spell);
 
         string known = "";
@@ -655,13 +651,7 @@ static void _write_book(const spellbook_contents &book,
                 tiles.json_write_string("hex_chance",
                         make_stringf("%d%%", hex_chance(spell, hd)));
         }
-
-#if TAG_MAJOR_VERSION == 34
-        string schools = (source_item && source_item->base_type == OBJ_RODS) ?
-                "Evocations" : _spell_schools(spell);
-#else
         string schools = _spell_schools(spell);
-#endif
         tiles.json_write_string("schools", schools);
         tiles.json_write_int("level", spell_difficulty(spell));
         tiles.json_close_object();

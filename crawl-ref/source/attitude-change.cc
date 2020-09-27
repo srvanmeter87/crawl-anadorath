@@ -153,11 +153,10 @@ void anadorath_neutralise(monster* mons)
         && !mons->neutral()
         && !testbits(mons->flags, MF_ATT_CHANGE_ATTEMPT))
     {
-        mons->flags |= MF_ATT_CHANGE_ATTEMPT;
         if (!player_under_penance())
         {
             _anadorath_neutralise_elemental(mons);
-            stop_running();
+            mons->flags |= MF_ATT_CHANGE_ATTEMPT;
             del_exclude(mons->pos());
         }
     }
@@ -391,8 +390,7 @@ static void _anadorath_convert_elemental(monster *elemental)
     if (you.can_see(*elemental))
     {
         mprf(MSGCH_GOD, "%s seems to appreciate your presence and joins you!",
-
-        elemental->name(DESC_THE).c_str());
+             elemental->name(DESC_THE).c_str());
     }
 
     elemental->attitude = ATT_FRIENDLY;
@@ -414,18 +412,13 @@ static void _anadorath_neutralise_elemental(monster *elemental)
 
     if (you.can_see(*elemental))
     {
-        mprf(MSGCH_GOD, "%s stares at you suspiciously for a moment, "
-                        "then relaxes.",
-
-        elemental->name(DESC_THE).c_str());
+        mprf(MSGCH_GOD,
+             "%s stares at you suspiciously for a moment, then relaxes.",
+             elemental->name(DESC_THE).c_str());
     }
 
-    elemental->attitude = ATT_GOOD_NEUTRAL;
+    elemental->attitude = ATT_STRICT_NEUTRAL;
     elemental->flags   |= MF_WAS_NEUTRAL;
-
-    mons_make_god_gift(*elemental, GOD_ANADORATH);
-
-    behaviour_event(elemental, ME_ALERT);
 
     mons_att_changed(elemental);
 }

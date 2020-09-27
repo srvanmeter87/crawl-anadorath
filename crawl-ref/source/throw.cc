@@ -467,9 +467,6 @@ bool fire_warn_if_impossible(bool silent)
             return true;
         }
         else
-#if TAG_MAJOR_VERSION == 34
-             if (weapon->sub_type != WPN_BLOWGUN)
-#endif
         {
             if (!silent)
             {

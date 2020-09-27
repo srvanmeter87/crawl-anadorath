@@ -1087,9 +1087,6 @@ static bool _tutorial_interesting(hints_event_type event)
     case HINT_HEALING_POTIONS:
     case HINT_GAINED_SPELLCASTING:
     case HINT_FUMBLING_SHALLOW_WATER:
-#if TAG_MAJOR_VERSION == 34
-    case HINT_MEMORISE_FAILURE:
-#endif
     case HINT_SPELL_MISCAST:
     case HINT_CLOUD_WARNING:
     case HINT_ANIMATE_CORPSE_SKELETON:
@@ -1274,9 +1271,6 @@ void learned_something_new(hints_event_type seen_what, coord_def gc)
         cmd.push_back(CMD_DISPLAY_INVENTORY);
 
         if (
-#if TAG_MAJOR_VERSION == 34
-            you.species == SP_CENTAUR ||
-#endif
             you.species == SP_MINOTAUR)
         {
             text << "\nNote that as a " << species_name(you.species)
@@ -1967,14 +1961,6 @@ void learned_something_new(hints_event_type seen_what, coord_def gc)
                 "dying, check your options carefully. Often, retreat or use "
                 "of some item might be a viable alternative to fighting on.";
 
-#if TAG_MAJOR_VERSION == 34
-        if (you.species == SP_CENTAUR)
-        {
-            text << " As a four-legged centaur, you are particularly quick - "
-                    "running away is usually an option!";
-        }
-#endif
-
         if (you_worship(GOD_TROG) && you.can_go_berserk())
         {
             text << "With "
@@ -2631,10 +2617,6 @@ void learned_something_new(hints_event_type seen_what, coord_def gc)
              << "to have a look at your skills and manage their training.";
         cmd.push_back(CMD_DISPLAY_SKILLS);
         break;
-#if TAG_MAJOR_VERSION == 34
-    case HINT_MEMORISE_FAILURE: // lmao
-        break;
-#endif
     case HINT_FUMBLING_SHALLOW_WATER:
         text << "Fighting in shallow water will sometimes cause you to slip "
                 "and fumble your attack. If possible, try to fight on "
@@ -3099,17 +3081,6 @@ string hints_describe_item(const item_def &item)
         case OBJ_ARMOUR:
         {
             bool wearable = true;
-#if TAG_MAJOR_VERSION == 34
-            if (you.species == SP_CENTAUR && item.sub_type == ARM_BOOTS)
-            {
-                ostr << "As a Centaur you cannot wear boots. "
-                        "(Type <w>%</w> to see a list of your mutations and "
-                        "innate abilities.)";
-                cmd.push_back(CMD_DISPLAY_MUTATIONS);
-                wearable = false;
-            }
-            else
-#endif
             if (you.species == SP_MINOTAUR && is_hard_helmet(item))
             {
                 ostr << "As a Minotaur you cannot wear helmets. "
@@ -3424,9 +3395,6 @@ static void _hints_describe_feature(int x, int y, ostringstream& ostr)
     case DNGN_TRAP_TELEPORT_PERMANENT:
     case DNGN_TRAP_ALARM:
     case DNGN_TRAP_ZOT:
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_TRAP_MECHANICAL:
-#endif
     case DNGN_TRAP_ARROW:
     case DNGN_TRAP_SPEAR:
     case DNGN_TRAP_BLADE:
@@ -3516,13 +3484,6 @@ static void _hints_describe_feature(int x, int y, ostringstream& ostr)
 
         Hints.hints_events[HINT_SEEN_ESCAPE_HATCH] = false;
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_ENTER_PORTAL_VAULT:
-        ostr << "This " << _describe_portal(where);
-        Hints.hints_events[HINT_SEEN_PORTAL] = false;
-        break;
-#endif
 
     case DNGN_CLOSED_DOOR:
     case DNGN_CLOSED_CLEAR_DOOR:

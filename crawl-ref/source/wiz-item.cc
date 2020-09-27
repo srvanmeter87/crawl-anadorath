@@ -258,10 +258,6 @@ static void _tweak_randart(item_def &item)
     vector<unsigned int> choice_to_prop;
     for (unsigned int i = 0, choice_num = 0; i < ARTP_NUM_PROPERTIES; ++i)
     {
-#if TAG_MAJOR_VERSION == 34
-        if (i == ARTP_METABOLISM || i == ARTP_ACCURACY || i == ARTP_TWISTER)
-            continue;
-#endif
         choice_to_prop.push_back(i);
         if (choice_num % 8 == 0 && choice_num != 0)
             prompt.back() = '\n'; // Replace the space
@@ -1121,40 +1117,22 @@ static void _debug_acquirement_stats(FILE *ostat)
             "freezing",
             "holy wrath",
             "electrocution",
-#if TAG_MAJOR_VERSION == 34
-            "orc slaying",
-            "dragon slaying",
-#endif
             "venom",
             "protection",
             "draining",
             "speed",
             "vorpal",
-#if TAG_MAJOR_VERSION == 34
-            "flame",
-            "frost",
-#endif
             "vampirism",
             "pain",
             "antimagic",
             "distortion",
-#if TAG_MAJOR_VERSION == 34
-            "reaching",
-            "returning",
-#endif
             "chaos",
-#if TAG_MAJOR_VERSION == 34
-            "evasion",
-            "confusion",
-#endif
             "penetration",
             "reaping",
             "spectral",
             "INVALID",
             "acid",
-#if TAG_MAJOR_VERSION > 34
             "confuse",
-#endif
             "debug randart",
         };
         COMPILE_CHECK(ARRAYSZ(names) == NUM_SPECIAL_WEAPONS);
@@ -1200,13 +1178,7 @@ static void _debug_acquirement_stats(FILE *ostat)
             "reflection",
             "spirit shield",
             "archery",
-#if TAG_MAJOR_VERSION == 34
-            "jumping",
-#endif
             "repulsion",
-#if TAG_MAJOR_VERSION == 34
-            "cloud immunity",
-#endif
             "harm",
             "rampaging",
         };
@@ -1518,13 +1490,7 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_CAUSE_TELEPORTATION",
         "ARTP_PREVENT_TELEPORTATION",
         "ARTP_ANGRY",
-#if TAG_MAJOR_VERSION == 34
-        "ARTP_METABOLISM",
-#endif
         "ARTP_CONTAM",
-#if TAG_MAJOR_VERSION == 34
-        "ARTP_ACCURACY",
-#endif
         "ARTP_SLAYING",
         "ARTP_CURSE",
         "ARTP_STEALTH",
@@ -1535,19 +1501,10 @@ static void _debug_rap_stats(FILE *ostat)
         "ARTP_BASE_ACC",
         "ARTP_BASE_DAM",
         "ARTP_RMSL",
-#if TAG_MAJOR_VERSION == 34
-        "ARTP_FOG",
-#endif
         "ARTP_REGENERATION",
-#if TAG_MAJOR_VERSION == 34
-        "ARTP_SUSTAT",
-#endif
         "ARTP_NO_UPGRADE",
         "ARTP_RCORR",
         "ARTP_RMUT",
-#if TAG_MAJOR_VERSION == 34
-        "ARTP_TWISTER",
-#endif
         "ARTP_CORRODE",
         "ARTP_DRAIN",
         "ARTP_SLOW",

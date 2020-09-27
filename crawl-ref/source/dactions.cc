@@ -40,43 +40,23 @@ static const char *daction_names[] =
     "plants go hostile (allowing reconversion)",
     "elementals revert to neutral (allowing re-reversion)",
     "elementals go hostile (allowing reconversion)",
-    "elementals allow another conversion attempt",
-    0, 0, 0, 0, 0,
+    0, 0, 0, 0, 0, 0,
 
     // Actions not needing a counter.
     "old enslaved souls go poof",
-#if TAG_MAJOR_VERSION == 34
-    "holy beings allow another conversion attempt",
-#else
     "slimes allow another conversion attempt",
-#endif
-#if TAG_MAJOR_VERSION == 34
-    "holy beings go neutral",
-    "Trog's gifts go hostile",
-    "reclaim decks",
-#endif
     "reapply passive mapping",
     "remove Jiyva altars",
     "Pikel's minions go poof",
     "corpses rot",
-#if TAG_MAJOR_VERSION == 34
-    "Tomb loses -cTele",
-    "slimes allow another conversion attempt",
-#endif
     "hogs to humans",
-#if TAG_MAJOR_VERSION == 34
-    "end spirit howl",
-#endif
     "gold to top of piles",
     "bribe timeout",
     "remove Gozag shops",
     "apply Gozag bribes",
-#if TAG_MAJOR_VERSION == 34
-    "Makhleb's servants go hostile",
-    "make all monsters hate you",
-#endif
     "ancestor vanishes",
     "upgrade ancestor",
+    "elementals allow another conversion attempt",
 };
 #endif
 
@@ -101,7 +81,7 @@ bool mons_matches_daction(const monster* mon, daction_type act)
     case DACT_ALLY_ELEMENTAL:
         return mon->friendly() && mons_is_god_gift(*mon, GOD_ANADORATH);
     case DACT_NEUTRAL_ELEMENTAL:
-        return mon->neutral() && mons_is_god_gift(*mon, GOD_ANADORATH);
+        return mon->neutral();
     case DACT_ELEMENTAL_NEW_ATTEMPT:
         return anadorath_converts(*mon);
     case DACT_ALLY_HEPLIAKLQANA:
@@ -176,7 +156,7 @@ void add_daction(daction_type act)
 }
 
 void apply_daction_to_mons(monster* mon, daction_type act, bool local,
-        bool in_transit)
+                           bool in_transit)
 {
     // Transiting monsters exist outside the normal monster list (env.mons or
     // menv for short). Be careful not to write them into the monster grid, by,
@@ -315,12 +295,6 @@ static void _apply_daction(daction_type act)
                 apply_daction_to_mons(*mi, act, true, false);
         }
         break;
-
-#if TAG_MAJOR_VERSION == 34
-    case DACT_RECLAIM_DECKS:
-        reclaim_decks_on_level();
-        break;
-#endif
     case DACT_REAUTOMAP:
         reautomap_level();
         break;
@@ -361,19 +335,6 @@ static void _apply_daction(daction_type act)
         if (!companion_is_elsewhere(hepliaklqana_ancestor()))
             upgrade_hepliaklqana_ancestor(true);
         break;
-#if TAG_MAJOR_VERSION == 34
-    case DACT_END_SPIRIT_HOWL:
-    case DACT_HOLY_NEW_ATTEMPT:
-    case DACT_ALLY_SACRIFICE_LOVE:
-    case DACT_TOMB_CTELE:
-    case DACT_ALLY_HOLY:
-    case DACT_HOLY_PETS_GO_NEUTRAL:
-    case DACT_ALLY_MAKHLEB:
-    case DACT_ALLY_TROG:
-    case DACT_ALLY_UNHOLY_EVIL:
-    case DACT_ALLY_UNCLEAN_CHAOTIC:
-    case DACT_ALLY_SPELLCASTER:
-#endif
     case NUM_DACTION_COUNTERS:
     case NUM_DACTIONS:
         ;

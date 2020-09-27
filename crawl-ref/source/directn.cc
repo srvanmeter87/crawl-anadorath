@@ -3141,9 +3141,6 @@ string feature_description_at(const coord_def& where, bool covering,
 
     switch (grid)
     {
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_TRAP_MECHANICAL:
-#endif
     case DNGN_TRAP_ARROW:
     case DNGN_TRAP_SPEAR:
     case DNGN_TRAP_BLADE:
@@ -3157,12 +3154,6 @@ string feature_description_at(const coord_def& where, bool covering,
 
     case DNGN_ENTER_SHOP:
         return shop_name(*shop_at(where));
-
-#if TAG_MAJOR_VERSION == 34
-    case DNGN_ENTER_PORTAL_VAULT:
-        // Should have been handled at the top of the function.
-        return thing_do_grammar(dtype, "UNAMED PORTAL VAULT ENTRY");
-#endif
 
     case DNGN_TREE:
     {

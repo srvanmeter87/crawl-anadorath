@@ -2178,15 +2178,6 @@ bool melee_attack::apply_staff_damage()
         }
         break;
 
-#if TAG_MAJOR_VERSION == 34
-    case STAFF_SUMMONING:
-    case STAFF_POWER:
-    case STAFF_ENCHANTMENT:
-    case STAFF_ENERGY:
-    case STAFF_WIZARDRY:
-#endif
-        break;
-
     default:
         die("Invalid staff type: %d", weapon->sub_type);
     }

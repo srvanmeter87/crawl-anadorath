@@ -170,19 +170,6 @@ static const form_entry formdata[] =
     "creak", 0, "branch", "root", "sway towards", "wood"
 },
 
-#if TAG_MAJOR_VERSION == 34
-{
-    transformation::porcupine, MONS_PORCUPINE, "Porc", "porcupine-form", "porcupine",
-    "a spiny porcupine.",
-    EQF_ALL, MR_NO_FLAGS,
-    BAD_DURATION, 0, 0, SIZE_TINY, 10,
-    0, 0, 0, false, 0, false, 3,
-    SPWPN_NORMAL, LIGHTGREY, "Teeth", ANIMAL_VERBS,
-    FC_DEFAULT, FC_FORBID, FC_ENABLE, true, false,
-    "squeak", -8, "front leg", "", "curl into a sanctuary of spikes before", "flesh"
-},
-#endif
-
 {
     transformation::wisp, MONS_INSUBSTANTIAL_WISP, "Wisp", "wisp-form", "wisp",
     "an insubstantial wisp.",
@@ -196,19 +183,6 @@ static const form_entry formdata[] =
     FC_ENABLE, FC_FORBID, FC_FORBID, false, false,
     "whoosh", -8, "misty tendril", "strand", "swirl around", "vapour"
 },
-
-#if TAG_MAJOR_VERSION == 34
-{
-    transformation::jelly, MONS_JELLY, "Jelly", "jelly-form", "jelly",
-    "a lump of jelly.",
-    EQF_PHYSICAL | EQF_RINGS, MR_NO_FLAGS,
-    BAD_DURATION, 0, 0, SIZE_CHARACTER, 10,
-    0, 0, 0, false, 0, false, 3,
-    SPWPN_NORMAL, LIGHTGREY, "", DEFAULT_VERBS,
-    FC_DEFAULT, FC_FORBID, FC_FORBID, false, false,
-    "", 0, "", "", "", ""
-},
-#endif
 
 {
     transformation::fungus, MONS_WANDERING_MUSHROOM, "Fungus", "fungus-form", "fungus",

@@ -767,15 +767,6 @@ static void _spirit_shield_message(bool unmeld)
     if (!unmeld && you.spirit_shield() < 2)
     {
         mpr("You feel your power drawn to a protective spirit.");
-#if TAG_MAJOR_VERSION == 34
-        if (you.species == SP_DEEP_DWARF
-            && !(have_passive(passive_t::no_mp_regen)
-                 || player_under_penance(GOD_PAKELLAS)))
-        {
-            dec_mp(you.magic_points);
-            mpr("Now linked to your health, your magic stops regenerating.");
-        }
-#endif
     }
     else if (!unmeld && you.get_mutation_level(MUT_MANA_SHIELD))
         mpr("You feel the presence of a powerless spirit.");

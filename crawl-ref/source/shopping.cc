@@ -293,31 +293,11 @@ unsigned int item_value(item_def item, bool ident)
             case SPMSL_CURARE:
             case SPMSL_BLINDING:
             case SPMSL_SILVER:
-#if TAG_MAJOR_VERSION == 34
-            case SPMSL_PARALYSIS:
-            case SPMSL_PENETRATION:
-            case SPMSL_STEEL:
-#endif
             case SPMSL_DISPERSAL:
                 valued *= 30;
                 break;
 
-#if TAG_MAJOR_VERSION == 34
-            case SPMSL_FLAME:
-            case SPMSL_FROST:
-            case SPMSL_SLEEP:
-            case SPMSL_CONFUSION:
-                valued *= 25;
-                break;
-#endif
-
             case SPMSL_POISONED:
-#if TAG_MAJOR_VERSION == 34
-            case SPMSL_RETURNING:
-            case SPMSL_EXPLODING:
-            case SPMSL_SLOW:
-            case SPMSL_SICKNESS:
-#endif
             case SPMSL_FRENZY:
                 valued *= 20;
                 break;
@@ -550,11 +530,6 @@ unsigned int item_value(item_def item, bool ident)
 
             case SCR_FOG:
             case SCR_IDENTIFY:
-#if TAG_MAJOR_VERSION == 34
-            case SCR_CURSE_ARMOUR:
-            case SCR_CURSE_WEAPON:
-            case SCR_CURSE_JEWELLERY:
-#endif
                 valued += 20;
                 break;
 
@@ -708,10 +683,6 @@ unsigned int item_value(item_def item, bool ident)
     {
         valued = 150;
         const book_type book = static_cast<book_type>(item.sub_type);
-#if TAG_MAJOR_VERSION == 34
-        if (book == BOOK_BUGGY_DESTRUCTION)
-            break;
-#endif
 
         if (item_type_known(item))
         {
@@ -783,11 +754,6 @@ bool is_worthless_consumable(const item_def &item)
     case OBJ_SCROLLS:
         switch (item.sub_type)
         {
-#if TAG_MAJOR_VERSION == 34
-        case SCR_CURSE_ARMOUR:
-        case SCR_CURSE_WEAPON:
-        case SCR_CURSE_JEWELLERY:
-#endif
         case SCR_NOISE:
         case SCR_RANDOM_USELESSNESS:
             return true;
@@ -1438,10 +1404,6 @@ string shop_type_name(shop_type type)
             return "Gadget";
         case SHOP_BOOK:
             return "Book";
-#if TAG_MAJOR_VERSION == 34
-        case SHOP_FOOD:
-            return "Removed Food";
-#endif
         case SHOP_SCROLL:
             return "Magic Scroll";
         case SHOP_GENERAL_ANTIQUE:
@@ -1476,12 +1438,6 @@ string shop_name(const shop_struct& shop)
     const shop_type type = shop.type;
 
     string sh_name = "";
-
-#if TAG_MAJOR_VERSION == 34
-    // xref ShopInfo::load
-    if (shop.shop_name == " ")
-        return shop.shop_type_name;
-#endif
     if (!shop.shop_name.empty())
         sh_name += apostrophise(shop.shop_name) + " ";
     else
@@ -1891,16 +1847,6 @@ void ShoppingList::item_type_identified(object_class_type base_type,
 
     // Only restore the excursion at the very end.
     level_excursion le;
-
-#if TAG_MAJOR_VERSION == 34
-    // Handle removed Gozag shops from old saves. Only do this once:
-    // future Gozag abandonment will call remove_dead_shops itself.
-    if (!you.props.exists(REMOVED_DEAD_SHOPS_KEY))
-    {
-        remove_dead_shops();
-        you.props[REMOVED_DEAD_SHOPS_KEY] = true;
-    }
-#endif
 
     for (CrawlHashTable &thing : *list)
     {

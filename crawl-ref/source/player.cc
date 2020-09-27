@@ -1483,11 +1483,7 @@ bool player_res_torment(bool random)
 
     return get_form()->res_neg() == 3
            || you.species == SP_VAMPIRE && !you.vampire_alive
-           || you.petrified()
-#if TAG_MAJOR_VERSION == 34
-           || player_equip_unrand(UNRAND_ETERNAL_TORMENT)
-#endif
-           ;
+           || you.petrified();
 }
 
 // Kiku protects you from torment to a degree.
@@ -3784,11 +3780,6 @@ int get_real_hp(bool trans, bool rotted)
     if (trans)
         hitp = hitp * form_hp_mod() / 10;
 
-#if TAG_MAJOR_VERSION == 34
-    if (trans && player_equip_unrand(UNRAND_ETERNAL_TORMENT))
-        hitp = hitp * 4 / 5;
-#endif
-
     return max(1, hitp);
 }
 
@@ -3846,11 +3837,6 @@ bool player_regenerates_mp()
     // damage shaving is enough. (due, dpeg)
     if (you.spirit_shield() && you.species == SP_DEEP_DWARF)
         return false;
-#if TAG_MAJOR_VERSION == 34
-    // Pakellas blocks MP regeneration.
-    if (have_passive(passive_t::no_mp_regen) || player_under_penance(GOD_PAKELLAS))
-        return false;
-#endif
     return true;
 }
 
@@ -3920,11 +3906,6 @@ void contaminate_player(int change, bool controlled, bool msg)
     int old_level  = get_contamination_level();
     bool was_glowing = player_severe_contamination();
     int new_level  = 0;
-
-#if TAG_MAJOR_VERSION == 34
-    if (change > 0 && player_equip_unrand(UNRAND_ETHERIC_CAGE))
-        change *= 2;
-#endif
 
     you.magic_contamination = max(0, min(250000,
                                          you.magic_contamination + change));
@@ -7690,9 +7671,6 @@ bool player::wear_barding() const {
     switch (you.species) {
         case SP_NAGA:
         case SP_PALENTONGA:
-#if TAG_MAJOR_VERSION == 34
-        case SP_CENTAUR:
-#endif
             return true;
         default:
             return false;

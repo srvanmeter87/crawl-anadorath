@@ -354,10 +354,6 @@ static vector<string> _get_god_keys()
     for (int i = GOD_NO_GOD + 1; i < NUM_GODS; i++)
     {
         god_type which_god = static_cast<god_type>(i);
-#if TAG_MAJOR_VERSION == 34
-        // XXX: currently disabled.
-        if (which_god != GOD_PAKELLAS)
-#endif
         names.push_back(god_name(which_god));
     }
 
@@ -398,10 +394,6 @@ static vector<string> _get_skill_keys()
     for (skill_type sk = SK_FIRST_SKILL; sk < NUM_SKILLS; ++sk)
     {
         const string name = lowercase_string(skill_name(sk));
-#if TAG_MAJOR_VERSION == 34
-        if (getLongDescription(name).empty())
-            continue; // obsolete skills
-#endif
 
         names.emplace_back(name);
     }

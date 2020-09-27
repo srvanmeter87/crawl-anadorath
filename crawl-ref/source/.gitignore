@@ -1,4 +1,5 @@
 coverage-html-report/
+.clang-format
 *.gcda
 *.gcno
 *.gcov

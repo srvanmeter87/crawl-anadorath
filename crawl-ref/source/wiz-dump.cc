@@ -56,17 +56,10 @@ private:
 };
 
 static uint8_t _jewellery_type_from_artefact_prop(const string &s
-#if TAG_MAJOR_VERSION == 34
-                                                  , bool is_amulet
-#endif
                                                   )
 {
     if (s == "Regen")
-#if TAG_MAJOR_VERSION == 34
-        return is_amulet ? AMU_REGENERATION : RING_REGENERATION;
-#else
         return AMU_REGENERATION;
-#endif
 
     if (s == "Inacc")
         return AMU_INACCURACY;
@@ -184,9 +177,6 @@ static void _apply_randart_properties(item_def &item,
         {
             item.sub_type = _jewellery_type_from_artefact_prop(
                 brand_name
-#if TAG_MAJOR_VERSION == 34
-                , name.find("amulet") != string::npos
-#endif
             );
         }
 

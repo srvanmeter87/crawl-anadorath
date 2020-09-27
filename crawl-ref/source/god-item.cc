@@ -259,11 +259,6 @@ bool is_antichaotic_item(const item_def& item, bool calc_unid)
 
     switch (item.base_type)
     {
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_POTIONS:
-        retval = (item.sub_type == POT_CURE_MUTATION);
-        break;
-#endif
     default:
         break;
     }
@@ -346,9 +341,7 @@ bool is_channeling_item(const item_def& item, bool calc_unid)
     if (!calc_unid && !item_type_known(item))
         return false;
 
-    return item.base_type == OBJ_STAVES && item.sub_type == STAFF_ENERGY
-           || item.base_type == OBJ_MISCELLANY
-              && item.sub_type == MISC_CRYSTAL_BALL_OF_ENERGY;
+    return false;
 }
 
 
@@ -389,10 +382,6 @@ bool is_fiery_item(const item_def& item, bool calc_unid)
         if (item.sub_type == STAFF_FIRE)
             retval = true;
         break;
-    case OBJ_MISCELLANY:
-        if (item.sub_type == MISC_LAMP_OF_FIRE)
-            retval = true;
-        break;
     default:
         break;
     }
@@ -415,18 +404,10 @@ bool is_earthy_item(const item_def& item, bool calc_unid)
 
     switch (item.base_type)
     {
-    case OBJ_MISSILES:
-        {
-        const int item_brand = get_ammo_brand(item);
-        if (item_brand == SPMSL_PENETRATION)
-            retval = true;
-        break;
-        }
     case OBJ_WANDS:
         if (item.sub_type == WAND_PARALYSIS
             || item.sub_type == WAND_DIGGING
-            || item.sub_type == WAND_DISINTEGRATION
-            || item.sub_type == WAND_SCATTERSHOT_REMOVED)
+            || item.sub_type == WAND_DISINTEGRATION)
         {
             retval = true;
         }
@@ -469,10 +450,6 @@ bool is_airy_item(const item_def& item, bool calc_unid)
             retval = true;
         break;
         }
-    case OBJ_WANDS:
-        if (item.sub_type == WAND_CLOUDS_REMOVED)
-            retval = true;
-        break;
     case OBJ_SCROLLS:
         if (item.sub_type == SCR_NOISE
             || item.sub_type == SCR_FOG
@@ -489,10 +466,6 @@ bool is_airy_item(const item_def& item, bool calc_unid)
         if (item.sub_type == STAFF_AIR)
             retval = true;
         break;
-    case OBJ_MISCELLANY:
-        if (item.sub_type == MISC_FAN_OF_GALES)
-            retval = true;
-        break;
     default:
         break;
     }
@@ -503,20 +476,6 @@ bool is_airy_item(const item_def& item, bool calc_unid)
 bool is_icy_item(const item_def& item, bool calc_unid)
 {
     bool retval = false;
-
-#if TAG_MAJOR_VERSION == 34
-    if (item.base_type == OBJ_WEAPONS)
-    {
-        if (calc_unid || item_brand_known(item))
-            return get_weapon_brand(item) == SPWPN_FROST;
-    }
-
-    if (item.base_type == OBJ_MISSILES)
-    {
-        if (calc_unid || item_brand_known(item))
-            return get_ammo_brand(item) == SPMSL_FROST;
-    }
-#endif
 
     if (!calc_unid && !item_type_known(item))
         return false;

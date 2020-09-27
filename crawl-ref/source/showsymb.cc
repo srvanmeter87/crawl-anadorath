@@ -132,10 +132,6 @@ static unsigned short _cell_feat_show_colour(const map_cell& cell,
             colour = ETC_ORB_GLOW;
         else if (cell.flags & MAP_QUAD_HALOED)
             colour = BLUE;
-#if TAG_MAJOR_VERSION == 34
-        else if (cell.flags & MAP_HOT)
-            colour = ETC_FIRE;
-#endif
     }
 
     return colour;
@@ -184,11 +180,6 @@ static int _get_mons_colour(const monster_info& mi)
     monster_type stype = _show_mons_type(mi);
     if (stype != mi.type && mi.type != MONS_SENSED)
         col = mons_class_colour(stype);
-
-#if TAG_MAJOR_VERSION == 34
-    if (mi.is(MB_ROLLING))
-        col = ETC_BONE;
-#endif
 
     if (mi.is(MB_BERSERK))
         col = RED;

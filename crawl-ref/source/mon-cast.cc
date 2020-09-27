@@ -1743,13 +1743,7 @@ bool setup_mons_cast(const monster* mons, bolt &pbolt, spell_type spell_cast,
     case SPELL_SUMMON_ILLUSION:
     case SPELL_SUMMON_DEMON:
     case SPELL_MONSTROUS_MENAGERIE:
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_ANIMATE_DEAD:
-#endif
     case SPELL_TWISTED_RESURRECTION:
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_SIMULACRUM:
-#endif
     case SPELL_CALL_IMP:
     case SPELL_SUMMON_MINOR_DEMON:
     case SPELL_SUMMON_UFETUBUS:
@@ -1768,9 +1762,6 @@ bool setup_mons_cast(const monster* mons, bolt &pbolt, spell_type spell_cast,
     case SPELL_BROTHERS_IN_ARMS:
     case SPELL_BERSERKER_RAGE:
     case SPELL_SPRINT:
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_SWIFTNESS:
-#endif
     case SPELL_CREATE_TENTACLES:
     case SPELL_BLINK:
     case SPELL_BLINK_RANGE:
@@ -1789,9 +1780,6 @@ bool setup_mons_cast(const monster* mons, bolt &pbolt, spell_type spell_cast,
     case SPELL_SUMMON_DRAGON:
     case SPELL_SUMMON_HYDRA:
     case SPELL_FIRE_SUMMON:
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_DEATHS_DOOR:
-#endif
     case SPELL_OZOCUBUS_ARMOUR:
     case SPELL_OLGREBS_TOXIC_RADIANCE:
     case SPELL_SHATTER:
@@ -5681,11 +5669,6 @@ void mons_cast(monster* mons, bolt pbolt, spell_type spell_cast,
         mons->props.erase("brothers_count");
         mons->go_berserk(true);
         return;
-
-#if TAG_MAJOR_VERSION == 34
-    // Replaced with monster-specific version.
-    case SPELL_SWIFTNESS:
-#endif
     case SPELL_SPRINT:
         mons->add_ench(ENCH_SWIFT);
         simple_monster_message(*mons, " puts on a burst of speed!");
@@ -7455,10 +7438,6 @@ static ai_action::goodness _monster_spell_goodness(monster* mon, mon_spell_slot 
 
     case SPELL_BERSERKER_RAGE:
         return ai_action::good_or_impossible(mon->needs_berserk(false));
-
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_SWIFTNESS:
-#endif
     case SPELL_SPRINT:
         return ai_action::good_or_impossible(!mon->has_ench(ENCH_SWIFT));
 
@@ -7827,16 +7806,6 @@ static ai_action::goodness _monster_spell_goodness(monster* mon, mon_spell_slot 
     case SPELL_FLAMING_CLOUD:
     case SPELL_CHAOS_BREATH:
         return ai_action::good_or_impossible(!no_clouds);
-
-#if TAG_MAJOR_VERSION == 34
-    case SPELL_SUMMON_SWARM:
-    case SPELL_INNER_FLAME:
-    case SPELL_ANIMATE_DEAD:
-    case SPELL_SIMULACRUM:
-    case SPELL_DEATHS_DOOR:
-    case SPELL_FULMINANT_PRISM:
-    case SPELL_DAZZLING_FLASH:
-#endif
     case SPELL_NO_SPELL:
         return ai_action::bad();
 

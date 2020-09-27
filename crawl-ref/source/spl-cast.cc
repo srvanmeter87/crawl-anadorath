@@ -78,36 +78,6 @@
 static int _spell_enhancement(spell_type spell);
 static string _spell_failure_rate_description(spell_type spell);
 
-#if TAG_MAJOR_VERSION == 34
-void surge_power(const int enhanced)
-{
-    if (enhanced)               // one way or the other {dlb}
-    {
-        const string modifier = (enhanced  < -2) ? "extraordinarily" :
-                                (enhanced == -2) ? "extremely" :
-                                (enhanced ==  2) ? "strong" :
-                                (enhanced  >  2) ? "huge"
-                                                 : "";
-        mprf("You feel %s %s",
-             !modifier.length() ? "a"
-                                : article_a(modifier).c_str(),
-             (enhanced < 0) ? "numb sensation."
-                            : "surge of power!");
-    }
-}
-
-void surge_power_wand(const int mp_cost)
-{
-    if (mp_cost)
-    {
-        const bool slight = mp_cost < 3;
-        mprf("You feel a %ssurge of power%s",
-             slight ? "slight " : "",
-             slight ? "."      : "!");
-    }
-}
-#endif
-
 static string _spell_base_description(spell_type spell, bool viewing)
 {
     ostringstream desc;
@@ -1283,13 +1253,8 @@ vector<string> desc_success_chance(const monster_info& mi, int pow, bool evoked,
     }
     else
     {
-#if TAG_MAJOR_VERSION == 34
-        const int adj_pow = evoked ? pakellas_effective_hex_power(pow)
-                                   : pow;
-#else
         UNUSED(evoked);
         const int adj_pow = pow;
-#endif
         const int success = hex_success_chance(mr, adj_pow, 100);
         descs.push_back(make_stringf("chance to defeat MR: %d%%", success));
     }
@@ -1425,22 +1390,9 @@ spret your_spells(spell_type spell, int powc, bool allow_fail,
 
     if (evoked_item)
     {
-#if TAG_MAJOR_VERSION == 34
-        const int surge = pakellas_surge_devices();
-#else
         const int surge = 0;
-#endif
         powc = player_adjust_evoc_power(powc, surge);
-#if TAG_MAJOR_VERSION == 34
-        int mp_cost_of_wand = evoked_item->base_type == OBJ_WANDS
-                              ? wand_mp_cost() : 0;
-        surge_power_wand(mp_cost_of_wand + surge * 3);
-#endif
     }
-#if TAG_MAJOR_VERSION == 34
-    else if (allow_fail)
-        surge_power(_spell_enhancement(spell));
-#endif
     // Enhancers only matter for calc_spell_power() and raw_spell_fail().
     // Not sure about this: is it flavour or misleading? (jpeg)
 
@@ -1449,17 +1401,6 @@ spret your_spells(spell_type spell, int powc, bool allow_fail,
                                       : GOD_NO_GOD;
 
     int fail = 0;
-#if TAG_MAJOR_VERSION == 34
-    bool antimagic = false; // lost time but no other penalty
-
-    if (allow_fail && you.duration[DUR_ANTIMAGIC]
-        && x_chance_in_y(you.duration[DUR_ANTIMAGIC] / 3, you.hp_max))
-    {
-        mpr("You fail to access your magic.");
-        fail = antimagic = true;
-    }
-    else
-#endif
     if (evoked_item && evoked_item->charges == 0)
         return spret::fail;
     else if (allow_fail)
@@ -1559,10 +1500,6 @@ spret your_spells(spell_type spell, int powc, bool allow_fail,
     }
     case spret::fail:
     {
-#if TAG_MAJOR_VERSION == 34
-        if (antimagic)
-            return spret::fail;
-#endif
 
         mprf("You miscast %s.", spell_title(spell));
         flush_input_buffer(FLUSH_ON_FAILURE);

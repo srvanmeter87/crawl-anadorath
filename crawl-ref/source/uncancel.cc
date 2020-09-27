@@ -52,13 +52,6 @@ void run_uncancels()
             if (!stack_five(arg) && crawl_state.seen_hups)
                 return;
             break;
-
-#if TAG_MAJOR_VERSION == 34
-        case UNC_MERCENARY:
-        case UNC_ACQUIREMENT:
-            break;
-
-#endif
         case UNC_POTION_PETITION:
             if (!gozag_potion_petition() && crawl_state.seen_hups)
                 return;

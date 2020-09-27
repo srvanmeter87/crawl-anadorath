@@ -1081,13 +1081,6 @@ static int _get_dest_stair_type(dungeon_feature_type stair_taken,
                 return it->exit_stairs;
         die("return corresponding to entry %d not found", stair_taken);
     }
-#if TAG_MAJOR_VERSION == 34
-    if (stair_taken == DNGN_ENTER_LABYRINTH)
-    {
-        // dgn_find_nearby_stair uses special logic for labyrinths.
-        return DNGN_ENTER_LABYRINTH;
-    }
-#endif
 
     if (feat_is_portal_entrance(stair_taken))
         return DNGN_STONE_ARCH;
@@ -1415,32 +1408,6 @@ static string _get_hatch_name()
 
 static const string VISITED_LEVELS_KEY = "visited_levels";
 
-#if TAG_MAJOR_VERSION == 34
-// n.b. these functions are in files.cc largely because this is where the fixup
-// needs to happen.
-// before pregeneration, whether the level had been visited was synonymous with
-// whether it had been visited, but after, we need to track this information
-// more directly. It is also inferrable from turns_on_level, but you can't get
-// at that very easily without fully loading the level.
-// no need for a minor version here, though there will be a brief window of
-// offline pregen games that this doesn't handle right -- they will get things
-// like broken runelock. (In principle this fixup could be done by loading
-// each level and checking turns, but it's not worth the trouble for these few
-// games.)
-static void _fixup_visited_from_package()
-{
-    // for games started later than this fixup, this prop is initialized in
-    // player::player
-    CrawlHashTable &visited = you.props[VISITED_LEVELS_KEY].get_table();
-    if (visited.size()) // only 0 for upgrades, or before entering D:1
-        return;
-    vector<level_id> levels = all_dungeon_ids();
-    for (const level_id &lid : levels)
-        if (is_existing_level(lid))
-            visited[lid.describe()] = true;
-}
-#endif
-
 void player::set_level_visited(const level_id &level)
 {
     auto &visited = props[VISITED_LEVELS_KEY].get_table();
@@ -1488,9 +1455,6 @@ static const vector<branch_type> portal_generation_order =
     BRANCH_VOLCANO,
     BRANCH_BAILEY,
     BRANCH_GAUNTLET,
-#if TAG_MAJOR_VERSION == 34
-    BRANCH_LABYRINTH,
-#endif
     // do not pregenerate bazaar (TODO: this is non-ideal)
     // do not pregenerate trove
     BRANCH_WIZLAB,
@@ -1873,12 +1837,6 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     const bool make_changes =
         (load_mode == LOAD_START_GAME || load_mode == LOAD_ENTER_LEVEL);
 
-#if TAG_MAJOR_VERSION == 34
-    // fixup saves that don't have this prop initialized.
-    if (load_mode == LOAD_RESTART_GAME)
-        _fixup_visited_from_package();
-#endif
-
     // Did we get here by popping the level stack?
     bool popped = false;
 
@@ -2107,25 +2065,6 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
              "curr_PlaceInfo:: num_visits: %d, levels_seen: %d",
              curr_PlaceInfo.num_visits, curr_PlaceInfo.levels_seen);
 #endif
-#if TAG_MAJOR_VERSION == 34
-        // this fixup is for a bug where turns_on_level==0 was used to set
-        // just_created_level, and there were some obscure ways to have 0
-        // turns on a level that you had entered previously. It only applies
-        // to a narrow version range (basically 0.23.0) but there's no way to
-        // do a sensible minor version check here and the fixup can't happen
-        // on load.
-        if (is_connected_branch(curr_PlaceInfo.branch)
-            && brdepth[curr_PlaceInfo.branch] > 0
-            && static_cast<int>(curr_PlaceInfo.levels_seen)
-                                        > brdepth[curr_PlaceInfo.branch])
-        {
-            mprf(MSGCH_ERROR,
-                "Fixing up corrupted PlaceInfo for %s (levels_seen is %d)",
-                branches[curr_PlaceInfo.branch].shortname,
-                curr_PlaceInfo.levels_seen);
-            curr_PlaceInfo.levels_seen = brdepth[curr_PlaceInfo.branch];
-        }
-#endif
         curr_PlaceInfo.assert_validity();
     }
 
@@ -2203,22 +2142,6 @@ bool load_level(dungeon_feature_type stair_taken, load_mode_type load_mode,
     if (make_changes && you.position != env.old_player_pos)
        shake_off_monsters(you.as_player());
 
-#if TAG_MAJOR_VERSION == 34
-    if (make_changes && you.props.exists("zig-fixup")
-        && you.where_are_you == BRANCH_TOMB
-        && you.depth == brdepth[BRANCH_TOMB])
-    {
-        if (!just_created_level)
-        {
-            int obj = items(false, OBJ_MISCELLANY, MISC_ZIGGURAT, 0);
-            ASSERT(obj != NON_ITEM);
-            bool success = move_item_to_grid(&obj, you.pos(), true);
-            ASSERT(success);
-        }
-        you.props.erase("zig-fixup");
-    }
-#endif
-
     return just_created_level;
 }
 
@@ -2232,12 +2155,7 @@ static void _save_level(const level_id& lid)
 
     _write_tagged_chunk(lid.describe(), TAG_LEVEL);
 }
-
-#if TAG_MAJOR_VERSION == 34
-# define CHUNK(short, long) short
-#else
 # define CHUNK(short, long) long
-#endif
 
 #define SAVEFILE(short, long, savefn)           \
     do                                          \
@@ -2573,18 +2491,6 @@ save_version read_ghost_header(reader &inf)
     auto version = get_save_version(inf);
     if (!version.valid())
         return version;
-
-#if TAG_MAJOR_VERSION == 34
-    // downgrade bones files saved before the bones sub-versioning system
-    if (version > save_version::current_bones() && version.is_compatible())
-    {
-        _ghost_dprf("Setting bones file version from %d.%d to %d.%d on load",
-            version.major, version.minor,
-            save_version::current_bones().major,
-            save_version::current_bones().minor);
-        version = save_version::current_bones();
-    }
-#endif
 
     try
     {
@@ -3152,48 +3058,6 @@ void write_save_version(writer &outf, save_version version)
 static bool _convert_obsolete_species()
 {
     // At this point the character has been loaded but not resaved, but the grid, lua, stashes, etc have not been.
-#if TAG_MAJOR_VERSION == 34
-    if (you.species == SP_LAVA_ORC)
-    {
-        if (!yes_or_no("This <red>Lava Orc</red> save game cannot be loaded as-is. If you "
-                       "load it now, your character will be converted to a Hill Orc. Continue?"))
-        {
-            you.save->abort(); // don't even rewrite the header
-            delete you.save;
-            you.save = 0;
-            game_ended(game_exit::abort,
-                "Please load the save in an earlier version "
-                "if you want to keep it as a Lava Orc.");
-        }
-        change_species_to(SP_HILL_ORC);
-        // No need for conservation
-        you.innate_mutation[MUT_CONSERVE_SCROLLS] = you.mutation[MUT_CONSERVE_SCROLLS] = 0;
-        // This is not an elegant way to deal with lava, but at this point the
-        // level isn't loaded so we can't check the grid features. In
-        // addition, even if the player isn't over lava, they might still get
-        // trapped.
-        fly_player(100);
-        return true;
-    }
-    if (you.species == SP_DJINNI)
-    {
-        if (!yes_or_no("This <red>Djinni</red> save game cannot be loaded as-is. If you "
-                       "load it now, your character will be converted to a Vine Stalker. Continue?"))
-        {
-            you.save->abort(); // don't even rewrite the header
-            delete you.save;
-            you.save = 0;
-            game_ended(game_exit::abort,
-                "Please load the save in an earlier version "
-                "if you want to keep it as a Djinni.");
-        }
-        change_species_to(SP_VINE_STALKER);
-        you.magic_contamination = 0;
-        // Djinni were flying, so give the player some time to land
-        fly_player(100);
-        return true;
-    }
-#endif
     return false;
 }
 
@@ -3231,11 +3095,6 @@ static bool _read_char_chunk(package *save)
         // but that's the common case.
         if (major == TAG_MAJOR_VERSION && minor == TAG_MINOR_VERSION)
             inf.fail_if_not_eof("chr");
-
-#if TAG_MAJOR_VERSION == 34
-        if (major == 33 && minor == TAG_MINOR_0_11)
-            return true;
-#endif
         return major == TAG_MAJOR_VERSION && minor <= TAG_MINOR_VERSION;
     }
     catch (short_read_exception &E)

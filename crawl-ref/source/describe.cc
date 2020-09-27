@@ -1,7 +1,7 @@
 /**
  * @file
  * @brief Functions used to print information about various game objects.
-**/
+ */
 
 #include "AppHdr.h"
 
@@ -232,24 +232,12 @@ const char* jewellery_base_ability_string(int subtype)
 {
     switch (subtype)
     {
-#if TAG_MAJOR_VERSION == 34
-    case RING_SUSTAIN_ATTRIBUTES: return "SustAt";
-#endif
     case RING_WIZARDRY:           return "Wiz";
     case RING_FIRE:               return "Fire";
     case RING_ICE:                return "Ice";
     case RING_TELEPORTATION:      return "*Tele";
-#if TAG_MAJOR_VERSION == 34
-    case RING_TELEPORT_CONTROL:   return "+cTele";
-    case AMU_HARM:                return "Harm";
-    case AMU_THE_GOURMAND:        return "Gourm";
-#endif
     case AMU_MANA_REGENERATION:   return "RegenMP";
     case AMU_ACROBAT:             return "Acrobat";
-#if TAG_MAJOR_VERSION == 34
-    case AMU_CONSERVATION:        return "Cons";
-    case AMU_CONTROLLED_FLIGHT:   return "cFly";
-#endif
     case AMU_GUARDIAN_SPIRIT:     return "Spirit";
     case AMU_FAITH:               return "Faith";
     case AMU_REFLECTION:          return "Reflect";
@@ -471,10 +459,6 @@ static const char* _jewellery_base_ability_description(int subtype)
 {
     switch (subtype)
     {
-#if TAG_MAJOR_VERSION == 34
-    case RING_SUSTAIN_ATTRIBUTES:
-        return "It sustains your strength, intelligence and dexterity.";
-#endif
     case RING_WIZARDRY:
         return "It improves your spell success rate.";
     case RING_FIRE:
@@ -483,22 +467,10 @@ static const char* _jewellery_base_ability_description(int subtype)
         return "It enhances your ice magic.";
     case RING_TELEPORTATION:
         return "It may teleport you next to monsters.";
-#if TAG_MAJOR_VERSION == 34
-    case RING_TELEPORT_CONTROL:
-        return "It can be evoked for teleport control.";
-    case AMU_HARM:
-        return "It increases damage dealt and taken.";
-    case AMU_THE_GOURMAND:
-        return "It allows you to eat raw meat even when not hungry.";
-#endif
     case AMU_MANA_REGENERATION:
         return "It increases your magic regeneration.";
     case AMU_ACROBAT:
         return "It helps you evade while moving and waiting.";
-#if TAG_MAJOR_VERSION == 34
-    case AMU_CONSERVATION:
-        return "It protects your inventory from destruction.";
-#endif
     case AMU_GUARDIAN_SPIRIT:
         return "It causes incoming damage to be split between your health and "
                "magic.";
@@ -640,21 +612,12 @@ static const char *trap_names[] =
 {
     "dart",
     "arrow", "spear",
-#if TAG_MAJOR_VERSION > 34
     "dispersal",
     "teleport",
-#endif
     "permanent teleport",
     "alarm", "blade",
     "bolt", "net", "Zot",
-#if TAG_MAJOR_VERSION == 34
-    "needle",
-#endif
     "shaft", "passage", "pressure plate", "web",
-#if TAG_MAJOR_VERSION == 34
-    "gas", "teleport",
-    "shadow", "dormant shadow", "dispersal"
-#endif
 };
 
 string trap_name(trap_type trap)
@@ -1467,21 +1430,6 @@ static string _describe_ammo(const item_def &item)
 
         switch (item.brand)
         {
-#if TAG_MAJOR_VERSION == 34
-        case SPMSL_FLAME:
-            description += "It burns those it strikes, causing extra injury "
-                    "to most foes and up to half again as much damage against "
-                    "particularly susceptible opponents. Compared to normal "
-                    "ammo, it is twice as likely to be destroyed on impact.";
-            break;
-        case SPMSL_FROST:
-            description += "It freezes those it strikes, causing extra injury "
-                    "to most foes and up to half again as much damage against "
-                    "particularly susceptible opponents. It can also slow down "
-                    "cold-blooded creatures. Compared to normal ammo, it is "
-                    "twice as likely to be destroyed on impact.";
-            break;
-#endif
         case SPMSL_CHAOS:
             description += "When ";
 
@@ -1825,12 +1773,6 @@ static string _describe_armour(const item_def &item, bool verbose)
         case SPARM_REPULSION:
             description += "It protects its wearer by repelling missiles.";
             break;
-
-#if TAG_MAJOR_VERSION == 34
-        case SPARM_CLOUD_IMMUNE:
-            description += "It does nothing special.";
-            break;
-#endif
 
         case SPARM_HARM:
             description += "It increases damage dealt and taken.";
@@ -2194,11 +2136,6 @@ string get_item_description(const item_def &item, bool verbose,
     case OBJ_ORBS:
     case OBJ_GOLD:
     case OBJ_RUNES:
-
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_FOOD:
-    case OBJ_RODS:
-#endif
         // No extra processing needed for these item types.
         break;
 
@@ -3651,9 +3588,6 @@ static string _flavour_base_desc(attack_flavour flavour)
         { AF_POISON_STRONG,     "cause strong poisoning" },
         { AF_ROT,               "cause rotting" },
         { AF_VAMPIRIC,          "drain health from the living" },
-#if TAG_MAJOR_VERSION == 34
-        { AF_KLOWN,             "cause random powerful effects" },
-#endif
         { AF_DISTORT,           "cause wild translocation effects" },
         { AF_RAGE,              "cause berserking" },
         { AF_STICKY_FLAME,      "apply sticky flame" },

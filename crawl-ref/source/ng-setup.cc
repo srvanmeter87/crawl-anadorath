@@ -503,12 +503,6 @@ static void _setup_generic(const newgame_def& ng,
     you.game_seed = crawl_state.seed;
     you.deterministic_levelgen = Options.incremental_pregen;
 
-#if TAG_MAJOR_VERSION == 34
-    // Avoid the remove_dead_shops() Gozag fixup in new games: see
-    // ShoppingList::item_type_identified().
-    you.props[REMOVED_DEAD_SHOPS_KEY] = true;
-#endif
-
     // Needs to happen before we give the player items, so that it's safe to
     // check whether those items need to be removed from their shopping list.
     shopping_list.refresh();

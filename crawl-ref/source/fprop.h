@@ -20,10 +20,6 @@ enum feature_property_type
     // Squares that the tide should not affect.
     FPROP_NO_TIDE       = (1 << 10),
     FPROP_NO_SUBMERGE   = (1 << 11),
-#if TAG_MAJOR_VERSION == 34
-    FPROP_MOLD          = (1 << 12),
-    FPROP_GLOW_MOLD     = (1 << 13),
-#endif
     // Immune to spawning jellies and off-level eating.
     FPROP_NO_JIYVA      = (1 << 14),
     // Permanent, unlike map memory.

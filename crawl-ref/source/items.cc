@@ -575,10 +575,6 @@ void unlink_item(int dest)
         //
         // Use the items (x,y) to access the list (igrd[x][y]) where
         // the item should be linked.
-
-#if TAG_MAJOR_VERSION == 34
-        if (mitm[dest].pos.x != 0 || mitm[dest].pos.y < 5)
-#endif
         ASSERT_IN_BOUNDS(mitm[dest].pos);
 
         // First check the top:
@@ -1227,15 +1223,6 @@ bool origin_is_acquirement(const item_def& item, item_source_type *type)
     *type = IT_SRC_NONE;
 
     const int iorig = -item.orig_monnum;
-#if TAG_MAJOR_VERSION == 34
-// Copy pasting is bad but this will autoupdate on version bump
-    if (iorig == AQ_CARD_GENIE)
-    {
-        *type = static_cast<item_source_type>(iorig);
-        return true;
-    }
-
-#endif
     if (iorig == AQ_SCROLL || iorig == AQ_WIZMODE)
     {
         *type = static_cast<item_source_type>(iorig);
@@ -1270,11 +1257,6 @@ string origin_desc(const item_def &item)
             case AQ_SCROLL:
                 desc += "You acquired " + _article_it(item) + " ";
                 break;
-#if TAG_MAJOR_VERSION == 34
-            case AQ_CARD_GENIE:
-                desc += "You drew the Genie ";
-                break;
-#endif
             case AQ_WIZMODE:
                 desc += "Your wizardly powers created "+ _article_it(item)+ " ";
                 break;
@@ -1512,17 +1494,11 @@ bool is_stackable_item(const item_def &item)
         case OBJ_SCROLLS:
         case OBJ_POTIONS:
         case OBJ_GOLD:
-#if TAG_MAJOR_VERSION == 34
-        case OBJ_FOOD:
-#endif
             return true;
         case OBJ_MISCELLANY:
             switch (item.sub_type)
             {
                 case MISC_ZIGGURAT:
-#if TAG_MAJOR_VERSION == 34
-                case MISC_SACK_OF_SPIDERS:
-#endif
                     return true;
                 default:
                     break;
@@ -2854,9 +2830,6 @@ static int _autopickup_subtype(const item_def &item)
             return item.sub_type;
         else
             return max_type;
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:
-#endif
     case OBJ_GOLD:
     case OBJ_RUNES:
         return max_type;
@@ -2991,12 +2964,7 @@ static bool _similar_wands(const item_def& pickup_item,
 
     if (pickup_item.sub_type != inv_item.sub_type)
         return false;
-#if TAG_MAJOR_VERSION == 34
-    // Not similar if wand in inventory is empty.
-    return !is_known_empty_wand(inv_item);
-#else
     return true;
-#endif
 }
 
 static bool _similar_jewellery(const item_def& pickup_item,
@@ -3236,9 +3204,6 @@ int get_max_subtype(object_class_type base_type)
         NUM_MISSILES,
         NUM_ARMOURS,
         NUM_WANDS,
-#if TAG_MAJOR_VERSION == 34
-        NUM_FOODS,
-#endif
         NUM_SCROLLS,
         NUM_JEWELLERY,
         NUM_POTIONS,
@@ -3248,9 +3213,6 @@ int get_max_subtype(object_class_type base_type)
         NUM_MISCELLANY,
         -1,              // corpses     -- handled specially
         1,              // gold         -- handled specially
-#if TAG_MAJOR_VERSION == 34
-        NUM_RODS,
-#endif
         NUM_RUNE_TYPES,
     };
     COMPILE_CHECK(ARRAYSZ(max_subtype) == NUM_OBJECT_CLASSES);
@@ -3433,9 +3395,6 @@ colour_t item_def::missile_colour() const
             return LIGHTGREY;
         case MI_ARROW:
             return BLUE;
-#if TAG_MAJOR_VERSION == 34
-        case MI_NEEDLE:
-#endif
         case MI_DART:
             return WHITE;
         case MI_BOLT:
@@ -3476,9 +3435,6 @@ colour_t item_def::armour_colour() const
             return GREEN;
         case ARM_ROBE:
             return RED;
-#if TAG_MAJOR_VERSION == 34
-        case ARM_CAP:
-#endif
         case ARM_HAT:
         case ARM_HELMET:
             return MAGENTA;
@@ -3546,10 +3502,6 @@ colour_t item_def::potion_colour() const
     // (use an array of [name, colour] tuples/structs)
     static const COLOURS potion_colours[] =
     {
-#if TAG_MAJOR_VERSION == 34
-        // clear
-        LIGHTGREY,
-#endif
         // blue, black, silvery, cyan, purple, orange
         BLUE, LIGHTGREY, WHITE, CYAN, MAGENTA, LIGHTRED,
         // inky, red, yellow, green, brown, pink, white
@@ -3805,40 +3757,16 @@ colour_t item_def::miscellany_colour() const
 
     switch (sub_type)
     {
-#if TAG_MAJOR_VERSION == 34
-        case MISC_FAN_OF_GALES:
-            return CYAN;
-        case MISC_BOTTLED_EFREET:
-            return RED;
-#endif
         case MISC_PHANTOM_MIRROR:
             return RED;
-#if TAG_MAJOR_VERSION == 34
-        case MISC_STONE_OF_TREMORS:
-            return BROWN;
-#endif
         case MISC_LIGHTNING_ROD:
             return LIGHTGREY;
         case MISC_PHIAL_OF_FLOODS:
             return LIGHTBLUE;
         case MISC_BOX_OF_BEASTS:
             return LIGHTGREEN; // ugh, but we're out of other options
-#if TAG_MAJOR_VERSION == 34
-        case MISC_CRYSTAL_BALL_OF_ENERGY:
-            return LIGHTCYAN;
-#endif
         case MISC_HORN_OF_GERYON:
             return LIGHTRED;
-#if TAG_MAJOR_VERSION == 34
-        case MISC_LAMP_OF_FIRE:
-            return YELLOW;
-        case MISC_SACK_OF_SPIDERS:
-            return WHITE;
-        case MISC_BUGGY_LANTERN_OF_SHADOWS:
-        case MISC_BUGGY_EBONY_CASKET:
-        case MISC_XOMS_CHESSBOARD:
-            return DARKGREY;
-#endif
         case MISC_TIN_OF_TREMORSTONES:
             return BROWN;
         case MISC_CONDENSER_VANE:
@@ -3866,12 +3794,7 @@ colour_t item_def::corpse_colour() const
         case CORPSE_BODY:
         {
             const colour_t class_colour = mons_class_colour(mon_type);
-#if TAG_MAJOR_VERSION == 34
-            if (class_colour == COLOUR_UNDEF)
-                return LIGHTRED;
-#else
             ASSERT(class_colour != COLOUR_UNDEF);
-#endif
             return class_colour;
         }
         default:
@@ -3917,20 +3840,12 @@ colour_t item_def::get_colour() const
             return wand_colour();
         case OBJ_POTIONS:
             return potion_colour();
-#if TAG_MAJOR_VERSION == 34
-        case OBJ_FOOD:
-            return LIGHTRED;
-#endif
         case OBJ_JEWELLERY:
             return jewellery_colour();
         case OBJ_SCROLLS:
             return LIGHTGREY;
         case OBJ_BOOKS:
             return book_colour();
-#if TAG_MAJOR_VERSION == 34
-        case OBJ_RODS:
-            return YELLOW;
-#endif
         case OBJ_STAVES:
             return BROWN;
         case OBJ_ORBS:
@@ -3962,9 +3877,6 @@ bool item_type_has_unidentified(object_class_type base_type)
         || base_type == OBJ_BOOKS
         || base_type == OBJ_STAVES
         || base_type == OBJ_MISCELLANY
-#if TAG_MAJOR_VERSION == 34
-        || base_type == OBJ_RODS
-#endif
         ;
 }
 
@@ -4508,11 +4420,6 @@ item_info get_item_info(const item_def& item)
         if (item.sub_type == BOOK_MANUAL && item_type_known(item))
             ii.skill = item.skill; // manual skill
         break;
-#if TAG_MAJOR_VERSION == 34
-    case OBJ_RODS:
-        ii.sub_type = NUM_RODS;
-        break;
-#endif
     case OBJ_STAVES:
         ii.sub_type = item_type_known(item) ? item.sub_type : int{NUM_STAVES};
         ii.subtype_rnd = item.subtype_rnd;

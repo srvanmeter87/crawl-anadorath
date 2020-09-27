@@ -31,9 +31,6 @@ function trove.get_trove_item(e, value, base_item)
     sub_type="",
     ego_type=false,
     plus1=false,
--- start TAG_MAJOR_VERSION == 34
-    plus2=false,
--- end TAG_MAJOR_VERSION
     artefact_name=false,
   }
 

@@ -1085,9 +1085,6 @@ static bool _may_overwrite_pos(coord_def c)
     // Don't overwrite any stairs or branch entrances.
     if (feat_is_stair(grid)
         || grid == DNGN_ENTER_SHOP
-#if TAG_MAJOR_VERSION == 34
-        || grid == DNGN_TELEPORTER
-#endif
         || grid == DNGN_TRANSPORTER)
     {
         return false;

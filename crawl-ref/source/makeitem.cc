@@ -369,18 +369,6 @@ bool is_weapon_brand_ok(int type, int brand, bool /*strict*/)
             return false;
         break;
 
-#if TAG_MAJOR_VERSION == 34
-    // Removed brands.
-    case SPWPN_RETURNING:
-    case SPWPN_REACHING:
-    case SPWPN_ORC_SLAYING:
-    case SPWPN_FLAME:
-    case SPWPN_FROST:
-    case SPWPN_DRAGON_SLAYING:
-    case SPWPN_EVASION:
-        return false;
-#endif
-
     case SPWPN_CONFUSE:
     case SPWPN_FORBID_BRAND:
     case SPWPN_DEBUG_RANDART:
@@ -620,9 +608,6 @@ bool is_missile_brand_ok(int type, int brand, bool strict)
         break;
 
     case SPMSL_CURARE:
-#if TAG_MAJOR_VERSION == 34
-    case SPMSL_PARALYSIS:
-#endif
     case SPMSL_FRENZY:
         return type == MI_DART;
 
@@ -719,9 +704,6 @@ static void _generate_missile_item(item_def& item, int force_type,
     // Reduced quantity if special.
     if (item.sub_type == MI_JAVELIN || item.sub_type == MI_BOOMERANG
         || (item.sub_type == MI_DART && get_ammo_brand(item) != SPMSL_POISONED)
-#if TAG_MAJOR_VERSION == 34
-        || get_ammo_brand(item) == SPMSL_RETURNING
-#endif
         )
     {
         item.quantity = random_range(2, 8);
@@ -941,9 +923,6 @@ bool is_armour_brand_ok(int type, int brand, bool strict)
             return true;
         // deliberate fall-through
     case SPARM_RUNNING:
-#if TAG_MAJOR_VERSION == 34
-    case SPARM_JUMPING:
-#endif
     case SPARM_RAMPAGING:
         return slot == EQ_BOOTS;
     case SPARM_STEALTH:
@@ -955,16 +934,7 @@ bool is_armour_brand_ok(int type, int brand, bool strict)
     case SPARM_PONDEROUSNESS:
         return true;
     case SPARM_PRESERVATION:
-#if TAG_MAJOR_VERSION > 34
         return slot == EQ_CLOAK;
-#endif
-#if TAG_MAJOR_VERSION == 34
-        if (type == ARM_PLATE_ARMOUR && !strict)
-            return true;
-        return slot == EQ_CLOAK;
-    case SPARM_INVISIBILITY:
-        return (slot == EQ_CLOAK && !strict) || type == ARM_SCARF;
-#endif
 
     case SPARM_REFLECTION:
     case SPARM_PROTECTION:
@@ -1007,21 +977,11 @@ bool is_armour_brand_ok(int type, int brand, bool strict)
 
     case SPARM_SPIRIT_SHIELD:
         return
-#if TAG_MAJOR_VERSION == 34
-               type == ARM_HAT ||
-               type == ARM_CAP ||
-               type == ARM_SCARF ||
-#endif
                slot == EQ_SHIELD || !strict;
 
     case SPARM_REPULSION:
     case SPARM_HARM:
-#if TAG_MAJOR_VERSION > 34
     case SPARM_INVISIBILITY:
-#endif
-#if TAG_MAJOR_VERSION == 34
-    case SPARM_CLOUD_IMMUNE:
-#endif
     case SPARM_SHADOWS:
         return type == ARM_SCARF;
 
@@ -2205,16 +2165,6 @@ void makeitem_tests()
         item.base_type = OBJ_WEAPONS;
         item.brand = coinflip() ? SPWPN_NORMAL
                                 : random2(NUM_REAL_SPECIAL_WEAPONS);
-#if TAG_MAJOR_VERSION == 34
-        if (item.brand == SPWPN_ORC_SLAYING
-            || item.brand == SPWPN_REACHING
-            || item.brand == SPWPN_RETURNING
-            || item.brand == SPWPN_CONFUSE
-            || item.brand == SPWPN_DRAGON_SLAYING)
-        {
-            item.brand = SPWPN_FORBID_BRAND;
-        }
-#endif
         auto weap_type = coinflip() ? OBJ_RANDOM : random2(NUM_WEAPONS);
         _generate_weapon_item(item,
                               coinflip(),
@@ -2231,12 +2181,6 @@ void makeitem_tests()
         item.brand = coinflip() ? SPARM_NORMAL
                                 : random2(NUM_REAL_SPECIAL_ARMOURS);
         int type = coinflip() ? OBJ_RANDOM : random2(NUM_ARMOURS);
-#if TAG_MAJOR_VERSION == 34
-        if (type == ARM_CAP)
-            type = ARM_HAT;
-        if (type == ARM_CENTAUR_BARDING)
-            type = ARM_BOOTS;
-#endif
         _generate_armour_item(item,
                               coinflip(),
                               type,
