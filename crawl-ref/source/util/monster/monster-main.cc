@@ -29,9 +29,9 @@ static bool _is_element_colour(int col)
     return col >= ETC_FIRE;
 }
 
-static string colour_codes[] = {"",   "02", "03", "10", "05", "06",
-                                     "07", "15", "14", "12", "09", "11",
-                                     "04", "13", "08", "00"};
+static string colour_codes[] = {"",  "02", "03", "10", "05", "06",
+                                     "07", "15", "14", "12", "09",
+                                     "11", "04", "13", "08", "00"};
 
 static int bgr[8] = {0, 4, 2, 6, 1, 5, 3, 7};
 
@@ -369,8 +369,10 @@ static string shorten_spell_name(string name)
         {
             // strip wizard names
             if (starts_with(name, "iskenderun's")
-                || starts_with(name, "olgreb's") || starts_with(name, "lee's")
-                || starts_with(name, "leda's") || starts_with(name, "lehudib's")
+                || starts_with(name, "olgreb's")
+                || starts_with(name, "lee's")
+                || starts_with(name, "leda's")
+                || starts_with(name, "lehudib's")
                 || starts_with(name, "borgnjor's")
                 || starts_with(name, "ozocubu's")
                 || starts_with(name, "tukima's")
@@ -548,7 +550,7 @@ static int _mi_create_monster(mons_spec spec)
 }
 
 static string damage_flavour(const string& name,
-                                  const string& damage)
+                             const string& damage)
 {
     return "(" + name + ":" + damage + ")";
 }
@@ -909,24 +911,13 @@ int main(int argc, char* argv[])
                 if (attk.type == AT_CLAW && mon.has_claws() >= 3)
                     monsterattacks += colour(LIGHTGREEN, "(claw)");
 
-                const attack_flavour flavour(orig_attk.flavour == AF_KLOWN
-                                                     || orig_attk.flavour
-                                                            == AF_DRAIN_STAT ?
-                                                 orig_attk.flavour :
-                                                 attk.flavour);
+                const attack_flavour flavour(
+                    orig_attk.flavour == AF_DRAIN_STAT
+                                       ? orig_attk.flavour
+                                       : attk.flavour);
 
                 switch (flavour)
                 {
-                case AF_REACH:
-                case AF_REACH_STING:
-                    monsterattacks += "(reach)";
-                    break;
-                case AF_KITE:
-                    monsterattacks += "(kite)";
-                    break;
-                case AF_SWOOP:
-                    monsterattacks += "(swoop)";
-                    break;
                 case AF_ACID:
                     monsterattacks +=
                         colour(YELLOW, damage_flavour("acid", "7d3"));
@@ -941,17 +932,20 @@ int main(int argc, char* argv[])
                 case AF_CONFUSE:
                     monsterattacks += colour(LIGHTMAGENTA, "(confuse)");
                     break;
-                case AF_DRAIN_DEX:
-                    monsterattacks += colour(RED, "(drain dexterity)");
-                    break;
                 case AF_DRAIN_STR:
                     monsterattacks += colour(RED, "(drain strength)");
                     break;
+                case AF_DRAIN_INT:
+                    monsterattacks += colour(BLUE, "(drain int)");
+                    break;
+                case AF_DRAIN_DEX:
+                    monsterattacks += colour(RED, "(drain dexterity)");
+                    break;
+                case AF_DRAIN_STAT:
+                    monsterattacks += colour(BLUE, "(drain stat)");
+                    break;
                 case AF_DRAIN_XP:
                     monsterattacks += colour(LIGHTMAGENTA, "(drain)");
-                    break;
-                case AF_CHAOTIC:
-                    monsterattacks += colour(LIGHTGREEN, "(chaos)");
                     break;
                 case AF_ELEC:
                     monsterattacks +=
@@ -962,14 +956,6 @@ int main(int argc, char* argv[])
                 case AF_FIRE:
                     monsterattacks += colour(
                         LIGHTRED, damage_flavour("fire", hd, hd * 2 - 1));
-                    break;
-                case AF_PURE_FIRE:
-                    monsterattacks +=
-                        colour(LIGHTRED, damage_flavour("pure fire", hd * 3 / 2,
-                                                        hd * 5 / 2 - 1));
-                    break;
-                case AF_STICKY_FLAME:
-                    monsterattacks += colour(LIGHTRED, "(napalm)");
                     break;
                 case AF_MUTATE:
                     monsterattacks += colour(LIGHTGREEN, "(mutation)");
@@ -992,44 +978,47 @@ int main(int argc, char* argv[])
                 case AF_VAMPIRIC:
                     monsterattacks += colour(RED, "(vampiric)");
                     break;
-                case AF_KLOWN:
-                    monsterattacks += colour(LIGHTBLUE, "(klown)");
-                    break;
-                case AF_SCARAB:
-                    monsterattacks += colour(LIGHTMAGENTA, "(scarab)");
-                    break;
                 case AF_DISTORT:
                     monsterattacks += colour(LIGHTBLUE, "(distort)");
                     break;
                 case AF_RAGE:
                     monsterattacks += colour(RED, "(rage)");
                     break;
-                case AF_HOLY:
-                    monsterattacks += colour(YELLOW, "(holy)");
+                case AF_STICKY_FLAME:
+                    monsterattacks += colour(LIGHTRED, "(napalm)");
                     break;
-                case AF_PAIN:
-                    monsterattacks += colour(RED, "(pain)");
-                    break;
-                case AF_ANTIMAGIC:
-                    monsterattacks += colour(LIGHTBLUE, "(antimagic)");
-                    break;
-                case AF_DRAIN_INT:
-                    monsterattacks += colour(BLUE, "(drain int)");
-                    break;
-                case AF_DRAIN_STAT:
-                    monsterattacks += colour(BLUE, "(drain stat)");
+                case AF_CHAOTIC:
+                    monsterattacks += colour(LIGHTGREEN, "(chaos)");
                     break;
                 case AF_STEAL:
                     monsterattacks += colour(CYAN, "(steal)");
                     break;
+                case AF_CRUSH:
+                case AF_PLAIN:
+                    break;
+                case AF_REACH:
+                case AF_REACH_STING:
+                    monsterattacks += "(reach)";
+                    break;
+                case AF_HOLY:
+                    monsterattacks += colour(YELLOW, "(holy)");
+                    break;
+                case AF_ANTIMAGIC:
+                    monsterattacks += colour(LIGHTBLUE, "(antimagic)");
+                    break;
+                case AF_PAIN:
+                    monsterattacks += colour(RED, "(pain)");
+                    break;
                 case AF_ENSNARE:
                     monsterattacks += colour(WHITE, "(ensnare)");
                     break;
-                case AF_DROWN:
-                    monsterattacks += colour(LIGHTBLUE, "(drown)");
-                    break;
                 case AF_ENGULF:
                     monsterattacks += colour(LIGHTBLUE, "(engulf)");
+                    break;
+                case AF_PURE_FIRE:
+                    monsterattacks +=
+                        colour(LIGHTRED, damage_flavour("pure fire", hd * 3 / 2,
+                                                        hd * 5 / 2 - 1));
                     break;
                 case AF_DRAIN_SPEED:
                     monsterattacks += colour(LIGHTMAGENTA, "(drain speed)");
@@ -1040,17 +1029,26 @@ int main(int argc, char* argv[])
                 case AF_SHADOWSTAB:
                     monsterattacks += colour(MAGENTA, "(shadow stab)");
                     break;
+                case AF_DROWN:
+                    monsterattacks += colour(LIGHTBLUE, "(drown)");
+                    break;
                 case AF_CORRODE:
                     monsterattacks += colour(BROWN, "(corrosion)");
+                    break;
+                case AF_SCARAB:
+                    monsterattacks += colour(LIGHTMAGENTA, "(scarab)");
+                    break;
+                case AF_KITE:
+                    monsterattacks += "(kite)";
+                    break;
+                case AF_SWOOP:
+                    monsterattacks += "(swoop)";
                     break;
                 case AF_TRAMPLE:
                     monsterattacks += colour(BROWN, "(trample)");
                     break;
                 case AF_WEAKNESS:
                     monsterattacks += colour(LIGHTRED, "(weakness)");
-                    break;
-                case AF_CRUSH:
-                case AF_PLAIN:
                     break;
                     // let the compiler issue warnings for us
                     //      default:
