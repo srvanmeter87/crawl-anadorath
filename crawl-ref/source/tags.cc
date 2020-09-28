@@ -2016,11 +2016,10 @@ static void _tag_read_you(reader &th)
         you.melded.set(i, unmarshallBoolean(th));
     for (int i = count; i < NUM_EQUIP; ++i)
         you.melded.set(i, false);
-        for (int i = 0; i < count; ++i)
-            you.activated.set(i, unmarshallBoolean(th));
-
-        for (int i = count; i < NUM_EQUIP; ++i)
-            you.activated.set(i, false);
+    for (int i = 0; i < count; ++i)
+        you.activated.set(i, unmarshallBoolean(th));
+    for (int i = count; i < NUM_EQUIP; ++i)
+        you.activated.set(i, false);
 
     you.magic_points              = unmarshallUByte(th);
     you.max_magic_points          = unmarshallByte(th);
@@ -2129,9 +2128,7 @@ static void _tag_read_you(reader &th)
     count = unmarshallUByte(th);
     COMPILE_CHECK(NUM_ATTRIBUTES < 256);
     for (int j = 0; j < count && j < NUM_ATTRIBUTES; ++j)
-    {
         you.attribute[j] = unmarshallInt(th);
-    }
     for (int j = count; j < NUM_ATTRIBUTES; ++j)
         you.attribute[j] = 0;
     for (int j = NUM_ATTRIBUTES; j < count; ++j)
@@ -2288,17 +2285,13 @@ static void _tag_read_you(reader &th)
     count = unmarshallShort(th);
     ASSERT(count >= 0);
     for (int i = 0; i < count; i++)
-    {
         you.beholders.push_back(unmarshall_int_as<mid_t>(th));
-    }
 
     // Also usually empty.
     count = unmarshallShort(th);
     ASSERT(count >= 0);
     for (int i = 0; i < count; i++)
-    {
         you.fearmongers.push_back(unmarshall_int_as<mid_t>(th));
-    }
 
     you.piety_hysteresis = unmarshallByte(th);
 
@@ -2423,9 +2416,7 @@ static void _tag_read_you_items(reader &th)
         if (!item_type_has_ids((object_class_type)i))
             continue;
         for (int j = 0; j < count2; ++j)
-        {
             you.type_ids[i][j] = unmarshallBoolean(th);
-        }
         for (int j = count2; j < MAX_SUBTYPES; ++j)
             you.type_ids[i][j] = false;
     }
@@ -2919,9 +2910,7 @@ void unmarshallMapCell(reader &th, map_cell& cell)
         feat_colour = unmarshallUnsigned(th);
 
     if (feat_is_trap(feature))
-    {
         trap = (trap_type)unmarshallByte(th);
-    }
 
     cell.set_feature(feature, feat_colour, trap);
 

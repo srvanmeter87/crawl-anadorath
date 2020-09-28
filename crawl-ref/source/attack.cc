@@ -1112,9 +1112,7 @@ int attack::player_apply_misc_modifiers(int damage)
 int attack::get_weapon_plus()
 {
     if (weapon->base_type == OBJ_STAVES)
-    {
         return 0;
-    }
     return weapon->plus;
 }
 

@@ -2143,9 +2143,7 @@ item_def* monster_die(monster& mons, killer_type killer,
                 }
 
                 if (have_passive(passive_t::mp_on_kill))
-                {
                     mp_heal = 1 + random2(mons.get_experience_level() / 2);
-                }
 
                 if (hp_heal && you.hp < you.hp_max
                     && !you.duration[DUR_DEATHS_DOOR])

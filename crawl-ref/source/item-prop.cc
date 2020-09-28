@@ -1647,9 +1647,7 @@ bool is_brandable_weapon(const item_def &wpn, bool allow_ranged, bool divine)
         return false;
 
     if (!allow_ranged && is_range_weapon(wpn))
-    {
         return false;
-    }
 
     // Only gods can rebrand blessed weapons, and they revert back to their
     // old base type in the process.

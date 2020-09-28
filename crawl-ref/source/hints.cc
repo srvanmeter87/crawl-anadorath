@@ -1274,9 +1274,7 @@ void learned_something_new(hints_event_type seen_what, coord_def gc)
             you.species == SP_MINOTAUR)
         {
             text << "\nNote that as a " << species_name(you.species)
-                 << " you will be unable to wear "
-                 << (you.species == SP_CENTAUR ? "boots" : "helmets")
-                 << ".";
+                 << " you will be unable to wear helmets.";
         }
         break;
 

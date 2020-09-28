@@ -556,7 +556,6 @@ tileidx_t tilep_species_to_base_tile(int sp, int level)
         return TILEP_BASE_DRACONIAN + colour_offset * 2;
     }
     case SP_PALENTONGA: // placeholder
-    case SP_CENTAUR:
         return TILEP_BASE_CENTAUR;
     case SP_DEMIGOD:
         return TILEP_BASE_DEMIGOD;
