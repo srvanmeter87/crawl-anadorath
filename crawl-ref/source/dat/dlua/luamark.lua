@@ -20,7 +20,6 @@ crawl_require('dlua/lm_trig.lua')
 crawl_require('dlua/lm_pdesc.lua')
 crawl_require('dlua/lm_1way.lua')
 crawl_require('dlua/lm_timed.lua')
-crawl_require('dlua/lm_toll.lua') -- remove upon TAG_MAJOR_VERSION bump
 crawl_require('dlua/lm_fog.lua')
 crawl_require('dlua/lm_props.lua')
 crawl_require('dlua/lm_mon_prop.lua')
