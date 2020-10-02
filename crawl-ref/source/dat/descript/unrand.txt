@@ -97,37 +97,12 @@ An enchanted suit of armour created from the scales of a rare breed of dragon,
 now thought to be extinct. This prized relic is now one of the last proofs that
 the vividly coloured faerie dragons ever existed.
 %%%%
-# TAG_MAJOR_VERSION == 34
-demon blade "Bloodbane"
-
-A blade forged in Hell by the sacrifice of countless tortured souls. It
-inflicts the rage and suffering of those souls upon its wielder.
-%%%%
-# TAG_MAJOR_VERSION == 34
-scimitar of Flaming Death
-
-A scimitar with a mysteriously smoking blade. Occasionally its heat leaks out,
-covering opponents in magical flame.
-%%%%
-# TAG_MAJOR_VERSION == 34
-eveningstar "Brilliance"
-
-A brightly shining eveningstar. It illuminates the dungeon's recesses, but its
-halo may alert enemies to your presence. Its light is hated by the undead, and
-reveals the machinations of those who would prefer to stay invisible.
-%%%%
 demon blade "Leech"
 
 An unerringly vampiric blade, forged in Hell by the sacrifice of countless
 tortured souls. It fills its wielder with the rage and suffering of those
 souls, and gorges itself further on drained life force every time it strikes,
 leaving behind a mess of blood and gore.
-%%%%
-# TAG_MAJOR_VERSION == 34
-dagger of Chilly Death
-
-A dagger made of one huge shard of sapphire. It covers opponents in ice,
-slowing down their movement somewhat.
 %%%%
 dagger "Morg"
 
@@ -197,12 +172,6 @@ A jewelled morningstar, glowing brightly with the light of the dawn. It
 illuminates the dungeon's recesses, revealing the machinations of those who
 would prefer to stay invisible.
 %%%%
-# TAG_MAJOR_VERSION == 34
-spear of the Botono
-
-A dark and malign artefact. It increases the potency of hexes cast by anyone
-unwise enough to risk wielding it.
-%%%%
 trident of the Octopus King
 
 A trident stolen many years ago from the Octopus King's garden. Luckily, he
@@ -228,12 +197,6 @@ land true.
 longbow "Piercer"
 
 An exceptionally large metal longbow.
-%%%%
-# TAG_MAJOR_VERSION == 34
-blowgun of the Assassin
-
-This blowgun seems to guide the needle to seek the most lethal point to hit
-the target, packing a nasty punch.
 %%%%
 lance "Wyrmbane"
 
@@ -265,17 +228,6 @@ whip "Snakebite"
 
 A double-ended whip made from the cured hides of black mambas, and enchanted
 with toxins ranging from ordinary venoms to asphyxiating curare.
-%%%%
-# TAG_MAJOR_VERSION == 34
-knife of Accuracy
-
-It is almost unerringly accurate.
-%%%%
-# TAG_MAJOR_VERSION == 34
-Lehudib's crystal spear
-
-Presumably this relic led to the invention of the famous spell, or maybe the
-other way around.
 %%%%
 captain's cutlass
 
@@ -309,11 +261,6 @@ A pitch-black cloak which allows its wearer to excel in the arts of thievery
 and escape. Blows received by the wearer will cause the cloak release thick
 clouds of smoke for a hasty escape.
 %%%%
-# TAG_MAJOR_VERSION == 34
-tower shield "Bullseye"
-
-Just in case you had trouble getting hit.
-%%%%
 crown of Dyrovepreva
 
 A large circlet of dull bronze, set with a dazzling array of gemstones. It was
@@ -329,11 +276,6 @@ an especially mighty bear.
 robe of Misfortune
 
 A splendid flowing robe of fur and silk whose lucky colour has faded.
-%%%%
-# TAG_MAJOR_VERSION == 34
-cloak of Flash
-
-A cloak that twitches and jerks without any intervention.
 %%%%
 hood of the Assassin
 
@@ -448,12 +390,6 @@ A black ring that can make its wearer one with the shadows. It creates a dark
 umbra that surrounds the wearer and increases stealth greatly, and reduces the
 accuracy of all those within it.
 %%%%
-# TAG_MAJOR_VERSION == 34
-amulet of Cekugob
-
-A strange-looking piece of crystal on an ordinary-looking string, with an odd
-selection of powers.
-%%%%
 amulet of the Four Winds
 
 A pendant made of purest jade. It grants its wearer an immense mystic strength,
@@ -561,24 +497,11 @@ macabre finger necklace
 
 An ugly dangling finger on a string. It would look better with a ring on it.
 %%%%
-# TAG_MAJOR_VERSION == 34
-boots of the spider
-
-A novel pair of boots invented by a suitor of Arachne.
-%%%%
 dark maul
 
 A large, iron-shod maul specialised for dealing massively powerful blows. Such
 power comes at a price: the maul's head is so heavy it takes a great length of
 time to lift it up for another swing.
-%%%%
-# TAG_MAJOR_VERSION == 34
-hat of the High Council
-
-A relic of some ancient wizarding war. Centuries later, it still crackles with
-effects from the residual hexes and magical energies it was once subjected to
-on a daily basis; spellcasters able to get a handle on its power, however, will
-find it enhances the power of their spells.
 %%%%
 arc blade
 
@@ -631,22 +554,6 @@ pair of quick blades "Gyre" and "Gimble"
 Two quick blades joined by a chain. Swinging one compels the wielder to swing
 the other, as if they have minds of their own.
 %%%%
-# TAG_MAJOR_VERSION == 34
-Maxwell's etheric cage
-
-A fine mesh cage designed to capture magical energy. Experimental notes suggest
-that research was abandoned when the cage began to capture magical
-contamination almost as effectively. Anyone reckless enough to place it on
-their head would find their magic regeneration dramatically increased, at the
-cost of multiplying any magical contamination received.
-%%%%
-# TAG_MAJOR_VERSION == 34
-crown of Eternal Torment
-
-A gold crown set with jet-black gems. It permanently afflicts its wearer with
-agonising pain, substantially reducing their resilience but rendering them
-immune to further torments.
-%%%%
 robe of Vines
 
 A robe woven of living vines. The vines form a symbiotic relationship with
@@ -666,12 +573,6 @@ frozen axe "Frostbite"
 A massive axe that looks like it was carved from a glacier, or possibly calved
 from one. It leaves ice crystals in its wake as it swings through the air, and
 grants its wielder immunity to freezing vapours.
-%%%%
-# TAG_MAJOR_VERSION == 34
-armour of Talos
-
-A huge and weighty suit of bronze plate armour. Only one with a correspondingly
-huge body can wear it.
 %%%%
 warlock's mirror
 

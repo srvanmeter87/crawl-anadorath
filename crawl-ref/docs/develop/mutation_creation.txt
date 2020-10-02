@@ -12,7 +12,7 @@ that if you're adding multiple mutations (or anything, really) it
 doesn't matter which order they get added in, as long as they don't
 replace the spot any existing mutation had.
 
-    #if TAG_MAJOR_VERSION == 34
+    #if TAG_MAJOR_VERSION == 35
         MUT_STURDY_FRAME,
         MUT_SANGUINE_ARMOUR,
     #endif

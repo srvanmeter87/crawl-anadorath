@@ -3535,53 +3535,7 @@ void unmarshallMonster(reader &th, monster& m)
 
     if (parts & MP_SPELLS)
     {
-        unmarshallSpells(th, m.spells
-                         );
-#if TAG_MAJOR_VERSION == 34
-    monster_spells oldspells = m.spells;
-    m.spells.clear();
-    for (mon_spell_slot &slot : oldspells)
-    {
-        if (th.getMinorVersion() < TAG_MINOR_MORE_GHOST_MAGIC)
-            slot.spell = _fixup_positional_monster_spell(slot.spell);
-
-        if (mons_is_zombified(m) && !mons_enslaved_soul(m)
-            && slot.spell != SPELL_CREATE_TENTACLES)
-        {
-            // zombies shouldn't have (most) spells
-        }
-        else if (slot.spell == SPELL_DRACONIAN_BREATH)
-        {
-            // Replace Draconian Breath with the colour-specific spell,
-            // and remove Azrael's bad breath while we're at it.
-            if (mons_genus(m.type) == MONS_DRACONIAN)
-                m.spells.push_back(drac_breath(draco_or_demonspawn_subspecies(m)));
-        }
-        // Give Mnoleg back malign gateway in place of tentacles.
-        else if (slot.spell == SPELL_CREATE_TENTACLES
-                 && m.type == MONS_MNOLEG)
-        {
-            slot.spell = SPELL_MALIGN_GATEWAY;
-            slot.freq = 27;
-            m.spells.push_back(slot);
-        }
-        else if (slot.spell == SPELL_CHANT_FIRE_STORM)
-        {
-            slot.spell = SPELL_FIRE_STORM;
-            m.spells.push_back(slot);
-        }
-        else if (slot.spell == SPELL_SERPENT_OF_HELL_BREATH_REMOVED)
-        {
-            slot.spell = _fixup_soh_breath(m.type);
-            m.spells.push_back(slot);
-        }
-        else if (slot.spell == SPELL_CORRUPT_BODY)
-        {
-            slot.spell = SPELL_CORRUPTING_PULSE;
-            m.spells.push_back(slot);
-        }
-    }
-#endif
+        unmarshallSpells(th, m.spells);
     }
 
     m.god      = static_cast<god_type>(unmarshallByte(th));

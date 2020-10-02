@@ -3158,11 +3158,9 @@ monster_type draconian_colour_by_name(const string &name)
     return MONS_PROGRAM_BUG;
 }
 
-// TODO: Remove "putrid" when TAG_MAJOR_VERSION > 34
 static const char *demonspawn_base_names[] =
 {
-    "monstrous", "gelid", "infernal",
-    "torturous",
+    "monstrous", "gelid", "infernal", "torturous",
 };
 
 string demonspawn_base_name(monster_type mon_type)

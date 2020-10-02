@@ -526,9 +526,6 @@ dry_fountain DNGN_DRY_FOUNTAIN
 %repeat DNGN_DRY_FOUNTAIN DNGN_DRY_FOUNTAIN_WHITE
 %resetcol
 
-# Remove this entry when TAG_MAJOR_VERSION == 34 is false.
-teleporter DNGN_TELEPORTER
-
 transporter DNGN_TRANSPORTER
 transporter_landing_site DNGN_TRANSPORTER_LANDING
 

@@ -2092,13 +2092,6 @@ potion
  Being the time the potion's force should cease.”
     -William Shakespeare, _Romeo and Juliet_
 %%%%
-# TAG_MAJOR_VERSION == 34
-potion of blood
-
-“Only be sure that thou eat not the blood: for the blood _is_ the life;
-and thou mayest not eat the life with the flesh.”
-    -KJV Bible, Deuteronomy 12:23
-%%%%
 potion of curing
 
 “But if when you say ‘whiskey’ you mean the oil of conversation,

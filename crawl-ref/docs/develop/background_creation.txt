@@ -20,7 +20,7 @@ First we need to edit enum.h to tell the game our new job exists. Search for
 This should look like:
 
         JOB_ABYSSAL_KNIGHT,
-    #if TAG_MAJOR_VERSION == 34
+    #if TAG_MAJOR_VERSION == 35
         JOB_JESTER,
     #endif
         JOB_SHEPHERD,
