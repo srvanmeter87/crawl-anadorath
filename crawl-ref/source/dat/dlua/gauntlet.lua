@@ -526,7 +526,7 @@ tier2_gauntlet_arenas = {
   },
   {
     first  = {mons = "balrug", min = 1, max = 1},
-    third  = {mons = "sun demon", min = 0, max = 1},
+    second = {mons = "sun demon", min = 0, max = 1},
     third  = {mons = "hell hound", min = 0, max = 2},
     liquid = "lava",
     plant  = "demonic",

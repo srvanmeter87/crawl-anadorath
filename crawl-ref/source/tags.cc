@@ -3534,9 +3534,7 @@ void unmarshallMonster(reader &th, monster& m)
             m.inv[j] = unmarshallShort(th);
 
     if (parts & MP_SPELLS)
-    {
         unmarshallSpells(th, m.spells);
-    }
 
     m.god      = static_cast<god_type>(unmarshallByte(th));
     m.attitude = static_cast<mon_attitude_type>(unmarshallByte(th));
