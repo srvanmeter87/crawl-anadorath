@@ -1,22 +1,33 @@
-# Testing
+# [Testing](#testing)
 
-## Contents
+- [Testing](#testing)
+  - [Unit Tests](#unit-tests)
+    - [Plug & Play / Bisect Testing](#plug--play--bisect-testing)
+    - [Functional (Lua) Tests](#functional-lua-tests)
+    - [Arena Testing](#arena-testing)
+  - [Code Coverage](#code-coverage)
+    - [Quirks](#quirks)
+    - [A Quick Comparison of HTML Report Formats](#a-quick-comparison-of-html-report-formats)
+      - [lcov / genhtml](#lcov--genhtml)
+      - [llvm-cov](#llvm-cov)
+      - [gcovr](#gcovr)
+    - [Implementation Details](#implementation-details)
+      - [GCC](#gcc)
+      - [LLVM](#llvm)
 
-* [Unit Tests](#unit-tests)
-  * [Plug & Play / Bisect Testing](#plug-play-bisect-testing)
-* [Functional (Lua) Tests](#functional-lua-tests)
-* [Arena Testing](#arena-testing)
-* [Code Coverage](#code-coverage)
+## [Unit Tests](#testing)
 
-## Unit Tests
+***
 
-Crawl integrates the Catch2 unit testing framework. Tests are in the [crawl-ref/source/catch2-tests](crawl-ref/source/catch2-tests) directory. To compile and run all units tests, use:
+Crawl integrates the Catch2 unit testing framework. Tests are in the
+[source/catch2-tests](../../source/catch2-tests) directory.
+To compile and run all units tests, use:
 
 ```sh
 make catch2-tests
 ```
 
-### Plug & Play / Bisect Testing
+### [Plug & Play / Bisect Testing](#testing)
 
 `test_plug_and_play.cc` is an optional source file for catch2 tests. If
 the source file is available, the `make plug-and-play-tests` command
@@ -60,13 +71,13 @@ When you've finished solving the bug, remember to move the new test from
 `test_plug_and_play.cc` to a regular test file included in the git
 project! This will help prevent regressions.
 
-## Functional (Lua) Tests
+### [Functional (Lua) Tests](#testing)
 
-Crawl has a set of functional tests in the [source/test/](crawl-ref/source/test/) directory, with each lua
-file being a separate unit test. To use unit tests, you must compile Crawl
-either with the macro `DEBUG_DIAGNOSTICS` defined (the debug make target) or
-with both the macros `DEBUG` and `DEBUG_TESTS` defined (the wizard make target,
-plus `-DDEBUG_TESTS`). You can then do
+Crawl has a set of functional tests in the [source/test/](../../source/test/)
+directory, with each lua file being a separate unit test. To use unit tests,
+you must compile Crawl either with the macro `DEBUG_DIAGNOSTICS` defined (the
+debug make target) or with both the macros `DEBUG` and `DEBUG_TESTS` defined
+(the wizard make target, plus `-DDEBUG_TESTS`). You can then do
 
 ```sh
 crawl -test
@@ -81,18 +92,24 @@ crawl -test foo
 and that will run all unit tests which have "foo" in their file name.
 
 If you want to write your own unit tests, take a look at the files in
-[source/test/](crawl-ref/source/test/) for examples. [los_maps.lua](crawl-ref/source/test/los_maps.lua) and [bounce.lua](crawl-ref/source/test/bounce.lua) have
+[source/test/](../../source/test/) for examples.
+[los_maps.lua](../../source/test/los_maps.lua) and
+[bounce.lua](../../source/test/bounce.lua) have
 examples which use vaults (maps) which are located in test/des. You
 might need to create new Lua functions in the `source/l_*.cc` files if none of
 the `crawl.foo()`/`dgn.foo()`/etc functions do what you need.
 
-## Arena Testing
+### [Arena Testing](#testing)
 
-You can use Crawl's arena mode to test a lot of things. See [arena.txt](crawl-ref/docs/develop/arena.txt) for more information.
+You can use Crawl's arena mode to test a lot of things. See
+[arena.txt](./arena.txt) for more information.
 
-## Code Coverage
+## [Code Coverage](#testing)
 
-Code coverage instrumentation is included in all debug & unit test builds. You can use it as follows:
+***
+
+Code coverage instrumentation is included in all debug & unit test builds. You
+can use it as follows:
 
 1. Compile the game in debug or unit test mode:
 
@@ -116,50 +133,61 @@ make catch2-tests
 util/coverage # Add --help to see customisation options
 ```
 
-### Quirks
+### [Quirks](#testing)
 
-1. Coverage data from multiple runs is combined. This can lead to confusing execution counts for source code lines in reports. Use `make clean-coverage` to remove all temporary coverage files (including reports).
+4. Coverage data from multiple runs is combined. This can lead to confusing
+   execution counts for source code lines in reports. Use `make clean-coverage`
+   to remove all temporary coverage files (including reports).
 
-### A Quick Comparison of HTML Report Formats
+### [A Quick Comparison of HTML Report Formats](#testing)
 
-Sub-expression coverage covers the granularity of testing a line of code like this:
+***
+
+Sub-expression coverage covers the granularity of testing a line of code like
+this:
 
 ```cpp
 if (test1() && test2())
 ```
 
-#### lcov / genhtml
+#### [lcov / genhtml](#testing)
 
-* Included with GCC on many Linux distributions (if not, easy to install)
-* No sub-expression coverage (line-coverage only)
+- Included with GCC on many Linux distributions (if not, easy to install)
+- No sub-expression coverage (line-coverage only)
 
-#### llvm-cov
+#### [llvm-cov](#testing)
 
-* Included with LLVM/Clang
-* Partial sub-expression coverage (will detect un-executed sub-expressions)
+- Included with LLVM/Clang
+- Partial sub-expression coverage (will detect un-executed sub-expressions)
 
-#### gcovr
+#### [gcovr](#testing)
 
-* Python 3-based utility, harder to install on mingw and older systems
-* Full sub-expression coverage (will detect if each sub-expression was tested with a positive and negative test case)
+- Python 3-based utility, harder to install on mingw and older systems
+- Full sub-expression coverage (will detect if each sub-expression was tested
+  with a positive and negative test case)
 
-### Implementation Details
+### [Implementation Details](#testing)
 
-Code coverage is handled very differently between the GCC and LLVM toolchains. The `Makefile` and `util/coverage` both auto-detect your toolchain, so this is abstracted away for general use. However, coverage percentages and details will be slightly different.
+***
 
-#### GCC
+Code coverage is handled very differently between the GCC and LLVM toolchains.
+The `Makefile` and `util/coverage` both auto-detect your toolchain, so this is
+abstracted away for general use. However, coverage percentages and details will
+be slightly different.
 
-1. Compile with `-fprofile-arcs -ftest-coverage`, this generates `.gcno` files (one per source file)
+#### [GCC](#testing)
+
+1. Compile with `-fprofile-arcs -ftest-coverage`, this generates `.gcno` files
+   (one per source file)
 2. When run, your executable creates `.gcda` (one per source file)
 3. Use either `lcov`/`genhtml` or `gcovr`:
-    * `lcov`/`genhtml`
+    - `lcov`/`genhtml`
         1. Parse `gcno`/`gcda` files with `lcov` into a `.info` file
         2. Generate reports with `genhtml`.
-    * `gcovr`
-        1. Generate reports with `gcovr`.
-            * (`gcovr` uses `gcov` to parse `gcno`/`gcda` files.)
+    - `gcovr`
+        1. Generate reports with `gcovr`. (`gcovr` uses `gcov` to parse `gcno`/`gcda` files.)
 
-#### LLVM
+#### [LLVM](#testing)
 
 1. Compile with `-fprofile-instr-generate -fcoverage-mapping`
 2. When run, your executable creates `default.profraw`

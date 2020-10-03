@@ -40,7 +40,7 @@ version of it, using
   - [9. Reducing File Size](#9-reducing-file-size)
 
 
-## [1. The Tools](table-of-contents)
+## [1. The Tools](#table-of-contents)
 
 ***
 
@@ -58,7 +58,7 @@ areas, and the colour selection.
 Also, while a drawing tablet is certainly useful, it is by no means required.
 
 
-## [2. Grabbing the Source](table-of-contents)
+## [2. Grabbing the Source](#table-of-contents)
 
 ***
 
@@ -83,16 +83,16 @@ If you're going to change anything in the main code you might also want to
 create a patch. See the [patch guide](../patch_guide.txt) for help with that.
 
 
-## [3. Basic Design Principles](table-of-contents)
+## [3. Basic Design Principles](#table-of-contents)
 
 ***
 
-### [3.1 Format and size](table-of-contents)
+### [3.1 Format and size](#table-of-contents)
 
-Stone Soup's tiles are basically png files in a format of 32x32 pixels. Larger
+Stone Soup's tiles are basically png files in a format of `32x32` pixels. Larger
 tiles such as for the pandemonium demons are possible, but require additional
 coding and should be used sparingly. Also, the tab tiles are deliberately
-smaller and have a size of 20x20 px.
+smaller and have a size of `20x20` px.
 
 Background tiles (walls and floor) should cover the entire square, whereas
 foreground images can use the whole area but are usually smaller. Also keep
@@ -102,25 +102,25 @@ the tile.
 
 In the inventory area, items and spells are getting displayed with a two-pixel
 coloured border around them. Tiles may overlap this border, but it looks a bit
-odd if they do, so it's better to keep their size at 28x28 pixels.
+odd if they do, so it's better to keep their size at `28x28` pixels.
 
-### [3.2 Icons](table-of-contents)
+### [3.2 Icons](#table-of-contents)
 
 Subtype icons for potions need to fit inside the label, so may be at most
-14x15 pixels large. It seems prudent to apply the same size restrictions to
+`14x15` pixels large. It seems prudent to apply the same size restrictions to
 other subtype or brand icons.
 
 For status effect icons, you need to take into account that we might need to
 display several of them at the same time, so these icons should have a
-customary size of up to 8x8 or 10x10 pixels, though they don't need to be
+customary size of up to `8x8` or `10x10` pixels, though they don't need to be
 square, of course. Larger icons are of course possible, but should be used
 sparingly as there's always the danger that they might not fit.
 
 Icon tiles are always placed on top of the base tile, beginning at its top left
-corner for icons smaller than 32x32 pixels, and then moved by an offset that
+corner for icons smaller than `32x32` pixels, and then moved by an offset that
 is hardcoded for the status effects, numbers etc.
 
-### [3.3 Proportions](table-of-contents)
+### [3.3 Proportions](#table-of-contents)
 
 Humans and other creatures are proportioned more or less realistically, with
 the entire body usually equaling about five times the height of its head. The
@@ -136,7 +136,7 @@ The same holds for items, which is why armour and weapon tiles usually come in
 two varieties: a large version for the inventory display and a smaller one for
 the player doll (and, in the case of weapons, monsters).
 
-### [3.4 Perspective](table-of-contents)
+### [3.4 Perspective](#table-of-contents)
 
 Any item or monster should fit into the allocated space in its entirety, legs
 and all. This restriction may only be loosened if the chopped portions are
@@ -146,7 +146,7 @@ water or lava.
 Ideally, both monsters and items should be depicted at a slight angle from the
 front or side, so you can see both its face and profile.
 
-### [3.5 Colouring](table-of-contents)
+### [3.5 Colouring](#table-of-contents)
 
 In theory, tiles can use any colour within the spectrum of visible colours.
 However, very small gradients are almost unnoticeable and often end up making
@@ -162,15 +162,15 @@ colours that are easy to make out against such background.
 At the same time, try to avoid garish colours or contrasts, as they can be
 quite distracting in a game.
 
-### [3.6 Outline](table-of-contents)
+### [3.6 Outline](#table-of-contents)
 
 All tiles that don't fill the entire square should get a black outline. You can
 add it manually or tell Crawl to do it later when creating the tile maps. In
 particular, this means that for non-outlined tiles there should be a border
-of at least 1 pixel around the entire tile. Some of the larger tiles currently
-don't have this and they look a bit chopped because of this.
+of **at least 1 pixel around the entire tile**. Some of the larger tiles
+currently don't have this and they look a bit chopped because of this.
 
-### [3.7 Shading](table-of-contents)
+### [3.7 Shading](#table-of-contents)
 
 Item and monster tiles should always include a shadow on the ground, which you
 can draw using standard black.
@@ -187,10 +187,10 @@ add depth to the tile. As a general rule, the further back something is, the
 darker it should be coloured. You can use contrast to make things in front
 stand out a bit more.
 
-Icons may use shading to make them look more 3dimensional, but they don't have
+Icons may use shading to make them look more 3-dimensional, but they don't have
 to, and they don't get a shadow of their own.
 
-### [3.8 Transparency](table-of-contents)
+### [3.8 Transparency](#table-of-contents)
 
 Foreground tiles should have a transparent background, so they can be properly
 drawn on top of the background tile, but if your image software doesn't support
@@ -199,11 +199,11 @@ background coloured differently from the rest of the tile, so we can easily
 make it transparent later-on.
 
 
-## [4. Creating Tiles](table-of-contents)
+## [4. Creating Tiles](#table-of-contents)
 
 ***
 
-### [4.1 Reuse Existing Tiles](table-of-contents)
+### [4.1 Reuse Existing Tiles](#table-of-contents)
 
 Whenever you're faced with the task of creating a new tile, consider whether
 you can reuse an existing tile, either because it is currently not seeing use
@@ -218,25 +218,25 @@ For human monsters, usually uniques, in addition the in-game doll editor
 you do this, please use non-standard equipment for your player doll, so the
 odds of the player running into a look-alike are low.
 
-### [4.2 Pixel Art Tutorials](table-of-contents)
+### [4.2 Pixel Art Tutorials](#table-of-contents)
 
 We really recommend the following tutorials to anyone interested in tiles
 design:
 
-* A well-written
+- A well-written
   [introduction to the techniques of pixel art](http://www.derekyu.com/?page_id=219).
 
-* A simple little
+- A simple little
   [tutorial](http://gamesprites.wikicomplete.info/tutorial:sprite-art-101-basic-depth)
   on shading and depth perception.
 
-* A detailed
+- A detailed
   [explanation](http://gas13.ru/v3/tutorials/sywtbapa_almighty_grass_tile.php)
   of how to create the perfect pixels. Several chapters dealing with scenery and
-  sprite design. Also covers the elusive difference between art and _good_ art.
+  sprite design. Also covers the elusive difference between art and *good* art.
   Made me go back and redo all my tiles designs. (jpeg)
 
-### [4.3 Wielded Weapons](table-of-contents)
+### [4.3 Wielded Weapons](#table-of-contents)
 
 Humanoid monsters, in particular uniques, will usually be facing to the left
 with their right hand outstretched so they can be displayed wielding their
@@ -250,23 +250,23 @@ Even for melee-centric monsters this is not necessary, but displaying the
 wielded weapon is a really nice perk to playing the tiles version and should be
 used whenever possible.
 
-### [4.4 Semi-Transparency](table-of-contents)
+### [4.4 Semi-Transparency](#table-of-contents)
 
 For some features or monsters you might need part or the entirety of the tile
 to be see-though semi-transparent. Examples include clouds and some monsters.
 
 I usually do this by means of the eraser, set the size to the maximum possible
-and the opacity to around 34%, and then "erase" the entire area I want to be
+and the opacity to around `34%`, and then "erase" the entire area I want to be
 semi-transparent, having previously selected it.
 
-## [5. Modifying the Code Base](table-of-contents)
+## [5. Modifying the Code Base](#table-of-contents)
 
 ***
 
 If you are uncomfortable with changing the code or compiling the game, you can
 simply submit your creations and leave the rest to us. :)
 
-### [5.1 Defining Tiles](table-of-contents)
+### [5.1 Defining Tiles](#table-of-contents)
 
 Tiles are assumed to have been placed within the `rltiles/` directory structure.
 You can use a relative path for the tile definition, or you can use the %sdir
@@ -323,7 +323,7 @@ new_tile NEW_TILE
 %rim 0
 ```
 
-### [5.2 Making Crawl Use the Tiles](table-of-contents)
+### [5.2 Making Crawl Use the Tiles](#table-of-contents)
 
 If your tile doesn't replace an existing one, you might have to modify the
 code, which is to say tilepick.cc.
@@ -357,7 +357,7 @@ submit the tile and leave the code modifications to the devteam. :)
 For the tile `enum`, use the same (uppercase) definition as defined in the
 `dc-xxxx.txt` file, while copying the prefix from the other tiles.
 
-### [5.3 Artefact Tiles](table-of-contents)
+### [5.3 Artefact Tiles](#table-of-contents)
 
 New randart weapons and armour items need not only a tile for the item
 itself but also a smaller variant for the player doll to wield or wear.
@@ -366,32 +366,40 @@ To define the new artefact tiles, you'll need to modify two files:
 [dc-player.txt](../../source/rltiles/dc-player.txt),
 with the details nicely described in `art-data.txt`.
 
-If you have perl installed, run `perl art-data.pl` from source/util. If you
+If you have `perl` installed, run
+```
+perl art-data.pl
+```
+from `source/util`. If you
 made any mistakes in modifying the two files the script will complain.
 
 If an artefact doesn't get a special equipment tile the base type's tile
 will be used instead.
 
-For the base items you'll need to modify dc-item.txt or dc-unrand.txt as well
-as tilepick.cc, as defined above. For the doll equipment, however, this is
-handled by the perl script and won't be necessary.
+For the base items you'll need to modify
+[dc-item.txt](../../source/rltiles/dc-item.txt) or
+[dc-unrand.txt](../../source/rltiles/dc-unrand.txt) as well as
+[tilepick.cc](../../source/tilepick.cc), as defined above. For the doll
+equipment, however, this is handled by the perl script and won't be necessary.
 
-### [5.4 Dynamic Weapons](table-of-contents)
+### [5.4 Dynamic Weapons](#table-of-contents)
 
 For humanoid monsters' tiles you may want to add a line in `get_weapon_offset()`
-of tilemcache.cc to allow it to be drawn with a wielded weapon.
+of [tilemcache.cc](../../source/tilemcache.cc) to allow it to be drawn with a
+wielded weapon.
 
 The best course of action is probably to start out with adding the monster to
 the first list of monsters with an offset of 0 along either axis, then compile
-to check how it looks. You can use the wizmode &m command to create the monster
-and, if it happens to be unarmed, use 'x' to target the monster, then use the
-&g command to give it a weapon from your inventory. If the monster refuses to
-take your weapon this might be because it is incapable of using weapons, in
-which case you can skip this entire step, or because it can only use weapons it
-was created with, in which case you'll need to make sure it does get a weapon
-in mon-gear.cc and repeat the &m command until you get a version of it wielding
-something. Once you've got this set up, you can just save and restore without
-taking any further steps until you are satisfied with the result.
+to check how it looks. You can use the wizmode `&m` command to create the
+monster and, if it happens to be unarmed, use `x` to target the monster, then
+use the `&g` command to give it a weapon from your inventory. If the monster
+refuses to take your weapon this might be because it is incapable of using
+weapons, in which case you can skip this entire step, or because it can only
+use weapons it was created with, in which case you'll need to make sure it does
+get a weapon in [mon-gear.cc](../../source/mon-gear.cc) and repeat the `&m`
+command until you get a version of it wielding something. Once you've got this
+set up, you can just save and restore without taking any further steps until
+you are satisfied with the result.
 
 If the weapon doesn't appear to be held in the monster's hand, add a new case
 block just for your monster and take a guess at the number of pixels the weapon
@@ -399,16 +407,16 @@ needs to move the left/right and up/down to fit. You'll probably have to
 recompile a couple of times, tweaking the offset values each time, until you
 get it right.
 
-### [5.5 Variant Tiles](table-of-contents)
+### [5.5 Variant Tiles](#table-of-contents)
 
 Tileset variants can be used in three different ways:
   1. Once chosen, they are fixed.
-    - This is the case for all wall and floor tiles.
+     - This is the case for all wall and floor tiles.
   2. Every time the screen is redrawn, one variant is chosen at random.
-    - This applies to pretty much all features that don't fit the above
-      requirement.
+     - This applies to pretty much all features that don't fit the above
+       requirement.
   3. Variants are picked in order, every time the screen is redrawn.
-    - This is currently only used in very specific, hardcoded circumstances.
+     - This is currently only used in very specific, hardcoded circumstances.
 
 If your tile is one more variant of a tile that already has several versions,
 you shouldn't need to take any further steps, and the tile should already be
@@ -423,7 +431,7 @@ By default, only the first tile out of set of monster tiles will be chosen.
 Special cases have been added to pick an appropriate one according by colour
 or other properties.
 
-## [6. Compiling the Game](table-of-contents)
+## [6. Compiling the Game](#table-of-contents)
 
 ***
 
@@ -442,13 +450,13 @@ even cause a crash.
 Changes in `dc-xxxx.txt` automatically cause the relevant image files to be
 recreated, as will changes to tiles included in the git repository.
 
-See INSTALL.txt for compilation instructions. It is recommended that you first
-try to get the game compiled without any changes. If you face any problems,
-don't hesitate to send an email to our crawl-ref-discuss mailing list or the
-rec.games.roguelike.misc newsgroup.
+See [INSTALL.md](../../INSTALL.md) for compilation instructions. It is
+recommended that you first try to get the game compiled without any changes. If
+you face any problems, don't hesitate to send an email to our
+`crawl-ref-discuss` mailing list or the `rec.games.roguelike.misc` newsgroup.
 
 
-## [7. Tiles Suggestions](table-of-contents)
+## [7. Tiles Suggestions](#table-of-contents)
 
 ***
 
@@ -465,7 +473,7 @@ following links:
 Also, if you have any further suggestions, feel free to add them.
 
 
-## [8. Submitting Your Tiles](table-of-contents)
+## [8. Submitting Your Tiles](#table-of-contents)
 
 ***
 
@@ -479,7 +487,7 @@ be released under the
 [CC0 license](https://creativecommons.org/publicdomain/zero/1.0/),
 which is similar to placing them in the public domain.
 
-## [9. Reducing File Size](table-of-contents)
+## [9. Reducing File Size](#table-of-contents)
 
 ***
 
@@ -492,7 +500,7 @@ quality. There are two separate steps, and there are two different programs
 which excel at them. I found that the best effects can be obtained with
 running them in sequence:
 
-```
+```sh
 optipng -o4 -i0 -fix image.png
 advpng -z4 image.png
 ```
