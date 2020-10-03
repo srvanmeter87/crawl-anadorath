@@ -1,19 +1,22 @@
 #pragma once
 
-enum shop_type
+
+// Enumeration of Shop Types.
+ enum shop_type
 {
-    SHOP_WEAPON,
-    SHOP_ARMOUR,
-    SHOP_WEAPON_ANTIQUE,
-    SHOP_ARMOUR_ANTIQUE,
-    SHOP_GENERAL_ANTIQUE,
-    SHOP_JEWELLERY,
-    SHOP_EVOKABLES, // wands, rods, and misc items
-    SHOP_BOOK,
-    SHOP_DISTILLERY,
-    SHOP_SCROLL,
-    SHOP_GENERAL,
-    NUM_SHOPS, // must remain last 'regular' member {dlb}
-    SHOP_UNASSIGNED = 100,
-    SHOP_RANDOM,
+    SHOP_WEAPON,            // General weapon vendor
+    SHOP_ARMOUR,            // General armour vendor
+    SHOP_WEAPON_ANTIQUE,    // Antique weapon vendor
+    SHOP_ARMOUR_ANTIQUE,    // Antique armour vendor
+    SHOP_GENERAL_ANTIQUE,   // General antiques vendor
+    SHOP_JEWELLERY,         // Wearable jewellery vendor
+    SHOP_EVOKABLES,         // Wands and miscellaneous gadgets vendor
+    SHOP_BOOKS,             // Skill and spell books vendor
+    SHOP_DISTILLERY,        // Potions vendor
+    SHOP_RUNESCRIBE,        // Scrolls vendor
+    SHOP_GENERAL,           // General vendor
+    NUM_SHOPS,              // Must remain last 'regular' member {dlb}
+
+    SHOP_UNASSIGNED = 100,  // Unassigned shop (inventory depleted?)
+    SHOP_RANDOM,            // Randomised vendor (0-10)
 };

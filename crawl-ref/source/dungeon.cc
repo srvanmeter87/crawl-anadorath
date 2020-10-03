@@ -5698,7 +5698,7 @@ static void _stock_shop_item(int j, shop_type shop_type_,
         }
 
         // Try for a better selection for bookshops.
-        if (item_index != NON_ITEM && shop_type_ == SHOP_BOOK)
+        if (item_index != NON_ITEM && shop_type_ == SHOP_BOOKS)
         {
             // if this book type is already in the shop, maybe discard it
             if (!one_chance_in(stocked[mitm[item_index].sub_type] + 1))
@@ -5722,7 +5722,7 @@ static void _stock_shop_item(int j, shop_type shop_type_,
 
     // If this is a book, note it down in the stocked books array
     // (unless it's a randbook)
-    if (shop_type_ == SHOP_BOOK && !is_artefact(item))
+    if (shop_type_ == SHOP_BOOKS && !is_artefact(item))
         stocked[item.sub_type]++;
 
     // Identify the item, unless we don't do that.
@@ -5742,8 +5742,8 @@ static shop_type _random_shop()
 {
     return random_choose(SHOP_WEAPON, SHOP_ARMOUR, SHOP_WEAPON_ANTIQUE,
                          SHOP_ARMOUR_ANTIQUE, SHOP_GENERAL_ANTIQUE,
-                         SHOP_JEWELLERY, SHOP_EVOKABLES, SHOP_BOOK,
-                         SHOP_DISTILLERY, SHOP_SCROLL, SHOP_GENERAL);
+                         SHOP_JEWELLERY, SHOP_EVOKABLES, SHOP_BOOKS,
+                         SHOP_DISTILLERY, SHOP_RUNESCRIBE, SHOP_GENERAL);
 }
 
 
@@ -5756,12 +5756,12 @@ static shop_type _random_shop()
  * @param shop_level        The effective depth to use for the shop.
 
  */
-void place_spec_shop(const coord_def& where, shop_spec &spec, int shop_level)
+void place_spec_shop(const coord_def &where, shop_spec &spec, int shop_level)
 {
     rng::subgenerator shop_rng; // isolate shop rolls from levelgen
     no_notes nx;
 
-    shop_struct& shop = env.shop[where];
+    shop_struct &shop = env.shop[where];
 
     const int level_number = shop_level ? shop_level : env.absdepth0;
 
@@ -5797,7 +5797,6 @@ object_class_type item_in_shop(shop_type shop_type)
     case SHOP_WEAPON:
         if (one_chance_in(5))
             return OBJ_MISSILES;
-        // *** deliberate fall through here  {dlb} ***
     case SHOP_WEAPON_ANTIQUE:
         return OBJ_WEAPONS;
 
@@ -5811,17 +5810,14 @@ object_class_type item_in_shop(shop_type shop_type)
 
     case SHOP_JEWELLERY:
         return OBJ_JEWELLERY;
-
     case SHOP_EVOKABLES:
         return random_choose(OBJ_WANDS, OBJ_MISCELLANY);
 
-    case SHOP_BOOK:
+    case SHOP_BOOKS:
         return OBJ_BOOKS;
-
     case SHOP_DISTILLERY:
         return OBJ_POTIONS;
-
-    case SHOP_SCROLL:
+    case SHOP_RUNESCRIBE:
         return OBJ_SCROLLS;
 
     default:
@@ -5853,7 +5849,7 @@ static bool _feat_is_wall_floor_liquid(dungeon_feature_type feat)
 // This tries to be like _spotty_level, but probably isn't quite.
 // It might be better to aim for a more open connection -- currently
 // it stops pretty much as soon as connectivity is attained.
-static set<coord_def> _dgn_spotty_connect_path(const coord_def& from,
+static set<coord_def> _dgn_spotty_connect_path(const coord_def &from,
             bool (*overwriteable)(dungeon_feature_type))
 {
     set<coord_def> flatten;
@@ -5925,14 +5921,15 @@ static bool _connect_spotty(const coord_def& from,
     return !spotty_path.empty();
 }
 
-void place_specific_trap(const coord_def& where, trap_type spec_type, int charges)
+void place_specific_trap(const coord_def &where, trap_type spec_type,
+                         int charges)
 {
     trap_spec spec(spec_type);
 
     _place_specific_trap(where, &spec, charges);
 }
 
-static void _place_specific_trap(const coord_def& where, trap_spec* spec,
+static void _place_specific_trap(const coord_def &where, trap_spec *spec,
                                  int charges)
 {
     trap_type spec_type = spec->tr_type;
@@ -5940,7 +5937,7 @@ static void _place_specific_trap(const coord_def& where, trap_spec* spec,
     if (spec_type == TRAP_SHAFT && !is_valid_shaft_level())
     {
         mprf(MSGCH_ERROR, "Vault %s tried to place a shaft at a branch end",
-                env.placing_vault.c_str());
+             env.placing_vault.c_str());
     }
 
     // find an appropriate trap for TRAP_RANDOM
@@ -5951,7 +5948,8 @@ static void _place_specific_trap(const coord_def& where, trap_spec* spec,
             spec_type = static_cast<trap_type>(random2(NUM_TRAPS));
         }
         while (!is_regular_trap(spec_type)
-               || !is_valid_shaft_level() && spec_type == TRAP_SHAFT);
+               || !is_valid_shaft_level()
+               && spec_type == TRAP_SHAFT);
     }
 
     trap_def t;
@@ -5983,9 +5981,9 @@ static void _add_plant_clumps(int rarity,
             // clump plants around things that already exist
             monster_type type = menv[mgrd(*ri)].type;
             if ((type == MONS_PLANT
-                     || type == MONS_FUNGUS
-                     || type == MONS_BUSH)
-                 && one_chance_in(rarity))
+                 || type == MONS_FUNGUS
+                 || type == MONS_BUSH)
+                && one_chance_in(rarity))
             {
                 mg.cls = type;
             }
@@ -6111,7 +6109,7 @@ coord_def dgn_find_feature_marker(dungeon_feature_type feat)
 // Specifically, the adjacent cell with least slime walls next to it.
 // XXX: This can still give bad situations if the layout is not bubbly,
 //      e.g. when a vault is placed with connecting corridors.
-static void _fixup_slime_hatch_dest(coord_def* pos)
+static void _fixup_slime_hatch_dest(coord_def *pos)
 {
     int max_walls = 9;
     for (adjacent_iterator ai(*pos, false); ai; ++ai)
@@ -6129,12 +6127,14 @@ static void _fixup_slime_hatch_dest(coord_def* pos)
 }
 
 coord_def dgn_find_nearby_stair(dungeon_feature_type stair_to_find,
-                                coord_def base_pos, bool find_closest,
+                                coord_def base_pos,
+                                bool find_closest,
                                 string hatch_name)
 {
     dprf(DIAG_DNGN, "Level entry point on %sstair: %d (%s)",
          find_closest ? "closest " : "",
-         stair_to_find, dungeon_feature_name(stair_to_find));
+         stair_to_find,
+         dungeon_feature_name(stair_to_find));
 
     // Shafts and hatches.
     if (stair_to_find == DNGN_ESCAPE_HATCH_UP
@@ -6322,8 +6322,8 @@ bool dgn_region::overlaps(const dgn_region &other) const
     // bottom-right. I'm hoping nothing actually *relied* on that stupid bug.
 
     return (between(pos.x, other.pos.x, other.pos.x + other.size.x - 1)
-               || between(pos.x + size.x - 1, other.pos.x,
-                          other.pos.x + other.size.x - 1))
+            || between(pos.x + size.x - 1, other.pos.x,
+                       other.pos.x + other.size.x - 1))
            && (between(pos.y, other.pos.y, other.pos.y + other.size.y - 1)
                || between(pos.y + size.y - 1, other.pos.y,
                           other.pos.y + other.size.y - 1));

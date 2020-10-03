@@ -128,20 +128,20 @@ tileidx_t tileidx_shop(const shop_struct *shop)
     {
         case SHOP_WEAPON:
         case SHOP_WEAPON_ANTIQUE:
-            return TILE_SHOP_WEAPONS;
+            return TILE_SHOP_WEAPON;
         case SHOP_ARMOUR:
         case SHOP_ARMOUR_ANTIQUE:
             return TILE_SHOP_ARMOUR;
         case SHOP_JEWELLERY:
             return TILE_SHOP_JEWELLERY;
         case SHOP_EVOKABLES:
-            return TILE_SHOP_GADGETS;
-        case SHOP_BOOK:
+            return TILE_SHOP_EVOKABLES;
+        case SHOP_BOOKS:
             return TILE_SHOP_BOOKS;
-        case SHOP_SCROLL:
-            return TILE_SHOP_SCROLLS;
+        case SHOP_RUNESCRIBE:
+            return TILE_SHOP_RUNESCRIBE;
         case SHOP_DISTILLERY:
-            return TILE_SHOP_POTIONS;
+            return TILE_SHOP_DISTILLERY;
         case SHOP_GENERAL:
         case SHOP_GENERAL_ANTIQUE:
             return TILE_SHOP_GENERAL;
@@ -3908,13 +3908,16 @@ tileidx_t tileidx_enchant_equ(const item_def &item, tileidx_t tile, bool player)
             case 1:
             case 2:
             case 3:
-                tile = _modrng(item.rnd, TILE_THELM_EGO_FIRST, TILE_THELM_EGO_LAST);
+                tile = _modrng(item.rnd, TILE_THELM_EGO_FIRST,
+                               TILE_THELM_EGO_LAST);
                 break;
             case 4:
-                tile = _modrng(item.rnd, TILE_THELM_ART_FIRST, TILE_THELM_ART_LAST);
+                tile = _modrng(item.rnd, TILE_THELM_ART_FIRST,
+                               TILE_THELM_ART_LAST);
                 break;
             default:
-                tile = _modrng(item.rnd, TILE_THELM_FIRST, TILE_THELM_LAST);
+                tile = _modrng(item.rnd, TILE_THELM_FIRST,
+                               TILE_THELM_LAST);
         }
         return tile;
     }
@@ -3926,13 +3929,16 @@ tileidx_t tileidx_enchant_equ(const item_def &item, tileidx_t tile, bool player)
             case 1:
             case 2:
             case 3:
-                tile = _modrng(item.rnd, TILE_ARM_ROBE_EGO_FIRST, TILE_ARM_ROBE_EGO_LAST);
+                tile = _modrng(item.rnd, TILE_ARM_ROBE_EGO_FIRST,
+                               TILE_ARM_ROBE_EGO_LAST);
                 break;
             case 4:
-                tile = _modrng(item.rnd, TILE_ARM_ROBE_ART_FIRST, TILE_ARM_ROBE_ART_LAST);
+                tile = _modrng(item.rnd, TILE_ARM_ROBE_ART_FIRST,
+                               TILE_ARM_ROBE_ART_LAST);
                 break;
             default:
-                tile = _modrng(item.rnd, TILE_ARM_ROBE_FIRST, TILE_ARM_ROBE_LAST);
+                tile = _modrng(item.rnd, TILE_ARM_ROBE_FIRST,
+                               TILE_ARM_ROBE_LAST);
         }
         return tile;
     }

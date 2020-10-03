@@ -135,16 +135,16 @@ static string shoptype_to_string(shop_type s)
     switch (s)
     {
     case SHOP_WEAPON:          return "<w>(</w>";
-    case SHOP_WEAPON_ANTIQUE:  return "<yellow>(</yellow>";
     case SHOP_ARMOUR:          return "<w>[</w>";
+    case SHOP_WEAPON_ANTIQUE:  return "<yellow>(</yellow>";
     case SHOP_ARMOUR_ANTIQUE:  return "<yellow>[</yellow>";
-    case SHOP_GENERAL:         return "<w>*</w>";
     case SHOP_GENERAL_ANTIQUE: return "<yellow>*</yellow>";
     case SHOP_JEWELLERY:       return "<w>=</w>";
     case SHOP_EVOKABLES:       return "<w>}</w>";
-    case SHOP_BOOK:            return "<w>:</w>";
+    case SHOP_BOOKS:           return "<w>:</w>";
     case SHOP_DISTILLERY:      return "<w>!</w>";
-    case SHOP_SCROLL:          return "<w>?</w>";
+    case SHOP_RUNESCRIBE:      return "<w>?</w>";
+    case SHOP_GENERAL:         return "<w>*</w>";
     default:                   return "<w>x</w>";
     }
 }

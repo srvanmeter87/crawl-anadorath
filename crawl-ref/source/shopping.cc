@@ -1390,26 +1390,26 @@ string shop_type_name(shop_type type)
 {
     switch (type)
     {
-        case SHOP_WEAPON_ANTIQUE:
-            return "Antique Weapon";
-        case SHOP_ARMOUR_ANTIQUE:
-            return "Antique Armour";
         case SHOP_WEAPON:
             return "Weapon";
         case SHOP_ARMOUR:
             return "Armour";
+        case SHOP_WEAPON_ANTIQUE:
+            return "Antique Weapon";
+        case SHOP_ARMOUR_ANTIQUE:
+            return "Antique Armour";
+        case SHOP_GENERAL_ANTIQUE:
+            return "Assorted Antiques";
         case SHOP_JEWELLERY:
             return "Jewellery";
         case SHOP_EVOKABLES:
             return "Gadget";
-        case SHOP_BOOK:
+        case SHOP_BOOKS:
             return "Book";
-        case SHOP_SCROLL:
-            return "Magic Scroll";
-        case SHOP_GENERAL_ANTIQUE:
-            return "Assorted Antiques";
         case SHOP_DISTILLERY:
             return "Distillery";
+        case SHOP_RUNESCRIBE:
+            return "Runescribe";
         case SHOP_GENERAL:
             return "General Store";
         default:
@@ -1421,7 +1421,8 @@ static const char *_shop_type_suffix(shop_type type, const coord_def &where)
 {
     if (type == SHOP_GENERAL
         || type == SHOP_GENERAL_ANTIQUE
-        || type == SHOP_DISTILLERY)
+        || type == SHOP_DISTILLERY
+        || type == SHOP_RUNESCRIBE)
     {
         return "";
     }
@@ -1433,7 +1434,7 @@ static const char *_shop_type_suffix(shop_type type, const coord_def &where)
     return suffixnames[(where.x + where.y) % ARRAYSZ(suffixnames)];
 }
 
-string shop_name(const shop_struct& shop)
+string shop_name(const shop_struct &shop)
 {
     const shop_type type = shop.type;
 
@@ -1496,9 +1497,8 @@ static const char *shop_types[] =
     "jewellery",
     "gadget",
     "book",
-    "food",
     "distillery",
-    "scroll",
+    "runescribe",
     "general",
 };
 
@@ -1552,7 +1552,7 @@ ShoppingList::ShoppingList()
 }
 
 #define SETUP_POS()                 \
-    ASSERT(list); \
+    ASSERT(list);                   \
     level_pos pos;                  \
     if (_pos != nullptr)            \
         pos = *_pos;                \

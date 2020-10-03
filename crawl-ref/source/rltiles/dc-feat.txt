@@ -315,18 +315,17 @@ one_way_stairs_up DNGN_ONE_WAY_STAIRS_UP
 one_way_stairs_down DNGN_ONE_WAY_STAIRS_DOWN
 
 %sdir dngn/shops
-##enter_shop DNGN_ENTER_SHOP
+## enter_shop DNGN_ENTER_SHOP
 %shrink 0
 %back enter_shop
-shop_general SHOP_GENERAL
-shop_weapon SHOP_WEAPONS
+shop_weapon SHOP_WEAPON
 shop_armour SHOP_ARMOUR
-shop_books SHOP_BOOKS
-shop_scrolls SHOP_SCROLLS
-shop_wands SHOP_WANDS
 shop_jewellery SHOP_JEWELLERY
-shop_potions SHOP_POTIONS
-shop_gadgets SHOP_GADGETS
+shop_evokables SHOP_EVOKABLES
+shop_books SHOP_BOOKS
+shop_distillery SHOP_DISTILLERY
+shop_runescribe SHOP_RUNESCRIBE
+shop_general SHOP_GENERAL
 %back none
 %shrink 1
 abandoned_shop DNGN_ABANDONED_SHOP
