@@ -4,7 +4,7 @@
 enum monster_type                      // menv[].type
 {
     MONS_PROGRAM_BUG,
-        MONS_0 = MONS_PROGRAM_BUG,
+    MONS_0 = MONS_PROGRAM_BUG,
     MONS_GIANT_LIZARD,          // genus
     MONS_FRILLED_LIZARD,
     MONS_LEOPARD_GECKO,

@@ -323,6 +323,12 @@ base/octopode1 SP_RECOMMENDED_OCTOPODE
 %compose body/animal_skin
 %finish SP_RECOMMENDED_HILL_ORC
 %start
+%compose base/lorc_m4
+%compose body/animal_skin
+%compose drcwing/drcwing_grey
+%compose head/horns3
+%finish SP_RECOMMENDED_PYROLITH
+%start
 %compose base/spriggan_m
 %compose body/animal_skin
 %compose beard/medium_green
@@ -347,11 +353,6 @@ base/octopode1 SP_RECOMMENDED_OCTOPODE
 %compose base/vine_stalker_f
 %compose body/animal_skin
 %finish SP_RECOMMENDED_VINE_STALKER
-%start
-%compose base/gargoyle_m
-%compose body/animal_skin
-%compose head/horns3
-%finish SP_RECOMMENDED_PYROLITH
 %syn LAST_RECOMMENDED_SPECIES
 
 %sdir gui/backgrounds
@@ -378,10 +379,10 @@ enum:SP_RECOMMENDED_NAGA SP_NAGA
 enum:SP_RECOMMENDED_OCTOPODE SP_OCTOPODE
 enum:SP_RECOMMENDED_OGRE SP_OGRE
 enum:SP_RECOMMENDED_HILL_ORC SP_HILL_ORC
+enum:SP_RECOMMENDED_PYROLITH SP_PYROLITH
 enum:SP_RECOMMENDED_SPRIGGAN SP_SPRIGGAN
 enum:SP_RECOMMENDED_TENGU SP_TENGU
 enum:SP_RECOMMENDED_TROLL SP_TROLL
 enum:SP_RECOMMENDED_VAMPIRE SP_VAMPIRE
 enum:SP_RECOMMENDED_VINE_STALKER SP_VINE_STALKER
-enum:SP_RECOMMENDED_PYROLITH SP_PYROLITH
 %syn LAST_SPECIES

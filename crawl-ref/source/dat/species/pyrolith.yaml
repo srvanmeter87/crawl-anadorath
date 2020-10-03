@@ -9,104 +9,104 @@ species_flags:
   - hairless
 aptitudes:
   xp: -2
-  hp: 5
-  mp_mod: 2
-  mr: 4
+  hp: 6
+  mp_mod: 3
+  mr: 3
   fighting: 3
   short_blades: false
   long_blades: 2
   maces_and_flails: 0
   axes: 0
   polearms: 2
-  staves: -2
+  staves: 0
   unarmed_combat: 4
   bows: false
-  crossbows: 1
-  throwing: 4
-  slings: -2
-  armour: false
+  crossbows: 2
+  throwing: false
+  slings: false
+  armour: 4
   dodging: false
-  shields: 5
-  spellcasting: 2
+  shields: 4
+  spellcasting: 3
   conjurations: 2
   hexes: 0
-  summoning: 0
+  summoning: 1
   necromancy: false
-  translocations: -3
-  transmutations: -2
+  translocations: false
+  transmutations: false
   fire_magic: 4
   ice_magic: false
   air_magic: false
   earth_magic: 4
   poison_magic: false
-  invocations: 3
-  evocations: 2
+  invocations: 2
+  evocations: 1
   stealth: false
 can_swim: false
 size: big
-str: 12
-int: 12
-dex: 3
+str: 15
+int: 14
+dex: 1
 levelup_stat_frequency: 3
 levelup_stats:
   - str
   - int
 mutations:
   1:
-    MUT_COLD_VULNERABILITY: 1
-    MUT_FLAME_CLOUD_IMMUNITY: 1
-    MUT_HEAT_RESISTANCE: 1
-    MUT_NO_AIR_MAGIC: 1
-    MUT_NO_ARMOUR: 1
-    MUT_NO_BOWS: 1
-    MUT_NO_DODGING: 1
-    MUT_NO_ICE_MAGIC: 1
-    MUT_NO_NECROMANCY_MAGIC: 1
-    MUT_NO_POISON_MAGIC: 1
     MUT_NO_SHORT_BLADES: 1
+    MUT_NO_BOWS: 1
+    MUT_NO_THROWING: 1
+    MUT_NO_SLINGS: 1
+    MUT_NO_DODGING: 1
+    MUT_NO_NECROMANCY_MAGIC: 1
+    MUT_NO_TRANSLOCATION_MAGIC: 1
+    MUT_NO_TRANSMUTATION_MAGIC: 1
+    MUT_NO_ICE_MAGIC: 1
+    MUT_NO_AIR_MAGIC: 1
+    MUT_NO_POISON_MAGIC: 1
     MUT_NO_STEALTH: 1
+    MUT_BIG_WINGS: 1
+    MUT_HEAT_RESISTANCE: 1
+    MUT_HORNS: 1
     MUT_POISON_RESISTANCE: 1
     MUT_ROBUST: 1
-    MUT_ROT_IMMUNITY: 1
-    MUT_SLOW: 1
-    MUT_SLOW_REFLEXES: 1
     MUT_UNBREATHING: 1
-  3:
-    MUT_HIGH_MAGIC: 1
+    MUT_COLD_VULNERABILITY: 2
+    MUT_SLOW: 2
+    MUT_SLOW_REFLEXES: 2
   5:
-    MUT_AUGMENTATION: 1
-    MUT_MAGIC_RESISTANCE: 1
-  7:
     MUT_ROBUST: 1
     MUT_STRONG: 1
-    MUT_THIN_METALLIC_SCALES: 1
+  7:
+    MUT_MAGIC_RESISTANCE: 1
+    MUT_THIN_METALLIC_SCALES: 2
   10:
     MUT_COLD_VULNERABILITY: 1
     MUT_HEAT_RESISTANCE: 1
+    MUT_THIN_METALLIC_SCALES: 1
   11:
+    MUT_HIGH_MAGIC: 1
     MUT_WILD_MAGIC: 1
   13:
-    MUT_THIN_METALLIC_SCALES: 1
+    MUT_STRONG: 1
   15:
-    MUT_HIGH_MAGIC: 1
+    MUT_FLAME_CLOUD_IMMUNITY: 1
   16:
     MUT_AUGMENTATION: 1
     MUT_MAGIC_RESISTANCE: 1
   18:
-    MUT_THIN_METALLIC_SCALES: 1
+    MUT_HIGH_MAGIC: 1
   19:
     MUT_ROBUST: 1
     MUT_STRONG: 1
   20:
-    MUT_COLD_VULNERABILITY: 1
     MUT_HEAT_RESISTANCE: 1
   23:
     MUT_MAGIC_RESISTANCE: 1
   25:
-    MUT_STRONG: 1
+    MUT_HIGH_MAGIC: 1
   27:
     MUT_AUGMENTATION: 1
-    MUT_HIGH_MAGIC: 1
 fake_mutations:
   - long: You are composed entirely of tempered lava.
     short: lava elemental
@@ -129,6 +129,5 @@ recommended_weapons:
   - SK_POLEARMS
   - SK_STAVES
   - SK_CROSSBOWS
-  - SK_THROWING
 walking_verb: thump
 altar_action: tower over
