@@ -1,38 +1,41 @@
-# How to make levels for Dungeon Crawl Stone Soup, Part III: Advanced Methods
+# Level Creation for Dungeon Crawl Stone Soup, Part III: Advanced Methods
 
 This document describes the advanced features of vault making. This includes
 usage of lua and how to create portal vaults. Triggerables are covered in a
 separate document: [`triggerables.txt`](triggerables.txt).
 
-- [How to make levels for Dungeon Crawl Stone Soup, Part III: Advanced Methods](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
-  - [I. Conditionalising levels](#i-conditionalising-levels)
-  - [J. Validating levels](#j-validating-levels)
-  - [K. Vetoing Levels](#k-vetoing-levels)
-  - [L. Abyss Vaults](#l-abyss-vaults)
-  - [M. Portal Vaults](#m-portal-vaults)
-    - [Define a vault to hold the portal itself](#define-a-vault-to-hold-the-portal-itself)
-    - [Define a destination map](#define-a-destination-map)
-    - [Defining a random monster set](#defining-a-random-monster-set)
-  - [N. Lua reference](#n-lua-reference)
-    - [How maps are processed](#how-maps-are-processed)
-    - [How Lua chunks are associated with a C++ map object](#how-lua-chunks-are-associated-with-a-c-map-object)
-    - [Steps involved in processing .des files](#steps-involved-in-processing-des-files)
-    - [The global prelude](#the-global-prelude)
-    - [Syntax for using Lua in .des files](#syntax-for-using-lua-in-des-files)
-    - [Debugging Lua](#debugging-lua)
-    - [Special dungeon-related Lua marker properties](#special-dungeon-related-lua-marker-properties)
-    - [Special monster-related Lua marker properties](#special-monster-related-lua-marker-properties)
-    - [Lua API reference](#lua-api-reference)
-      - [The Map](#the-map)
-      - [Global Game State](#global-game-state)
-      - [Character Information](#character-information)
-      - [Colour Definitions](#colour-definitions)
-  - [O. Lua Hooks](#o-lua-hooks)
-    - [Errors in Hooks](#errors-in-hooks)
-  - [P. Map Statistics](#p-map-statistics)
-  - [Q. Map Generation](#q-map-generation)
+## [Table of Contents](#table-of-contents)
 
-## I. [Conditionalising levels](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+- [Level Creation for Dungeon Crawl Stone Soup, Part III: Advanced Methods](#level-creation-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+  - [Table of Contents](#table-of-contents)
+  - [10. Conditionalising Levels](#10-conditionalising-levels)
+  - [11. Validating Levels](#11-validating-levels)
+  - [12. Vetoing Levels](#12-vetoing-levels)
+  - [13. Abyss Vaults](#13-abyss-vaults)
+  - [14. Portal Vaults](#14-portal-vaults)
+    - [14A. Define a vault to hold the portal itself](#14a-define-a-vault-to-hold-the-portal-itself)
+    - [14B. Define a destination map](#14b-define-a-destination-map)
+    - [14C. Defining a random monster set](#14c-defining-a-random-monster-set)
+  - [15. Lua reference](#15-lua-reference)
+    - [15A. How maps are processed](#15a-how-maps-are-processed)
+    - [15B. Lua association with a C++ map object](#15b-lua-association-with-a-c-map-object)
+    - [15C. Steps involved in processing .des files](#15c-steps-involved-in-processing-des-files)
+    - [15D. The Global Prelude](#15d-the-global-prelude)
+    - [15E. Syntax for using Lua in .des files](#15e-syntax-for-using-lua-in-des-files)
+    - [15F. Debugging Lua](#15f-debugging-lua)
+    - [15G. Special dungeon-related Lua marker properties](#15g-special-dungeon-related-lua-marker-properties)
+    - [15H. Special monster-related Lua marker properties](#15h-special-monster-related-lua-marker-properties)
+    - [15I. Lua API reference](#15i-lua-api-reference)
+      - [15Ii. The Map](#15ii-the-map)
+      - [15Iii. Global Game State](#15iii-global-game-state)
+      - [15Iiii. Character Information](#15iiii-character-information)
+      - [15Iiv. Colour Definitions](#15iiv-colour-definitions)
+  - [16. Lua Hooks](#16-lua-hooks)
+    - [16A. Errors in Hooks](#16a-errors-in-hooks)
+  - [17. Map Statistics](#17-map-statistics)
+  - [18. Map Generation](#18-map-generation)
+
+## [10. Conditionalising Levels](#table-of-contents)
 
 Crawl translates level `.des` files into Lua code chunks and runs these chunks
 to produce the final level that is generated. While you don't need to use Lua
@@ -185,7 +188,7 @@ For more details on the available Lua API and syntax, see the
 [Lua reference section].
 
 
-## J. [Validating levels](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [11. Validating Levels](#table-of-contents)
 
 If you have a map with lots of transforms (`SUBST` and `SHUFFLE`), and
 want to guarantee that the map is sane after the transforms, you can
@@ -242,7 +245,7 @@ validate {{
 }}
 ```
 
-## K. [Vetoing Levels](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [12. Vetoing Levels](#table-of-contents)
 
 Similarly to validating a level post-placement, it is possible to veto
 placement of a map before it is even considered. This can be especially useful
@@ -269,7 +272,7 @@ the game to close.
 Do not use `veto` chunks with vaults tagged with `PLACE` unless you are absolutely
 certain this will not happen.
 
-## L. [Abyss Vaults](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [13. Abyss Vaults](#table-of-contents)
 
 Abyssal vaults have more limitations than vaults in the regular
 dungeon, because the Abyss is constantly shifting under the player.
@@ -308,7 +311,7 @@ When designing abyssal vaults, keep in mind that:
   may be removed at any time as the abyss shifts away from your vault.
 
 
-## M. [Portal Vaults](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [14. Portal Vaults](#table-of-contents)
 
 Portal vaults are branches accessed by portals in the dungeon. You can
 create custom portal vaults in the following steps (note that compilation
@@ -362,7 +365,7 @@ like `40,30,20,10` might be more interesting than `25,25,25,25`.
 In order to test a portal vault, you can either use `PLACE: D:2` for an
 entry vault, or use the wizard mode command &L for conjuring up the entry.
 
-### [Define a vault to hold the portal itself](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [14A. Define a vault to hold the portal itself](#table-of-contents)
 
 ```
 # Bare-bones portal vault entry
@@ -383,7 +386,7 @@ This will produce a portal, but attempting to use it will trigger an
 `ASSERT` since there's no map for the destination. So we create a
 destination map like so:
 
-### [Define a destination map](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [14B. Define a destination map](#table-of-contents)
 
 ```
 NAME: portal_generic_generic
@@ -409,7 +412,7 @@ as exits.
 You can use multiple maps with `DEPTH: NEWPORTAL`, and the dungeon builder
 will pick one at random.
 
-### [Defining a random monster set](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [14C. Defining a random monster set](#table-of-contents)
 
 Portal vaults may use a defined random monster set to make the Shadow
 Creatures spell work. This is done by calling `dgn.set_random_mon_list()`
@@ -443,9 +446,9 @@ You can also edit [`mon-pick-data.h`](../../../source/mon-pick-data.h),
 but that is more complicated, and not necessary if you have a random
 monster list set in the vault.
 
-## N. [Lua reference](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [15. Lua reference](#table-of-contents)
 
-### [How maps are processed](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15A. How maps are processed](#table-of-contents)
 
 Under the hood, Crawl translates everything in a `.des` file to Lua. You
 don't need to know what the underlying Lua looks like to design
@@ -577,7 +580,7 @@ Also note that Crawl writes `-dump-maps` output to `stderr`, not `stdout`,
 hence the use of `2>` for redirection.
 
 
-### [How Lua chunks are associated with a C++ map object](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15B. Lua association with a C++ map object](#table-of-contents)
 
 A map's Lua chunk consists of calls to functions such as `tags()`,
 `mons()`, etc. These functions are defined in the `dgn` table (see the
@@ -618,7 +621,7 @@ that function if you want it to modify the map. Thus the call to
 : statue_pool_map(_G)
 ```
 
-### [Steps involved in processing .des files](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15C. Steps involved in processing .des files](#table-of-contents)
 
 * Level files are compiled into a series of Lua chunks. Each map can
   have one or more Lua chunks associated with it: the prelude, the
@@ -645,7 +648,7 @@ that function if you want it to modify the map. Thus the call to
   Lua. If the map passes validation, the dungeon builder continues
   with level-generation; otherwise, it restarts from the map prelude.
 
-### [The global prelude](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15D. The Global Prelude](#table-of-contents)
 
 Every `.des` file can have (at the start of the file) Lua code that is
 not associated with any specific map, but with all maps in the file.
@@ -658,7 +661,7 @@ that the rest of the maps in the `.des` file use. If you have a lot of
 common code, you should probably add it to
 [`dungeon.lua`](../../../source/dat/dlua/dungeon.lua) instead.
 
-### [Syntax for using Lua in .des files](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15E. Syntax for using Lua in .des files](#table-of-contents)
 
 * Colon-prefixed lines are individual Lua lines, extending to the end
   of the line. E.g.
@@ -714,7 +717,7 @@ map's `NAME:` directive will add the Lua code to the `global prelude`.
    }}
   ```
 
-### [Debugging Lua](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15F. Debugging Lua](#table-of-contents)
 
 Since Lua action happens in the guts of Crawl, it can be hard to tell
 what's going on. Lua debugging involves the time-honoured method of
@@ -733,7 +736,7 @@ It's very important that your finished level never croaks during
 level-generation. A Lua error at this stage is considered a
 `validation failure`.
 
-### [Special dungeon-related Lua marker properties](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15G. Special dungeon-related Lua marker properties](#table-of-contents)
 
 There are several properties a Lua marker can have which will affect the
 dungeon cell which they are on:
@@ -802,7 +805,7 @@ dungeon cell which they are on:
 * `veto_fire`: If this property is set to `veto` then the cell will be
   unaffected by any fire spells.
 
-### [Special monster-related Lua marker properties](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15H. Special monster-related Lua marker properties](#table-of-contents)
 
 Using the `MonPropsMarker` allows you to permanently alter or mark a monster that
 the marker is placed upon. The options currently available are:
@@ -842,9 +845,9 @@ An example of `MonPropsMarker` to replace the description and quote of a monster
 Note that all of the speech related properties will be reset if the monster
 polymorphs.
 
-### [Lua API reference](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [15I. Lua API reference](#table-of-contents)
 
-#### [The Map](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+#### [15Ii. The Map](#table-of-contents)
 
 Lua functions dealing with the map are mostly grouped under the `dgn`
 module. For convenience, `.des` file Lua chunks are run in an environment
@@ -884,7 +887,7 @@ The bottom right symbol can be assigned like this:
  mapgrd[width()-1][height()-1] = "."
 ```
 
-#### [Global Game State](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+#### [15Iii. Global Game State](#table-of-contents)
 
 The `crawl` module provides functions that describe the game state or
 provide utility methods:
@@ -896,7 +899,7 @@ provide utility methods:
 `mark_milestone`
 
 
-#### [Character Information](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+#### [15Iiii. Character Information](#table-of-contents)
 
 The `you` module provides functions that describe the player character.
 
@@ -907,14 +910,14 @@ The `you` module provides functions that describe the player character.
 `where`, `branch`, `subdepth`, `absdepth`
 
 
-#### [Colour Definitions](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+#### [15Iiv. Colour Definitions](#table-of-contents)
 
 The `colour` module provides functions for defining new colour patterns.
 
 `add_colour`
 
 
-## O. [Lua Hooks](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [16. Lua Hooks](#table-of-contents)
 
 When the dungeon builder places a vault, it runs hooks at certain
 steps during vault building. These hooks are:
@@ -980,14 +983,14 @@ Note the use of the `main` hook in this example instead of
 `post_place`. `post_place` is too late to modify the vault definition,
 since the vault is already placed at that point.
 
-### [Errors in Hooks](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+### [16A. Errors in Hooks](#table-of-contents)
 
 Errors in hooks will usually be ignored by the level builder, although
 errors will still be displayed to the end user. The only exception is
 the `post_place` hook -- errors in the `post_place` hook will cause the
 dungeon builder to veto its current level and retry level generation.
 
-## P. [Map Statistics](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [17. Map Statistics](#table-of-contents)
 
 Full-debug Crawl builds (i.e., ones built with `make debug`) can produce
 map generation statistics. To generate statistics, run crawl from the
@@ -1017,7 +1020,7 @@ optimized debug builds by `make debug CFOPTIMIZE="-Ofast"` if you're not
 after backtraces (`mapstat` is quite good for finding map generation crashes).
 `CFOPTIMIZE` is also a good place for inserting `-pg` into.
 
-## Q. [Map Generation](#how-to-make-levels-for-dungeon-crawl-stone-soup-part-iii-advanced-methods)
+## [18. Map Generation](#table-of-contents)
 
 Full-debug Crawl builds (see [Map Statistics](#p-map-statistics)) include a test for
 generating specific vaults and outputting a copy of the map to a text file for

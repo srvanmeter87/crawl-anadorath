@@ -28,26 +28,26 @@ Playing Crawl a bit will show you a number of arrival vaults, which live in
 
 We love new arrival vaults, and it is easy to make new ones. Coding abilities
 are not required. If you are completely new to making maps, have a look at
-simple.des. After that, glance through the [Introduction](./introduction.txt),
+simple.des. After that, glance through the [Introduction](introduction.md),
 which will allow you to make
 your own maps already! Once you are familiar with this, you may look at more
-complicated vaults and read the more [advanced documentation](./advanced.txt).
+complicated vaults and read the more [advanced documentation](advanced.md).
 Crawl also employs vaults in many other places; check the various `.des` files
 in [dat/des/](../../../source/dat/des/) for what is going on.
 New maps are always welcome.
 
 ### [Some guidelines for arrival vault creators](#guidelines-for-specific-types-of-vaults)
 
-* Try to come up with *small* maps.
-* *Avoid* placing guaranteed items.
-* The same holds for any features which might trigger start-scumming, like
+- Try to come up with *small* maps.
+- *Avoid* placing guaranteed items.
+- The same holds for any features which might trigger start-scumming, like
   altars.
-* Also *avoid ASCII art*. It probably won't work in Tiles anyway.
-* Also *avoid monsters-behind-glass-wall vaults*. We already have enough of these.
-* Note that at the start of the game, the dungeon builder removes *all*
+- Also *avoid ASCII art*. It probably won't work in Tiles anyway.
+- Also *avoid monsters-behind-glass-wall vaults*. We already have enough of these.
+- Note that at the start of the game, the dungeon builder removes *all*
   monsters in view of the player. Zero experience monsters like plants
   are exempt.
-* Arrival vaults should have *multiple* entry points, escape hatches, or enough
+- Arrival vaults should have *multiple* entry points, escape hatches, or enough
   space to permit tactics.
 
 ### [Naming conventions](#guidelines-for-specific-types-of-vaults)
@@ -96,17 +96,16 @@ Often, it will be fine to allow the individual maps comprising a serial vault
 to be chosen by the level builder as usual minivaults. If you want to do that,
 there are two ways to proceed:
 
-* A default-depth line before all maps.
-* Or non-empty `DEPTH` statements in each map definition.
-  * (You can still do
-    this even if there is a default-depth. It allows you tweak the depths for
-    specific maps.)
+- A `default-depth` line before all maps.
+- Or non-empty `DEPTH` statements in each map definition.
+  - (You can still do this even if there is a `default-depth`. It allows you to
+    tweak the depths for specific maps.)
 
 If you want to disable all or some the maps for from normal minivault
 placement, you can:
 
-* Give them no `DEPTH` line when you have no preceding default-depth.
-* Explicitly remove them with an empty depth line like this:
+- Give them no `DEPTH` line when you have no preceding `default-depth`.
+- Explicitly remove them with an empty depth line like this:
 
 ``` DEPTH: ```
 
@@ -167,7 +166,8 @@ for examples and inspiration.
 The current range of levels that place ghost vaults is:
 
 ```
-default-depth: D:3-, Lair, Elf, Orc, Snake, Shoals, Swamp, Spider, Depths, Crypt, Zot
+default-depth: D:3-, Lair, Elf, Orc, Snake, Shoals, Swamp, Spider, Depths,
+               Crypt, Zot
 ```
 
 Every ghost vault uses a common chance value defined in
@@ -227,16 +227,22 @@ Teleports will never land the player behind the glass wall.
 
 ### [Good places to use `no_tele_into`:](#guidelines-for-specific-types-of-vaults)
 
-* Vaults which need the player to enter in a controlled manner to understand/enjoy. For example
-  [`gammafunk_steamed_eel`](../../../source/dat/des/variable/float.des) (line 4291).
-* Teleport closets: areas the player cannot escape without a scroll of teleportation (or similar).
-  For example [`lemuel_altar_in_water`](../../../source/dat/des/altar/altar.des) (line 108).
-* Egregiously dangerous/unfair situations. For example
+- Vaults which need the player to enter in a controlled manner to
+  understand/enjoy. For example
+  [`gammafunk_steamed_eel`](../../../source/dat/des/variable/float.des)
+  (line 4291).
+- Teleport closets: areas the player cannot escape without a scroll of
+  teleportation (or similar).
+  For example
+  [`lemuel_altar_in_water`](../../../source/dat/des/altar/altar.des) (line 108).
+- Egregiously dangerous/unfair situations. For example
   [`chequers_guarded_unrand_ignorance`](../../../source/dat/des/variable/mini_monsters.des)
   (line 6959) (four orange crystal statues).
 
 ### [Bad places to use `no_tele_into`:](#guidelines-for-specific-types-of-vaults)
 
-* Any old runed door / transporter vault. It's fine for players to teleport into tough or scary situations.
-* Islands: areas the player can also reach with flight or similar tools. `no_tele_into` would be
-  an incomplete solution. It's better to place a hatch/shaft, which solves all cases.
+- Any old runed door / transporter vault. It's fine for players to teleport
+  into tough or scary situations.
+- Islands: areas the player can also reach with flight or similar tools.
+  `no_tele_into` would be an incomplete solution. It's better to place a
+  hatch/shaft, which solves all cases.
