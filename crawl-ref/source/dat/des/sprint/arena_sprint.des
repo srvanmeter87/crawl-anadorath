@@ -1024,13 +1024,13 @@ KFEAT:  { = {
 # For your convenience, shop positions are not randomized, and are roughly
 # grouped by category.
 
-KFEAT:  C = scroll shop type:Identification suffix:Station count:17 greed:25 ; scroll of identify q:3
+KFEAT:  C = runescribe shop type:Identification suffix:Station count:17 greed:25 ; scroll of identify q:3
 KFEAT:  D = book shop type:Must-Have suffix:Magic greed:7 count:12 use_all ; \
             book of summonings | book of spatial translocations | book of hexes |\
             book of death | book of the sky | book of the warp |\
             book of the earth | book of burglary | book of annihilations |\
             grand grimoire | necronomicon
-KFEAT:  EP = scroll shop greed:10 use_all count:14 ; \
+KFEAT:  EP = runescribe shop greed:10 use_all count:14 ; \
             scroll of blinking q:3 | scroll of blinking q:4 | scroll of blinking q:5 |\
             scroll of fog q:3 | scroll of fog q:4 | scroll of fog q:5 |\
             scroll of silence q:3 | scroll of brand weapon | scroll of vulnerability q:3 |\

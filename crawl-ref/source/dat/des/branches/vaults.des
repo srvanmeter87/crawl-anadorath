@@ -1239,7 +1239,7 @@ NSUBST:  A = 1:+ / *:x+
 NSUBST:  B = 1:+ / *:x+
 NSUBST:  C = 1:+ / *:x+
 NSUBST:  S = 3:S / 1:O / *:S99
-KFEAT:   S = scroll shop / distillery shop / abandoned_shop
+KFEAT:   S = runescribe shop / distillery shop / abandoned_shop
 NSUBST:  ' = 20:9 / *:.
 NSUBST:  . = 5:9 / *:.
 SUBST:   9 = 8 9 .:20
@@ -2280,7 +2280,7 @@ SHUFFLE: AB, CD
 SUBST:   A=+, B:xx+, C:xxx+, D:xxxx+
 NSUBST:  S = 2:S / 1:O / *:RRU9
 KFEAT:   S = jewellery shop / antique armour shop / gadget shop
-KFEAT:   R = general shop / book shop / scroll shop / antique weapon shop / distillery shop
+KFEAT:   R = general shop / book shop / runescribe shop / antique weapon shop / distillery shop
 KFEAT:   U = stone_arch
 NSUBST:  ' = 22:9 / *:.
 NSUBST:  . = 2:9 / *:.
