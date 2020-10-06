@@ -41,28 +41,28 @@ static iflags_t _full_ident_mask(const item_def& item);
 // XXX: Name strings in most of the following are currently unused!
 struct armour_def
 {
-    /// The armour_type enum of this armour type.
+    // The armour_type enum of this armour type.
     armour_type         id;
-    /// The name of the armour. (E.g. "robe".)
+    // The name of the armour. (E.g. "robe".)
     const char         *name;
-    /// The base AC value provided by the armour, before skill & enchant.
+    // The base AC value provided by the armour, before skill & enchant.
     int                 ac;
-    /// The base EV penalty of the armour; used for EV, stealth, spell %, &c.
+    // The base EV penalty of the armour; used for EV, stealth, spell %, &c.
     int                 ev;
-    /// The base price of the item in shops.
+    // The base price of the item in shops.
     int                 price;
 
-    /// The slot the armour is equipped into; e.g. EQ_BOOTS.
+    // The slot the armour is equipped into; e.g. EQ_BOOTS.
     equipment_type      slot;
-    /// The smallest size creature the armour will fit.
+    // The smallest size creature the armour will fit.
     size_type           fit_min;
-    /// The largest size creature the armour will fit.
+    // The largest size creature the armour will fit.
     size_type           fit_max;
-    /// Whether this armour is mundane or inherently 'special', for acq.
+    // Whether this armour is mundane or inherently 'special', for acq.
     bool                mundane; // (special armour doesn't need egos etc)
-    /// The resists, vulns, &c that this armour type gives when worn.
+    // The resists, vulns, &c that this armour type gives when worn.
     armflags_t          flags;
-    /// Used in body armour 'acquirement' code; higher = generated more.
+    // Used in body armour 'acquirement' code; higher = generated more.
     int                 acquire_weight;
 };
 
@@ -158,80 +158,81 @@ static const armour_def Armour_prop[] =
 
 typedef pair<brand_type, int> brand_weight_tuple;
 
-/// The standard properties for a given weapon type. (E.g. falchions)
+// The standard properties for a given weapon type. (E.g. falchions)
 struct weapon_def
 {
-    /// The weapon_type enum for this weapon type.
+    // The weapon_type enum for this weapon type.
     int                 id;
-    /// The name of this weapon type. (E.g. "club".)
+    // The name of this weapon type. (E.g. "club".)
     const char         *name;
-    /// The base damage of the weapon. (Later multiplied by skill, etc)
+    // The base damage of the weapon. (Later multiplied by skill, etc)
     int                 dam;
-    /// The base to-hit bonus of the weapon.
+    // The base to-hit bonus of the weapon.
     int                 hit;
-    /// The number of aut it takes to swing the weapon with 0 skill.
+    // The number of aut it takes to swing the weapon with 0 skill.
     int                 speed;
 
-    /// The weapon skill corresponding to this weapon's use.
+    // The weapon skill corresponding to this weapon's use.
     skill_type          skill;
-    /// The size of the smallest creature that can wield the weapon.
+    // The size of the smallest creature that can wield the weapon.
     size_type           min_2h_size;
-    /// The smallest creature that can wield the weapon one-handed.
+    // The smallest creature that can wield the weapon one-handed.
     size_type           min_1h_size;
-    /// The ammo fired by the weapon; MI_NONE for non-launchers.
+    // The ammo fired by the weapon; MI_NONE for non-launchers.
     missile_type        ammo;
 
-    /// A union of vorpal_damage_type flags (slash, crush, etc)
+    // A union of vorpal_damage_type flags (slash, crush, etc)
     int                 dam_type;
-    /// Used in *some* item generation code; higher = generated more often.
+    // Used in *some* item generation code; higher = generated more often.
     int                 commonness;
-    /// Used in *some* item 'acquirement' code; higher = generated more.
+    // Used in *some* item 'acquirement' code; higher = generated more.
     int                 acquire_weight;
-    /// Base pricing for shops, before egos, enchantment, etc.
+    // Base pricing for shops, before egos, enchantment, etc.
     int                 price;
-    /// Used in non-artefact ego item generation. If empty, default to NORMAL.
+    // Used in non-artefact ego item generation. If empty, default to NORMAL.
     vector<brand_weight_tuple> brand_weights;
 };
 
 /**
-  * "Why do we have all these ridiculous brand tables?"
-
-  1) The main purpose of weapon brand distribution varying across weapon type
-     is to help to balance the different weapon skills against each other -
-     staves and short blades getting better brands as partial compensation for
-     their other drawbacks, for instance. It is true that we have other knobs
-     that we also use to balance different weapon types, but they don't all
-     affect things in the same way. For instance, lajatangs having very good
-     brands on average partially compensates for the rarity of good staves in a
-     different way from how raising their base damage would - it means that
-     finding a really great staff is of more comparable rarity to finding a
-     really great axe. (This is important because finding a really great weapon
-     like a lajatang of speed or elec or pain is one of the ways that players
-     decide to use a weapon type in the first place.) Having this knob isn't
-     redundant with having base damage and delay to modify - it is similar to
-     being able to adjust the rarity of different base types of weapons.
-
- 2)  The secondary purpose of varying weapon brand distribution is to give
-     different weapon skills more individual feel. For instance, if you play a
-     lot of maces chars in a row, then you will get used to using a lot of
-     protection weapons and you'll never see vamp except on rare randarts, and
-     then when you switch to axes for a few games you'll actually find vamp
-     axes with some regularity and use them and be excited about that.
-
-     This isn't a particularly strong effect with the current distributions -
-     among the four "normal" weapon skills (axes/maces/polearms/longblades),
-     only the m&f distribution is particularly distinctive. But it is
-     definitely a noticeable effect if you play 5 non-maces games in a row and
-     follow up with 5 maces games, and it contributes to making maces feel more
-     distinct.
-
-     They could probably be simplified to a certain extent (only one set of
-     brands per weapon skill, for example), but there is a reason not to
-     simplify them down to just one table.
+ *  "Why do we have all these ridiculous brand tables?"
+ *
+ *  1) The main purpose of weapon brand distribution varying across weapon type
+ *    is to help to balance the different weapon skills against each other -
+ *    staves and short blades getting better brands as partial compensation for
+ *    their other drawbacks, for instance. It is true that we have other knobs
+ *    that we also use to balance different weapon types, but they don't all
+ *    affect things in the same way. For instance, lajatangs having very good
+ *    brands on average partially compensates for the rarity of good staves in a
+ *    different way from how raising their base damage would - it means that
+ *    finding a really great staff is of more comparable rarity to finding a
+ *    really great axe. (This is important because finding a really great weapon
+ *    like a lajatang of speed or elec or pain is one of the ways that players
+ *    decide to use a weapon type in the first place.) Having this knob isn't
+ *    redundant with having base damage and delay to modify - it is similar to
+ *    being able to adjust the rarity of different base types of weapons.
+ *
+ *  2) The secondary purpose of varying weapon brand distribution is to give
+ *    different weapon skills more individual feel. For instance, if you play a
+ *    lot of maces chars in a row, then you will get used to using a lot of
+ *    protection weapons and you'll never see vamp except on rare randarts, and
+ *    then when you switch to axes for a few games you'll actually find vamp
+ *    axes with some regularity and use them and be excited about that.
+ *
+ *    This isn't a particularly strong effect with the current distributions -
+ *    among the four "normal" weapon skills (axes/maces/polearms/longblades),
+ *    only the m&f distribution is particularly distinctive. But it is
+ *    definitely a noticeable effect if you play 5 non-maces games in a row and
+ *    follow up with 5 maces games, and it contributes to making maces feel more
+ *    distinct.
+ *
+ *    They could probably be simplified to a certain extent (only one set of
+ *    brands per weapon skill, for example), but there is a reason not to
+ *    simplify them down to just one table.
  */
 
-/// brand weights for non-dagger shortblades (short sword & rapier)
-static const vector<brand_weight_tuple> SBL_BRANDS = {
+// brand weights for non-dagger shortblades (short sword & rapier)
+static const vector<brand_weight_tuple> SBL_BRANDS =
+{
     { SPWPN_NORMAL,         33 },
     { SPWPN_VENOM,          17 },
     { SPWPN_SPEED,          10 },
@@ -246,8 +247,9 @@ static const vector<brand_weight_tuple> SBL_BRANDS = {
     { SPWPN_ANTIMAGIC,       1 },
 };
 
-/// brand weights for most m&f weapons
-static const vector<brand_weight_tuple> M_AND_F_BRANDS = {
+// brand weights for most m&f weapons
+static const vector<brand_weight_tuple> M_AND_F_BRANDS =
+{
     { SPWPN_PROTECTION,     30 },
     { SPWPN_NORMAL,         28 },
     { SPWPN_HOLY_WRATH,     15 },
@@ -259,14 +261,16 @@ static const vector<brand_weight_tuple> M_AND_F_BRANDS = {
     { SPWPN_PAIN,            1 },
 };
 
-/// brand weights for club-type weapons
-static const vector<brand_weight_tuple> CLUB_BRANDS = {
+// brand weights for club-type weapons
+static const vector<brand_weight_tuple> CLUB_BRANDS =
+{
     { SPWPN_NORMAL,          9 },
     { SPWPN_SPECTRAL,        1 },
 };
 
-/// brand weights for demon weapons (whip, blade, trident)
-static const vector<brand_weight_tuple> DEMON_BRANDS = {
+// brand weights for demon weapons (whip, blade, trident)
+static const vector<brand_weight_tuple> DEMON_BRANDS =
+{
     { SPWPN_NORMAL,         27 },
     { SPWPN_VENOM,          19 },
     { SPWPN_ELECTROCUTION,  16 },
@@ -278,8 +282,9 @@ static const vector<brand_weight_tuple> DEMON_BRANDS = {
     { SPWPN_ANTIMAGIC,       3 },
 };
 
-/// brand weights for long blades.
-static const vector<brand_weight_tuple> LBL_BRANDS = {
+// brand weights for long blades.
+static const vector<brand_weight_tuple> LBL_BRANDS =
+{
     { SPWPN_HOLY_WRATH,     23 },
     { SPWPN_NORMAL,         19 },
     { SPWPN_VORPAL,         15 },
@@ -295,8 +300,9 @@ static const vector<brand_weight_tuple> LBL_BRANDS = {
     { SPWPN_ANTIMAGIC,       1 },
 };
 
-/// brand weights for axes.
-static const vector<brand_weight_tuple> AXE_BRANDS = {
+// brand weights for axes.
+static const vector<brand_weight_tuple> AXE_BRANDS =
+{
     { SPWPN_NORMAL,         31 },
     { SPWPN_VORPAL,         16 },
     { SPWPN_ELECTROCUTION,  11 },
@@ -311,8 +317,9 @@ static const vector<brand_weight_tuple> AXE_BRANDS = {
     { SPWPN_HOLY_WRATH,      1 },
 };
 
-/// brand weights for most polearms.
-static const vector<brand_weight_tuple> POLEARM_BRANDS = {
+// brand weights for most polearms.
+static const vector<brand_weight_tuple> POLEARM_BRANDS =
+{
     { SPWPN_NORMAL,         36 },
     { SPWPN_VENOM,          17 },
     { SPWPN_PROTECTION,     12 },
@@ -326,16 +333,18 @@ static const vector<brand_weight_tuple> POLEARM_BRANDS = {
     { SPWPN_HOLY_WRATH,      1 },
 };
 
-/// brand weights for most ranged weapons.
-static const vector<brand_weight_tuple> RANGED_BRANDS = {
+// brand weights for most ranged weapons.
+static const vector<brand_weight_tuple> RANGED_BRANDS =
+{
     { SPWPN_NORMAL,         58 },
     { SPWPN_FLAMING,        16 },
     { SPWPN_FREEZING,       16 },
     { SPWPN_VORPAL,         10 },
 };
 
-/// brand weights for holy (TSO-blessed) weapons.
-static const vector<brand_weight_tuple> HOLY_BRANDS = {
+// brand weights for holy (TSO-blessed) weapons.
+static const vector<brand_weight_tuple> HOLY_BRANDS =
+{
     { SPWPN_HOLY_WRATH,    100 },
 };
 
@@ -349,7 +358,8 @@ static const weapon_def Weapon_prop[] =
         DAMV_CRUSHING, 10, 0, 10, CLUB_BRANDS },
     { WPN_WHIP,              "whip",                6,  2, 11,
         SK_MACES_FLAILS, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
-        DAMV_SLASHING, 4, 0, 25, {
+        DAMV_SLASHING, 4, 0, 25,
+        {
             { SPWPN_NORMAL,        34 },
             { SPWPN_VENOM,         16 },
             { SPWPN_ELECTROCUTION, 16 },
@@ -361,7 +371,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_HOLY_WRATH,     3 },
             { SPWPN_DISTORTION,     2 },
             { SPWPN_ANTIMAGIC,      1 },
-    }},
+        }
+    },
     { WPN_MACE,              "mace",                8,  3, 14,
         SK_MACES_FLAILS, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
         DAMV_CRUSHING, 9, 10, 30, M_AND_F_BRANDS },
@@ -370,7 +381,8 @@ static const weapon_def Weapon_prop[] =
         DAMV_CRUSHING, 8, 10, 35, M_AND_F_BRANDS },
     { WPN_MORNINGSTAR,       "morningstar",        13, -2, 15,
         SK_MACES_FLAILS, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
-        DAMV_CRUSHING | DAM_PIERCE, 7, 10, 40, {
+        DAMV_CRUSHING | DAM_PIERCE, 7, 10, 40,
+        {
             { SPWPN_PROTECTION,     30 },
             { SPWPN_NORMAL,         15 },
             { SPWPN_HOLY_WRATH,     15 },
@@ -383,7 +395,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_ANTIMAGIC,       2 },
             { SPWPN_PAIN,            2 },
             { SPWPN_VAMPIRISM,       2 },
-        }},
+        }
+    },
     { WPN_DEMON_WHIP,        "demon whip",         11,  1, 11,
         SK_MACES_FLAILS, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
         DAMV_SLASHING, 0, 2, 150, DEMON_BRANDS },
@@ -395,7 +408,8 @@ static const weapon_def Weapon_prop[] =
         DAMV_CRUSHING | DAM_PIERCE, 2, 10, 40, M_AND_F_BRANDS },
     { WPN_EVENINGSTAR,       "eveningstar",        15, -1, 15,
         SK_MACES_FLAILS, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
-        DAMV_CRUSHING | DAM_PIERCE, 0, 2, 150, {
+        DAMV_CRUSHING | DAM_PIERCE, 0, 2, 150,
+        {
             { SPWPN_PROTECTION,     30 },
             { SPWPN_DRAINING,       19 },
             { SPWPN_HOLY_WRATH,     15 },
@@ -408,7 +422,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_ANTIMAGIC,       2 },
             { SPWPN_PAIN,            2 },
             { SPWPN_VAMPIRISM,       2 },
-        }},
+        }
+    },
     { WPN_GREAT_MACE,        "great mace",         17, -4, 17,
         SK_MACES_FLAILS, SIZE_MEDIUM, NUM_SIZE_LEVELS, MI_NONE,
         DAMV_CRUSHING, 3, 10, 65, M_AND_F_BRANDS },
@@ -422,7 +437,8 @@ static const weapon_def Weapon_prop[] =
     // Short Blades
     { WPN_DAGGER,            "dagger",              4,  6, 10,
         SK_SHORT_BLADES, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
-        DAMV_PIERCING, 10, 10, 20, {
+        DAMV_PIERCING, 10, 10, 20,
+        {
             { SPWPN_VENOM,          28 },
             { SPWPN_NORMAL,         20 },
             { SPWPN_SPEED,          10 },
@@ -436,7 +452,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_PAIN,            2 },
             { SPWPN_DISTORTION,      1 },
             { SPWPN_ANTIMAGIC,       1 },
-        }},
+        }
+    },
     { WPN_QUICK_BLADE,       "quick blade",         5,  6,  7,
         SK_SHORT_BLADES, SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
         DAMV_PIERCING, 0, 2, 150, {} },
@@ -494,7 +511,8 @@ static const weapon_def Weapon_prop[] =
     // Polearms
     { WPN_SPEAR,             "spear",               6,  4, 11,
         SK_POLEARMS,     SIZE_LITTLE, SIZE_LITTLE, MI_NONE,
-        DAMV_PIERCING, 8, 10, 30, {
+        DAMV_PIERCING, 8, 10, 30,
+        {
             { SPWPN_NORMAL,     46 },
             { SPWPN_VENOM,      17 },
             { SPWPN_VORPAL,     12 },
@@ -504,7 +522,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_DISTORTION,  2 },
             { SPWPN_PAIN,        2 },
             { SPWPN_ANTIMAGIC,   2 },
-        }},
+        }
+    },
     { WPN_TRIDENT,           "trident",             9,  1, 13,
         SK_POLEARMS,     SIZE_LITTLE, SIZE_MEDIUM, MI_NONE,
         DAMV_PIERCING, 6, 10, 35, POLEARM_BRANDS },
@@ -534,7 +553,8 @@ static const weapon_def Weapon_prop[] =
         DAMV_CRUSHING, 0, 0, 15, {} },
     { WPN_QUARTERSTAFF,      "quarterstaff",        10, 3, 13,
         SK_STAVES,       SIZE_LITTLE, NUM_SIZE_LEVELS,  MI_NONE,
-        DAMV_CRUSHING, 8, 10, 40, {
+        DAMV_CRUSHING, 8, 10, 40,
+        {
             { SPWPN_NORMAL,     50 },
             { SPWPN_SPECTRAL,   18 },
             { SPWPN_DRAINING,    8 },
@@ -544,10 +564,12 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_PAIN,        2 },
             { SPWPN_HOLY_WRATH,  2 },
             { SPWPN_ANTIMAGIC,   2 },
-        }},
+        }
+    },
     { WPN_LAJATANG,          "lajatang",            16,-3, 14,
         SK_STAVES,       SIZE_LITTLE, NUM_SIZE_LEVELS, MI_NONE,
-        DAMV_SLICING, 2, 2, 150, {
+        DAMV_SLICING, 2, 2, 150,
+        {
             { SPWPN_NORMAL,         34 },
             { SPWPN_SPEED,          12 },
             { SPWPN_ELECTROCUTION,  12 },
@@ -557,7 +579,8 @@ static const weapon_def Weapon_prop[] =
             { SPWPN_PAIN,            7 },
             { SPWPN_ANTIMAGIC,       4 },
             { SPWPN_DISTORTION,      3 },
-        }},
+        }
+    },
 
     // Range weapons
 
@@ -1072,8 +1095,9 @@ special_armour_type get_armour_ego_type(const item_def &item)
     return static_cast<special_armour_type>(item.brand);
 }
 
-/// A map between monster species & their hides.
-static map<monster_type, armour_type> _monster_hides = {
+// A map between monster species & their hides.
+static map<monster_type, armour_type> _monster_hides =
+{
     { MONS_TROLL,               ARM_TROLL_LEATHER_ARMOUR },
     { MONS_DEEP_TROLL,          ARM_TROLL_LEATHER_ARMOUR },
     { MONS_IRON_TROLL,          ARM_TROLL_LEATHER_ARMOUR },
@@ -2763,7 +2787,7 @@ void expend_xp_evoker(int evoker_type)
     evoker_debt(evoker_type) += evoker_charge_xp_debt(evoker_type);
 }
 
-/// witchcraft. copied from mon-util.h's get_resist
+// witchcraft. copied from mon-util.h's get_resist
 static inline int _get_armour_flag(armflags_t all, armour_flag res)
 {
     if (res > ARMF_LAST_MULTI)

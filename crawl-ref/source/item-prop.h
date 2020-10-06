@@ -22,25 +22,35 @@ typedef uint32_t armflags_t;
 
 enum armour_flag
 {
+    // No resistances
     ARMF_NO_FLAGS           = 0,
-    // multilevel resistances
+    // Multilevel, RFire+
     ARMF_RES_FIRE           = 1 << 0,
+    // Multilevel, RCold+
     ARMF_RES_COLD           = 1 << 3,
+    // Multilevel, RNeg+
     ARMF_RES_NEG            = 1 << 6,
-    // misc (multilevel)
+    // Multilevel, Stlth+
     ARMF_STEALTH            = 1 << 9,
+    // Multilevel, Regen+
     ARMF_REGENERATION       = 1 << 13,
 
-    ARMF_LAST_MULTI, // must be >= any multi, < any boolean, exact value doesn't matter
+    // Must be >= any multi, < any boolean, but exact value matters not.
+    ARMF_LAST_MULTI,
 
-    // boolean resists
+    // Boolean, MagRes
     ARMF_RES_MAGIC          = 1 << 17,
+    // Boolean, RElec
     ARMF_RES_ELEC           = 1 << 18,
+    // Boolean, RPois
     ARMF_RES_POISON         = 1 << 19,
+    // Boolean, RCorr
     ARMF_RES_CORR           = 1 << 20,
+    // Boolean, RSteam
     ARMF_RES_STEAM          = 1 << 21,
-    // vulnerabilities
+    // Multilevel, RFire-
     ARMF_VUL_FIRE           = ard(ARMF_RES_FIRE, -1),
+    // Multilevel, RCold-
     ARMF_VUL_COLD           = ard(ARMF_RES_COLD, -1),
 };
 
@@ -59,8 +69,10 @@ void do_curse_item(item_def &item, bool quiet = true);
 void do_uncurse_item(item_def &item, bool check_bondage = true);
 inline constexpr bool item_type_has_curses(object_class_type base_type)
 {
-        return base_type == OBJ_WEAPONS || base_type == OBJ_ARMOUR
-               || base_type == OBJ_JEWELLERY || base_type == OBJ_STAVES;
+    return base_type == OBJ_WEAPONS
+        || base_type == OBJ_ARMOUR
+        || base_type == OBJ_JEWELLERY
+        || base_type == OBJ_STAVES;
 }
 
 // stationary:
