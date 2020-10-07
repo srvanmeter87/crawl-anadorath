@@ -1095,7 +1095,6 @@ bai_suizhen_dragon MONS_BAI_SUZHEN_DRAGON
 # must match monster_type enum order.
 draco-base-brown DRACO_BASE
 draco-base-black
-draco-base-mottle
 draco-base-yellow
 draco-base-green
 draco-base-purple
