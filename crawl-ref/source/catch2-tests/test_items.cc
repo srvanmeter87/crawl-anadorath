@@ -188,14 +188,20 @@ TEST_CASE("armour_prop_test", "[single-file]"){
     REQUIRE(armour_prop(ARM_SCALE_MAIL, PARM_AC) == 6);
 }
 
-TEST_CASE("Test all_item_subtypes() does not include removed items",
-          "[single-file]") {
-    const auto items = all_item_subtypes(OBJ_POTIONS);
-
-    const auto has_removed_item = find(items.begin(), items.end(), POT_POISON) != items.end();
-
-    REQUIRE(has_removed_item == false);
-}
+/**
+ *  Test unnecessary as the 35 tag upgrade removed removed items.
+ *
+ *  TEST_CASE("Test all_item_subtypes() does not include removed items",
+ *            "[single-file]")
+ *  {
+ *      const auto items = all_item_subtypes(OBJ_POTIONS);
+ *
+ *      const auto has_removed_item = find(items.begin(), items.end(),
+ *                                         POT_POISON) != items.end();
+ *
+ *      REQUIRE(has_removed_item == false);
+ *  }
+ */
 
 TEST_CASE("Test all_item_subtypes() does include items for each category",
           "[single-file]") {
