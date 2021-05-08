@@ -21,12 +21,12 @@ aptitudes:
   staves: 0
   unarmed_combat: 4
   bows: false
-  crossbows: 2
+  crossbows: false
   throwing: false
   slings: false
-  armour: 4
+  armour: false
   dodging: false
-  shields: 4
+  shields: 5
   spellcasting: 3
   conjurations: 2
   hexes: 0
@@ -128,6 +128,5 @@ recommended_weapons:
   - SK_AXES
   - SK_POLEARMS
   - SK_STAVES
-  - SK_CROSSBOWS
 walking_verb: thump
 altar_action: tower over

@@ -631,16 +631,15 @@ void dec_penance(god_type god, int val)
             if (have_passive(passive_t::neutral_slimes))
                 add_daction(DACT_SLIME_NEW_ATTEMPT);
 
-            if (have_passive(passive_t::elemental_conversion_1)
-                && !(have_passive(passive_t::elemental_conversion_2)))
-            {
-                simple_god_message(" calms elemental worshippers, neutralising them.");
-                add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
-            }
             if (have_passive(passive_t::elemental_conversion_2))
             {
-                simple_god_message(" restores your alliance with elemental worshippers.");
                 add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
+                simple_god_message(" restores your alliance with elemental worshippers.");
+            }
+            else if (have_passive(passive_t::elemental_conversion_1))
+            {
+                add_daction(DACT_ELEMENTAL_NEW_ATTEMPT);
+                simple_god_message(" calms elemental worshippers, neutralising them.");
             }
             if (have_passive(passive_t::friendly_plants)
                 && env.forest_awoken_until)
@@ -1488,6 +1487,12 @@ bool is_orcish_follower(const monster& mon)
 bool is_elemental_follower(const monster& mon)
 {
     return mon.alive() && mon.attitude == ATT_FRIENDLY
+           && mons_is_god_gift(mon, GOD_ANADORATH);
+}
+
+bool is_fellow_elemental(const monster& mon)
+{
+    return mon.alive() && mon.attitude == ATT_STRICT_NEUTRAL
            && mons_is_god_gift(mon, GOD_ANADORATH);
 }
 

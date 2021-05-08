@@ -425,7 +425,8 @@ static const vector<god_passive> god_passives[] =
               "are NOW greatly resistant to the primal elements",
               "Your elemental resistance dissipates" },
         {  4, passive_t::elemental_conversion_1,
-              "are NOW neutral to primal elementals" },
+              "are NOW neutral to primal elementals",
+              "are NOW hostile to primal elementals" },
         {  5, passive_t::elemental_shield_3,
               "have a large shield imbued with living air,"
               " allowing it to repel missiles",
